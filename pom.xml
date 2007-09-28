@@ -27,7 +27,7 @@
 	<repositories>
 		<repository>
 			<id>perforce-libs</id>
-			<url>file:${project.basedir}/lib</url>
+			<url>file:${basedir}/lib</url>
 			<layout>legacy</layout>
 		</repository>
 	</repositories>
