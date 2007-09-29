@@ -17,8 +17,8 @@
   
 	<dependencies>
     <dependency>
-    	<groupId>com.perforce.api</groupId>
-    	<artifactId>perforce</artifactId>
+    	<groupId>org.jvnet.hudson.plugins.perforce</groupId>
+    	<artifactId>p4</artifactId>
     	<version>1.0</version>
     	<scope>compile</scope>
     </dependency>
