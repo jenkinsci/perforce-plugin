@@ -1,35 +1,47 @@
 <project>
 	<modelVersion>4.0.0</modelVersion>
-	<parent>  
+	<parent>
 		<groupId>org.jvnet.hudson.plugins</groupId>
 		<artifactId>plugin</artifactId>
 		<version>1.144</version>
-	    <relativePath>../pom.xml</relativePath>
+		<relativePath>../pom.xml</relativePath>
 	</parent>
-	
+
 	<artifactId>perforce</artifactId>
-	<name>Hudson Perforce Plugin</name> 
+	<name>Hudson Perforce Plugin</name>
 	<packaging>hpi</packaging>
-	<version>.5-SNAPSHOT</version>
+	<version>0.6-SNAPSHOT</version>
 	<licenses>
-		<license><name>MIT License</name><comments>All source code is under the MIT license.</comments></license>
+		<license>
+			<name>MIT License</name>
+			<comments>
+				All source code is under the MIT license.
+			</comments>
+		</license>
 	</licenses>
-  
+
 	<dependencies>
-    <dependency>
-    	<groupId>org.jvnet.hudson.plugins.perforce</groupId>
-    	<artifactId>p4</artifactId>
-    	<version>1.0</version>
-    	<scope>compile</scope>
-    </dependency>
+		<dependency>
+			<groupId>com.tek42.perforce</groupId>
+			<artifactId>p4java</artifactId>
+			<version>0.6-SNAPSHOT</version>
+			<scope>compile</scope>
+		</dependency>
 	</dependencies>
-	
+
 	<repositories>
 		<repository>
-			<id>perforce-libs</id>
-			<url>file:${project.basedir}/lib</url>
-			<layout>legacy</layout>
+			<id>tek42.com</id>
+			<url>http://tek42.com/maven2/</url>
+			<releases>
+				<enabled>true</enabled>
+				<updatePolicy>never</updatePolicy>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
 		</repository>
+
 	</repositories>
-  
+
 </project>

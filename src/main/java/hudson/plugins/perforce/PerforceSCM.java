@@ -2,19 +2,13 @@ package hudson.plugins.perforce;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.*;
 import java.net.*;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.xml.utils.URI;
 import org.kohsuke.stapler.StaplerRequest;
-
-import com.perforce.api.Change;
-import com.perforce.api.Client;
-import com.perforce.api.Debug;
-import com.perforce.api.Env;
-import com.perforce.api.FileEntry;
-import com.perforce.api.PerforceException;
-import com.perforce.api.Utils;
 
 import hudson.FilePath;
 import hudson.Launcher;
@@ -23,8 +17,11 @@ import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.TaskListener;
 import hudson.scm.ChangeLogParser;
-import hudson.scm.SCM;
+import hudson.scm.*;
 import hudson.scm.SCMDescriptor;
+
+import com.tek42.perforce.*;
+import com.tek42.perforce.model.*;
 
 /**
  * Extends {@link SCM} to provide integration with Perforce SCM.
@@ -46,34 +43,47 @@ public class PerforceSCM extends SCM {
 	String p4SysDrive = "C:";
 	String p4SysRoot = "C:\\WINDOWS";
 	
-	String logFile = "p4.log";
-	String logLevel = "split";
+	int lastChange = 0;
 	
-	int lastChange;
-	
-	Env env;
+	Depot depot;
+		
+	public PerforceSCM(String p4User, String p4Pass, String p4Client, String p4Port, String projectPath, 
+						String p4Exe, String p4SysRoot, String p4SysDrive) {
+		
+		this.p4User = p4User;
+		this.p4Passwd = p4Pass;
+		this.p4Client = p4Client;
+		this.p4Port = p4Port;
+		this.projectPath = projectPath;
+		
+		if(p4Exe != null)
+			this.p4Exe = p4Exe;
+		
+		if(p4SysRoot != null)
+			this.p4SysRoot = p4SysRoot;
+		
+		if(p4SysDrive != null)
+			this.p4SysDrive = p4SysDrive;
+	}
 	
 	/**
-	 * Makes sure that the Perforce Env object is setup before we use it.
-	 *
-	 * @return
+	 * This only exists because we need to do initialization after we have been brought
+	 * back to life.  I'm not quite clear on stapler and how all that works.
+	 * At any rate, it doesn't look like we have an init() method for setting up our Depot
+	 * after all of the setters have been called.  Someone correct me if I'm wrong...
 	 */
-	private Env getP4Env() {
-		if(env == null) {
-			env = new Env();
-		
-			env.setUser(p4User);
-			env.setPassword(p4Passwd);
-			env.setClient(p4Client);
-			env.setPort(p4Port);
-			env.setPath(projectPath);
-			env.setExecutable(p4Exe);
-			env.setSystemDrive(p4SysDrive);
-			env.setSystemRoot(p4SysRoot);			
-			env.setProperty("p4.logfile", logFile);
-			env.setProperty("p4.log_level", logLevel);
+	private Depot getDepot() {
+		if(depot == null) {
+			depot = new Depot();
+			depot.setUser(p4User);
+			depot.setPassword(p4Passwd);
+			depot.setPort(p4Port);
+			depot.setClient(p4Client);
+			depot.setExecutable(p4Exe);
+			depot.setSystemDrive(p4SysDrive);
+			depot.setSystemRoot(p4SysRoot);
 		}
-		return env;
+		return depot;
 	}
 	
 	/**
@@ -116,9 +126,6 @@ public class PerforceSCM extends SCM {
 		
 		try {
 			listener.getLogger().println("Performing sync with Perforce for: " + projectPath);
-			// Perforce debug/log...
-			Debug.setDebugLevel(Debug.VERBOSE);
-		    Debug.setLogLevel(Debug.LOG_SPLIT);
 			
 			// Check to make sure our client is mapped to the local hudson directory...
 		    // The problem is that perforce assumes a local directory on your computer maps
@@ -131,9 +138,9 @@ public class PerforceSCM extends SCM {
 		    
 		    // 1. Retrieve the client specified, throw an exception if we are configured wrong and the
 		    // client spec doesn't exist.
-			Client client = Client.getClient(getP4Env(), p4Client);
-			if(client == null) {
-				throw new PerforceException("Client:  " + p4Client + " doesn't exist.");
+			Workspace p4workspace = getDepot().getWorkspace(p4Client);
+			if(p4workspace == null) {
+				throw new PerforceException("Workspace: " + p4Client + " doesn't exist.");
 			}
 
 			// 2. Before we sync, we need to update the client spec. (we do this on every build)
@@ -147,36 +154,39 @@ public class PerforceSCM extends SCM {
 			//	[Hudson]/[job]/workspace/[Project]/contents
 			// we get:
 			//	[Hudson]/[job]/workspace/contents
-			String view = projectPath + " //" + client.getName() + "/...";
+			String view = projectPath + " //" + p4workspace.getName() + "/...";
 			listener.getLogger().println("Changing P4 Client View to: " + view);
 			
 			// 4. Go and save the client using our custom method and not the Perforce API...
-			PerforceUtils.changeClientProject(getP4Env(), client.getName(), localPath, projectPath + " //" + client.getName() + "/...");
-			/*
-			client.setDescription("Hudson modified this on " + new Date());
-			client.setRoot(localPath);
-			PerforceUtils.saveClient(env, client);
-			*/
+			p4workspace.setRoot(localPath);
+			p4workspace.clearViews();
+			p4workspace.addView(view);
+			depot.saveWorkspace(p4workspace);
 			
-			// 5. Get the latest change and save it for use when polling...
-			lastChange = PerforceUtils.getLatestChangeForProject(getP4Env(), projectPath);
-			
-			
-			// Now we can actually do the sync process...
+			// 5. Get the list of changes since the last time we looked...
+			listener.getLogger().println("Last sync'd change: " + lastChange);
+			List<Changelist> changes = depot.getChangelists(projectPath, lastChange, -1);
+			if(changes.size() > 0) {
+				// save the last change we sync'd to for use when polling...
+				lastChange = changes.get(0).getChangeNumber();
+				System.out.println("Changelog file: " + changelogFile);
+				PerforceChangeLogSet.saveToChangeLog(new FileOutputStream(changelogFile), changes);
+			} else {
+				listener.getLogger().println("No changes since last build.");
+				createEmptyChangeLog(changelogFile, listener, "changelog");
+				return false;
+			}
+						
+			// 7. Now we can actually do the sync process...
 			long startTime = System.currentTimeMillis();
 			listener.getLogger().println("Sync'ing workspace to depot.");
-			
-			// Unfortunately, though the P4 client lets me sync to a specified changelist,
-			// It seems the java API doesn't allow it.  There is only a sync to head that I can see.
-			// (So while, I would like to sync to lastChange found above to ensure that no one checks in
-			// a change in between these two calls, I don't think its possible.)
 			
 			// XXX: There is a potential issue here.  If a user goes and deletes their workspace files they
 			// will never be downloaded from perforce again.  Perforce tracks what files you have on your local
 			// dev instance.  To get around this we would do a "force" sync.  Unfortunately, the API doesn't
 			// provide that option.  The workaround is to go into perforce and change the client to be sync'd
 			// to revision 0.
-			FileEntry.synchronizeWorkspace(getP4Env(), projectPath);	
+			depot.syncToHead(projectPath);
 			
 			listener.getLogger().println("Sync complete, took " + (System.currentTimeMillis() - startTime) + " MS");
 			
@@ -199,8 +209,7 @@ public class PerforceSCM extends SCM {
 	 */
 	@Override
 	public ChangeLogParser createChangeLogParser() {
-		// TODO Auto-generated method stub
-		return null;
+		return new PerforceChangeLogParser();
 	}
 
 	/* (non-Javadoc)
@@ -219,11 +228,11 @@ public class PerforceSCM extends SCM {
 		
 		try {
 			listener.getLogger().println("Looking for changes...");
-			Change changes[] = Change.getChanges(getP4Env(), projectPath);
-			listener.getLogger().println("Latest change in depot is: " + changes[0].getNumber());
-			listener.getLogger().println(changes[0].toString());
+			List<Changelist> changes = getDepot().getChangelists(projectPath, lastChange, 2);
+			listener.getLogger().println("Latest change in depot is: " + changes.get(0).getChangeNumber());
+			listener.getLogger().println(changes.get(0).toString());
 			listener.getLogger().println("Last sync'd change is : " + lastChange);
-			if(lastChange != changes[0].getNumber()) {
+			if(lastChange != changes.get(0).getChangeNumber()) {
 				return true;
 			}
 			return false;
@@ -237,29 +246,6 @@ public class PerforceSCM extends SCM {
 		}
 		
 		//return false;
-	}
-	
-	public PerforceSCM(String p4User, String p4Pass, String p4Client, String p4Port, String projectPath, String p4Exe, String p4SysRoot, String p4SysDrive, String logFile, String logLevel) {
-		this.p4User = p4User;
-		this.p4Passwd = p4Pass;
-		this.p4Client = p4Client;
-		this.p4Port = p4Port;
-		this.projectPath = projectPath;
-		
-		if(p4Exe != null)
-			this.p4Exe = p4Exe;
-		
-		if(p4SysRoot != null)
-			this.p4SysRoot = p4SysRoot;
-		
-		if(p4SysDrive != null)
-			this.p4SysDrive = p4SysDrive;
-		
-		if(logFile != null)
-			this.logFile = logFile;
-		
-		if(logLevel != null)
-			this.logLevel = logLevel;
 	}
 	
 	public static final class PerforceSCMDescriptor extends SCMDescriptor<PerforceSCM> {
@@ -282,13 +268,25 @@ public class PerforceSCM extends SCM {
                 req.getParameter("projectPath"),
                 req.getParameter("p4.exe"),
                 req.getParameter("p4.sysRoot"),
-                req.getParameter("p4.sysDrive"),
-                req.getParameter("p4.logFile"),
-                req.getParameter("p4.logLevel"));
+                req.getParameter("p4.sysDrive"));
         }
 
 	}
 
+	/**
+	 * @return the projectPath
+	 */
+	public String getProjectPath() {
+		return projectPath;
+	}
+
+	/**
+	 * @param projectPath the projectPath to set
+	 */
+	public void setProjectPath(String projectPath) {
+		this.projectPath = projectPath;
+	}
+	
 	/**
 	 * @return the p4User
 	 */
@@ -386,35 +384,14 @@ public class PerforceSCM extends SCM {
 	public void setP4Exe(String exe) {
 		p4Exe = exe;
 	}
-
-	/**
-	 * @return the projectPath
-	 */
-	public String getProjectPath() {
-		return projectPath;
+	
+	public void setLastChange(int change) {
+		lastChange = change;
 	}
-
-	/**
-	 * @param projectPath the projectPath to set
-	 */
-	public void setProjectPath(String projectPath) {
-		this.projectPath = projectPath;
+	
+	public int getLastChange() {
+		return lastChange;
 	}
-
-	public String getLogFile() {
-		return logFile;
-	}
-
-	public void setLogFile(String logFile) {
-		this.logFile = logFile;
-	}
-
-	public String getLogLevel() {
-		return logLevel;
-	}
-
-	public void setLogLevel(String logLevel) {
-		this.logLevel = logLevel;
-	}
+	
 }
 

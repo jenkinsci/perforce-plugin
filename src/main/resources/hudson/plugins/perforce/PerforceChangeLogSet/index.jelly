@@ -1,0 +1,52 @@
+<!--
+  Displays the Perforce change log.
+-->
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
+	<p>This is index.jelly</p>
+	<j:choose>
+		<j:when test="${it.emptySet}">
+      	No changes from last build.
+    	</j:when>
+		<j:otherwise>
+			<h2>Summary</h2>
+			<ol>
+				<j:forEach var="summary" items="${it.history}" varStatus="loop">
+					<li>
+						<st:out value="${summary.msg}" />
+					</li>
+				</j:forEach>
+			</ol>
+			<j:forEach var="entry" items="${it.history}" varStatus="loop">
+	
+				<div class="changeset-message">
+					<a name="detail${loop.index}"></a>
+					<img src="${rootURL}/plugin/perforce/icons/changelist.gif" border="0" style="vertical-align: middle"/>
+					<b>${loop.index + 1}. Change ${entry.change.changeNumber} <a href="${rootURL}/${entry.author.url}/">${cs.author}</a> on ${entry.change.date}</b>
+					<br/>
+	      			${entry.msgAnnotated}
+	      			<br/>
+	    		</div>
+	      			Files:
+	      			<br/>
+					<ul>
+						<j:forEach var="file" items="${entry.change.files}" varStatus="fileloop">
+							<li><img src="${rootURL}/plugin/perforce/icons/action-${file.action}.gif" border="0" style="vertical-align"/> ${file.filename} #${file.revision}</li>
+						</j:forEach>
+					</ul>
+	      
+	      			Jobs:
+	      			<br/>
+					<ul>
+						<j:forEach var="job" items="${entry.change.jobs}" varStatus="jobloop">
+							<li>${job.job} - ${job.status}<br/>
+	      					${job.description}
+	      					</li>
+						</j:forEach>
+					</ul>
+	
+				
+				
+			</j:forEach>
+		</j:otherwise>
+	</j:choose>
+</j:jelly>

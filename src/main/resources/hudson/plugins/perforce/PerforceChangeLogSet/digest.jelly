@@ -1,0 +1,25 @@
+<!--
+  Displays the Perforce change log digest.
+-->
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
+  <p>This is digest.jelly</p>
+  <j:choose>
+    <j:when test="${it.emptySet}">
+      No changes from last build.
+    </j:when>
+    <j:otherwise>
+      <b>Summary Of Changes</b>
+      <br/>
+      <table>
+        <j:forEach var="cs" items="${it.history}" varStatus="loop">
+          <tr>
+            <td>${loop.index + 1}.</td>
+            <td><a href="${rootURL}/${cs.author.url}/">${cs.author}</a></td>
+            <td><i>(<a href="changes#detail${loop.index}">detail</a>)</i></td>
+            <td> ${cs.msgAnnotated}</td>
+          </tr>
+        </j:forEach>
+      </table>
+    </j:otherwise>
+  </j:choose>
+</j:jelly>

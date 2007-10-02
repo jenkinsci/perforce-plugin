@@ -46,15 +46,4 @@
     </table>
   </f:entry>
   
-    <f:entry title="Logging" help="/plugin/perforce/help/logging.html">
-  	<table width="100%">
-  	<f:entry title="Log File">
-    	<f:textbox name="p4.logFile" value="${scm.logFile}" />
-    </f:entry>
-    <f:entry title="Log Level">
-    	<f:textbox name="p4.logLevel" value="${scm.logLevel}" />
-    </f:entry>
-    </table>
-  </f:entry>
-
 </j:jelly>
