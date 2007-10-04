@@ -46,4 +46,6 @@
     </table>
   </f:entry>
   
+  <t:listScmBrowsers name="p4.browser" />
+  
 </j:jelly>

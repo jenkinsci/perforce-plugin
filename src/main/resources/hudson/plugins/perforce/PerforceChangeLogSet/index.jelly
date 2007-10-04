@@ -4,11 +4,13 @@
   Shown when clicking on the detail link of any change on the change log summary.
 -->
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
+<j:set var="browser" value="${it.build.parent.scm.effectiveBrowser}"/>
 <j:choose>
 	<j:when test="${it.emptySet}">
 		No changes from last build.
 	</j:when>
 	<j:otherwise>
+		
 		<j:forEach var="entry" items="${it.history}" varStatus="loop">
 	
 			<div class="changeset-message" style="width: 650px; margin-bottom: 4px;">
@@ -25,7 +27,19 @@
 				Affected Files:
 				<ul style="list-style-type: none;">
 					<j:forEach var="file" items="${entry.change.files}" varStatus="fileloop">
-						<li><img src="${rootURL}/plugin/perforce/icons/action-${file.action}.gif" border="0" style="vertical-align"/> ${file.filename} #${file.revision}</li>
+						<li><img src="${rootURL}/plugin/perforce/icons/action-${file.action}.gif" border="0" style="vertical-align"/> 
+						<a href="${browser.getFileLink(file)}">${file.filename}</a>
+            			<j:set var="diff" value="${browser.getDiffLink(file)}"/>
+            			<j:choose>
+            				<j:when test="${diff!=null}">
+              					<st:nbsp/>
+              					<a href="${diff}">(#${file.revision})</a>
+              				</j:when>
+              				<j:otherwise>
+              				(#${file.revision})
+              				</j:otherwise>
+              			</j:choose>
+						</li>
 					</j:forEach>
 				</ul>
 			</j:if>

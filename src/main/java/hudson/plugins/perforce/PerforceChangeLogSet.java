@@ -150,10 +150,8 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
 	 */
 	public static void saveToChangeLog(OutputStream outputStream, List<Changelist> changes) throws IOException {
 		PrintStream stream = new PrintStream(outputStream);
-		System.out.println("Writing " + changes.size() + " chagnes to log");
 		stream.println("<changelog>");
 		for(Changelist change : changes) {
-			System.out.println("Change: " + change.getChangeNumber());
 			stream.println("\t<entry>");
 			stream.println("\t\t<changenumber>" + change.getChangeNumber() + "</changenumber>");
 			stream.println("\t\t<date>" + javaDateToStringDate(change.getDate()) + "</date>");

@@ -46,9 +46,11 @@ public class PerforceSCM extends SCM {
 	int lastChange = 0;
 	
 	Depot depot;
+	
+	PerforceRepositoryBrowser browser;
 		
 	public PerforceSCM(String p4User, String p4Pass, String p4Client, String p4Port, String projectPath, 
-						String p4Exe, String p4SysRoot, String p4SysDrive) {
+						String p4Exe, String p4SysRoot, String p4SysDrive, PerforceRepositoryBrowser browser) {
 		
 		this.p4User = p4User;
 		this.p4Passwd = p4Pass;
@@ -64,6 +66,8 @@ public class PerforceSCM extends SCM {
 		
 		if(p4SysDrive != null)
 			this.p4SysDrive = p4SysDrive;
+		
+		this.browser = browser;
 	}
 	
 	/**
@@ -204,6 +208,12 @@ public class PerforceSCM extends SCM {
 		}
 	}
 	
+	@Override
+	public PerforceRepositoryBrowser getBrowser() {
+	   return browser;
+	}
+
+	
 	/* (non-Javadoc)
 	 * @see hudson.scm.SCM#createChangeLogParser()
 	 */
@@ -251,7 +261,7 @@ public class PerforceSCM extends SCM {
 	public static final class PerforceSCMDescriptor extends SCMDescriptor<PerforceSCM> {
         
         private PerforceSCMDescriptor() {
-            super(PerforceSCM.class, null);
+            super(PerforceSCM.class, PerforceRepositoryBrowser.class);
             load();
         }
 
@@ -268,7 +278,8 @@ public class PerforceSCM extends SCM {
                 req.getParameter("projectPath"),
                 req.getParameter("p4.exe"),
                 req.getParameter("p4.sysRoot"),
-                req.getParameter("p4.sysDrive"));
+                req.getParameter("p4.sysDrive"),
+                RepositoryBrowsers.createInstance(PerforceRepositoryBrowser.class, req, "p4.browser"));
         }
 
 	}
