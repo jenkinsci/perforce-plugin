@@ -10,7 +10,7 @@
 	<artifactId>perforce</artifactId>
 	<name>Hudson Perforce Plugin</name>
 	<packaging>hpi</packaging>
-	<version>0.6-SNAPSHOT</version>
+	<version>0.9</version>
 	<licenses>
 		<license>
 			<name>MIT License</name>
@@ -24,7 +24,7 @@
 		<dependency>
 			<groupId>com.tek42.perforce</groupId>
 			<artifactId>p4java</artifactId>
-			<version>0.6-SNAPSHOT</version>
+			<version>0.7</version>
 			<scope>compile</scope>
 		</dependency>
 	</dependencies>
@@ -32,7 +32,7 @@
 	<repositories>
 		<repository>
 			<id>tek42.com</id>
-			<url>http://tek42.com/maven2/</url>
+			<url>http://tek42.com/maven2</url>
 			<releases>
 				<enabled>true</enabled>
 				<updatePolicy>never</updatePolicy>

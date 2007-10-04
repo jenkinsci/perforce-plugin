@@ -1,52 +1,47 @@
 <!--
-  Displays the Perforce change log.
+  Displays the detail view of the change log for a specific build.
+  
+  Shown when clicking on the detail link of any change on the change log summary.
 -->
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
-	<p>This is index.jelly</p>
-	<j:choose>
-		<j:when test="${it.emptySet}">
-      	No changes from last build.
-    	</j:when>
-		<j:otherwise>
-			<h2>Summary</h2>
-			<ol>
-				<j:forEach var="summary" items="${it.history}" varStatus="loop">
-					<li>
-						<st:out value="${summary.msg}" />
-					</li>
-				</j:forEach>
-			</ol>
-			<j:forEach var="entry" items="${it.history}" varStatus="loop">
+<j:choose>
+	<j:when test="${it.emptySet}">
+		No changes from last build.
+	</j:when>
+	<j:otherwise>
+		<j:forEach var="entry" items="${it.history}" varStatus="loop">
 	
-				<div class="changeset-message">
-					<a name="detail${loop.index}"></a>
-					<img src="${rootURL}/plugin/perforce/icons/changelist.gif" border="0" style="vertical-align: middle"/>
-					<b>${loop.index + 1}. Change ${entry.change.changeNumber} <a href="${rootURL}/${entry.author.url}/">${cs.author}</a> on ${entry.change.date}</b>
-					<br/>
-	      			${entry.msgAnnotated}
-	      			<br/>
-	    		</div>
-	      			Files:
-	      			<br/>
-					<ul>
-						<j:forEach var="file" items="${entry.change.files}" varStatus="fileloop">
-							<li><img src="${rootURL}/plugin/perforce/icons/action-${file.action}.gif" border="0" style="vertical-align"/> ${file.filename} #${file.revision}</li>
-						</j:forEach>
-					</ul>
+			<div class="changeset-message" style="width: 650px; margin-bottom: 4px;">
+				<a name="detail${loop.index}"></a>
+				<img src="${rootURL}/plugin/perforce/icons/changelist.gif" border="0" style="vertical-align: middle"/>
+				<b>${entry.change.changeNumber}</b> by <a href="${rootURL}/${entry.author.url}/">${entry.author}@${entry.change.workspace}</a> 
+				on <i:formatDate value="${entry.change.date}" type="both" dateStyle="medium" timeStyle="medium"/>
+				<br/>
+				${entry.msgAnnotated}
+				<br/>
+			</div>
+
+			<j:if test="${entry.change.files.size() > 0}">
+				Affected Files:
+				<ul style="list-style-type: none;">
+					<j:forEach var="file" items="${entry.change.files}" varStatus="fileloop">
+						<li><img src="${rootURL}/plugin/perforce/icons/action-${file.action}.gif" border="0" style="vertical-align"/> ${file.filename} #${file.revision}</li>
+					</j:forEach>
+				</ul>
+			</j:if>
 	      
-	      			Jobs:
-	      			<br/>
-					<ul>
-						<j:forEach var="job" items="${entry.change.jobs}" varStatus="jobloop">
-							<li>${job.job} - ${job.status}<br/>
-	      					${job.description}
-	      					</li>
-						</j:forEach>
-					</ul>
-	
+			<j:if test="${entry.change.jobs.size() > 0}">
+				Affected Jobs:
+				<ul style="list-style-type: none;">
+					<j:forEach var="job" items="${entry.change.jobs}" varStatus="jobloop">
+						<li><img src="${rootURL}/plugin/perforce/icons/job.gif" border="0" style="vertical-align"/> ${job.job} - ${job.status}<br/>
+						${job.description}
+						</li>
+					</j:forEach>
+				</ul>
+			</j:if>
 				
-				
-			</j:forEach>
-		</j:otherwise>
-	</j:choose>
+		</j:forEach>
+	</j:otherwise>
+</j:choose>
 </j:jelly>

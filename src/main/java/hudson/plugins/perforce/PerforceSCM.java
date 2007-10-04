@@ -165,7 +165,6 @@ public class PerforceSCM extends SCM {
 			
 			// 5. Get the list of changes since the last time we looked...
 			listener.getLogger().println("Last sync'd change: " + lastChange);
-			//List<Changelist> changes = depot.getChangelists(projectPath, lastChange, -1);
 			List<Changelist> changes = depot.getChanges().getChangelistsFromNumbers(depot.getChanges().getChangeNumbersTo(projectPath, lastChange + 1));
 			if(changes.size() > 0) {
 				// save the last change we sync'd to for use when polling...
