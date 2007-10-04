@@ -26,10 +26,13 @@
             <j:forEach var="c" items="${b.changeSet.iterator()}" varStatus="loop">
               <tr>
               	<td nowrap="true">
-              		<img src="${rootURL}/plugin/perforce/icons/changelist.gif" style="vertical-align: middle;"/> ${c.change.changeNumber} 
+              		<a href="${b.number}/changes#detail${loop.index}"><img src="${rootURL}/plugin/perforce/icons/changelist.gif" style="vertical-align: middle;"/> ${c.change.changeNumber}</a> 
               	</td>
               	<td>
-                	<a href="${rootURL}/${c.author.url}/">${c.author}</a>
+              		${c.change.date}
+              	</td>
+              	<td>
+                	<a href="${rootURL}/${c.author.url}/">${c.author}@${c.change.workspace}</a>
 				</td>
 				<td><i>
                 <j:set var="cslink" value="${browser.getChangeSetLink(c)}"/>
@@ -38,7 +41,7 @@
                     <a href="${cslink}">${browser.descriptor.displayName}</a>
                   </j:when>
                   <j:otherwise>
-                    <a href="${b.number}/changes#detail${loop.index}">detail</a>
+                    
                   </j:otherwise>
                 </j:choose>
 				</i></td>

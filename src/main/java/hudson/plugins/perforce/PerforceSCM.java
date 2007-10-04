@@ -138,7 +138,7 @@ public class PerforceSCM extends SCM {
 		    
 		    // 1. Retrieve the client specified, throw an exception if we are configured wrong and the
 		    // client spec doesn't exist.
-			Workspace p4workspace = getDepot().getWorkspace(p4Client);
+			Workspace p4workspace = getDepot().getWorkspaces().getWorkspace(p4Client);
 			if(p4workspace == null) {
 				throw new PerforceException("Workspace: " + p4Client + " doesn't exist.");
 			}
@@ -161,11 +161,12 @@ public class PerforceSCM extends SCM {
 			p4workspace.setRoot(localPath);
 			p4workspace.clearViews();
 			p4workspace.addView(view);
-			depot.saveWorkspace(p4workspace);
+			depot.getWorkspaces().saveWorkspace(p4workspace);
 			
 			// 5. Get the list of changes since the last time we looked...
 			listener.getLogger().println("Last sync'd change: " + lastChange);
-			List<Changelist> changes = depot.getChangelists(projectPath, lastChange, -1);
+			//List<Changelist> changes = depot.getChangelists(projectPath, lastChange, -1);
+			List<Changelist> changes = depot.getChanges().getChangelistsFromNumbers(depot.getChanges().getChangeNumbersTo(projectPath, lastChange + 1));
 			if(changes.size() > 0) {
 				// save the last change we sync'd to for use when polling...
 				lastChange = changes.get(0).getChangeNumber();
@@ -186,7 +187,7 @@ public class PerforceSCM extends SCM {
 			// dev instance.  To get around this we would do a "force" sync.  Unfortunately, the API doesn't
 			// provide that option.  The workaround is to go into perforce and change the client to be sync'd
 			// to revision 0.
-			depot.syncToHead(projectPath);
+			depot.getWorkspaces().syncToHead(projectPath);
 			
 			listener.getLogger().println("Sync complete, took " + (System.currentTimeMillis() - startTime) + " MS");
 			
@@ -228,7 +229,7 @@ public class PerforceSCM extends SCM {
 		
 		try {
 			listener.getLogger().println("Looking for changes...");
-			List<Changelist> changes = getDepot().getChangelists(projectPath, lastChange, 2);
+			List<Changelist> changes = getDepot().getChanges().getChangelists(projectPath, -1, 1);
 			listener.getLogger().println("Latest change in depot is: " + changes.get(0).getChangeNumber());
 			listener.getLogger().println(changes.get(0).toString());
 			listener.getLogger().println("Last sync'd change is : " + lastChange);
