@@ -16,6 +16,8 @@
   	<f:entry title="Depot Path">
     	<f:textbox name="projectPath" value="${scm.projectPath}" />
     </f:entry>
+    <f:entry title="Force One Time Sync">
+    	<f:checkbox name="forceSync" checked="false" value="True"/>
   	</table>
   </f:entry>
   

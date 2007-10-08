@@ -48,9 +48,14 @@ public class PerforceSCM extends SCM {
 	Depot depot;
 	
 	PerforceRepositoryBrowser browser;
+	/**
+	 * force sync is a one time trigger from the config area to force a sync with the depot.
+	 * it is reset to false after the first checkout.
+	 */
+	boolean forceSync = false;
 		
 	public PerforceSCM(String p4User, String p4Pass, String p4Client, String p4Port, String projectPath, 
-						String p4Exe, String p4SysRoot, String p4SysDrive, PerforceRepositoryBrowser browser) {
+						String p4Exe, String p4SysRoot, String p4SysDrive, boolean forceSync, PerforceRepositoryBrowser browser) {
 		
 		this.p4User = p4User;
 		this.p4Passwd = p4Pass;
@@ -67,6 +72,7 @@ public class PerforceSCM extends SCM {
 		if(p4SysDrive != null)
 			this.p4SysDrive = p4SysDrive;
 		
+		this.forceSync = forceSync;
 		this.browser = browser;
 	}
 	
@@ -194,6 +200,8 @@ public class PerforceSCM extends SCM {
 			// provide that option.  The workaround is to go into perforce and change the client to be sync'd
 			// to revision 0.
 			depot.getWorkspaces().syncToHead(projectPath);
+			//depot.getWorkspaces().syncToHead(projectPath, forceSync);
+			forceSync = false;
 			
 			listener.getLogger().println("Sync complete, took " + (System.currentTimeMillis() - startTime) + " MS");
 			
@@ -276,6 +284,11 @@ public class PerforceSCM extends SCM {
         }
 
         public SCM newInstance(StaplerRequest req) throws FormException {
+        	String value = req.getParameter("p4.forceSync");
+        	boolean force = false;
+        	if(value != null && !value.equals(""))
+        		force = new Boolean(value);
+        	
             return new PerforceSCM(
                 req.getParameter("p4.user"),
                 req.getParameter("p4.passwd"),
@@ -285,6 +298,7 @@ public class PerforceSCM extends SCM {
                 req.getParameter("p4.exe"),
                 req.getParameter("p4.sysRoot"),
                 req.getParameter("p4.sysDrive"),
+                force,
                 RepositoryBrowsers.createInstance(PerforceRepositoryBrowser.class, req, "p4.browser"));
         }
 

@@ -95,6 +95,37 @@ public class PerforceTagAction extends AbstractScmTagAction {
     }
 
     /**
+     * Checks to see if the user entered tag matches any Perforce restrictions.
+     */
+    public String isInvalidTag(String tag) {
+    	Pattern spaces = Pattern.compile("\\s{1,}");
+
+    	Matcher m = spaces.matcher(tag);
+    	if(m.find()) {
+    		return "Spaces are not allowed.";
+    	}
+    	
+    	return null;
+    }
+    
+    /**
+     * Checks if the value is a valid CVS tag name.
+     */
+    public synchronized void doCheckTag(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+        new FormFieldValidator(req,rsp,false) {
+            protected void check() throws IOException, ServletException {
+                String tag = fixNull(request.getParameter("value")).trim();
+                if(tag.length()==0) {// nothing entered yet
+                    ok();
+                    return;
+                }
+
+                error(isInvalidTag(tag));
+            }
+        }.check();
+    }
+    
+    /**
      * Invoked to actually tag the workspace.
      */
     public synchronized void doSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {

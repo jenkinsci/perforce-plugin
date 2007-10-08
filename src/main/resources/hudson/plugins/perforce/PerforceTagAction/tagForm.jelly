@@ -42,8 +42,9 @@
 	      	<tr>
 	      		<td nowrap="nowrap"><b>Label Name:</b> </td>
 	      		<td><input type="text" name="name"
-	                       value="${it.build.project.name}-Build-${it.build.number}" style="width:300px" id="name" />
-	                    </td>
+	                       	value="${it.build.project.name}-Build-${it.build.number}" style="width:300px" id="name" class="validated"
+                   			checkUrl="'checkTag?value='+escape(this.value)"/>
+				</td>
 	        </tr>
 	        <tr>
 	        	<td><b>Description:</b> </td>
