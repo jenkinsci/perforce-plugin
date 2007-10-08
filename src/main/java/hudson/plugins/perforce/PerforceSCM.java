@@ -117,6 +117,9 @@ public class PerforceSCM extends SCM {
 		if(sep.equals("\\")) {
 			// just replace with sep doesn't work because java's foobar regexp replaceAll
 			uriString = uriString.replaceAll("/", "\\\\");
+		} else {
+			// on unixen we need to prepend with /
+			uriString = "/" + uriString;
 		}
 		
 		return uriString;
@@ -178,7 +181,7 @@ public class PerforceSCM extends SCM {
 			} else {
 				listener.getLogger().println("No changes since last build.");
 				createEmptyChangeLog(changelogFile, listener, "changelog");
-				return false;
+				//return false;
 			}
 						
 			// 7. Now we can actually do the sync process...
@@ -193,6 +196,9 @@ public class PerforceSCM extends SCM {
 			depot.getWorkspaces().syncToHead(projectPath);
 			
 			listener.getLogger().println("Sync complete, took " + (System.currentTimeMillis() - startTime) + " MS");
+			
+			// Add tagging action...
+			build.addAction(new PerforceTagAction(build, depot, lastChange, projectPath));
 			
 			// And I'm spent...
 			
