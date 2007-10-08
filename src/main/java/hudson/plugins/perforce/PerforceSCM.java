@@ -12,6 +12,9 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.util.FormFieldValidator;
+import static hudson.Util.fixEmpty;
+import static hudson.Util.fixNull;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -19,6 +22,10 @@ import hudson.model.TaskListener;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.*;
 import hudson.scm.SCMDescriptor;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+
+import javax.servlet.ServletException;
 
 import com.tek42.perforce.*;
 import com.tek42.perforce.model.*;
@@ -184,10 +191,10 @@ public class PerforceSCM extends SCM {
 				lastChange = changes.get(0).getChangeNumber();
 				System.out.println("Changelog file: " + changelogFile);
 				PerforceChangeLogSet.saveToChangeLog(new FileOutputStream(changelogFile), changes);
-			} else {
+			} else if(!forceSync) {
 				listener.getLogger().println("No changes since last build.");
 				createEmptyChangeLog(changelogFile, listener, "changelog");
-				//return false;
+				return false;
 			}
 						
 			// 7. Now we can actually do the sync process...
@@ -199,8 +206,7 @@ public class PerforceSCM extends SCM {
 			// dev instance.  To get around this we would do a "force" sync.  Unfortunately, the API doesn't
 			// provide that option.  The workaround is to go into perforce and change the client to be sync'd
 			// to revision 0.
-			depot.getWorkspaces().syncToHead(projectPath);
-			//depot.getWorkspaces().syncToHead(projectPath, forceSync);
+			depot.getWorkspaces().syncToHead(projectPath, forceSync);
 			forceSync = false;
 			
 			listener.getLogger().println("Sync complete, took " + (System.currentTimeMillis() - startTime) + " MS");
@@ -300,6 +306,62 @@ public class PerforceSCM extends SCM {
                 req.getParameter("p4.sysDrive"),
                 force,
                 RepositoryBrowsers.createInstance(PerforceRepositoryBrowser.class, req, "p4.browser"));
+        }
+        
+    	public String isValidProjectPath(String path) {
+    		if(!path.startsWith("//depot/")) {
+    			return "Path must start with //depot/";
+    		}
+    		if(!path.endsWith("/...")) {
+    			return "Path must end with Perforce wildcard: '/...'";
+    		}
+    		return null;
+    	}
+    	
+    	public void doValidatePerforceLogin(StaplerRequest request, StaplerResponse rsp) throws IOException, ServletException {
+    		new FormFieldValidator(request,rsp,false) {
+                protected void check() throws IOException, ServletException {
+                	String port = fixNull(request.getParameter("port")).trim();
+                	String exe = fixNull(request.getParameter("exe")).trim();
+                	String user = fixNull(request.getParameter("user")).trim();
+                    String pass = fixNull(request.getParameter("pass")).trim();
+
+                    if(port.length()==0 || exe.length() == 0 || user.length() == 0 || pass.length() == 0) {// nothing entered yet
+                        ok();
+                        return;
+                    }
+                    Depot depot = new Depot();
+                    depot.setUser(user);
+        			depot.setPassword(pass);
+        			depot.setPort(port);
+        			depot.setExecutable(exe);
+        			
+        			try {
+        				depot.getStatus().isValid();
+        			} catch(PerforceException e) {
+        				error(e.getMessage());
+        			}
+        			ok();
+        			return;                    
+                }
+            }.check();
+    	}
+        
+        /**
+         * Checks if the value is a valid Perforce project path.
+         */
+        public void doCheckProjectPath(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+            new FormFieldValidator(req,rsp,false) {
+                protected void check() throws IOException, ServletException {
+                    String tag = fixNull(request.getParameter("value")).trim();
+                    if(tag.length()==0) {// nothing entered yet
+                        ok();
+                        return;
+                    }
+
+                    error(isValidProjectPath(tag));
+                }
+            }.check();
         }
 
 	}

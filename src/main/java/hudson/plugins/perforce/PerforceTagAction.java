@@ -8,6 +8,9 @@ import hudson.model.TaskListener;
 import hudson.model.LargeText;
 import hudson.scm.SubversionSCM.SvnInfo;
 import hudson.util.CopyOnWriteMap;
+import hudson.util.FormFieldValidator;
+import static hudson.Util.fixEmpty;
+import static hudson.Util.fixNull;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.tmatesoft.svn.core.SVNException;
@@ -109,13 +112,13 @@ public class PerforceTagAction extends AbstractScmTagAction {
     }
     
     /**
-     * Checks if the value is a valid CVS tag name.
+     * Checks if the value is a valid Perforce tag (label) name.
      */
     public synchronized void doCheckTag(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         new FormFieldValidator(req,rsp,false) {
             protected void check() throws IOException, ServletException {
-                String tag = fixNull(request.getParameter("value")).trim();
-                if(tag.length()==0) {// nothing entered yet
+                String tag = fixEmpty(request.getParameter("value")).trim();
+                if(tag == null) {// nothing entered yet
                     ok();
                     return;
                 }
@@ -143,8 +146,8 @@ public class PerforceTagAction extends AbstractScmTagAction {
         try {
         	depot.getLabels().saveLabel(label);
         } catch(PerforceException e) {
-        	tag = "";
-        	desc = "";
+        	tag = null;
+        	desc = null;
         	e.printStackTrace();
         	throw new IOException("Failed to issue perforce label.", e);
         }

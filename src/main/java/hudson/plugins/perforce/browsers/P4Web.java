@@ -5,12 +5,15 @@ import hudson.model.Descriptor;
 import hudson.plugins.perforce.*;
 import hudson.scm.RepositoryBrowser;
 import hudson.util.FormFieldValidator;
+
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.regex.Pattern;
@@ -91,35 +94,50 @@ public class P4Web extends PerforceRepositoryBrowser {
         public void doCheck(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
             new FormFieldValidator.URLCheck(req,rsp) {
                 protected void check() throws IOException, ServletException {
-                    String value = fixEmpty(request.getParameter("value"));
-                    if(value==null) {// nothing entered yet
+                    String host = fixEmpty(request.getParameter("url"));
+                    String user = fixEmpty(request.getParameter("user"));
+                    String pass = fixEmpty(request.getParameter("pass"));
+                    if(host==null) {// nothing entered yet
                         ok();
                         return;
                     }
 
-                    if(!value.endsWith("/")) value+='/';
-                    if(!value.startsWith("http://")) {
+                    if(!host.endsWith("/")) 
+                    	host += '/';
+                    
+                    if(!host.startsWith("http://")) {
                         errorWithMarkup("The URL should contain <tt>http://</tt>");
                         return;
                     }
-
-                    // until we can get ahold of the username and password from other parts of the
-                    // form, we need to skip this part.
-                    /*
+                    /**
+                     * We need a base64 encoder in order to do authentication.
+                     * 
+                    String login = user + ":" + pass;
+    				String encodedLogin = new BASE64Encoder().encodeBuffer(login.getBytes());
+            		
+            		URL url = new URL(host);
+            		HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            			
+            		if(encodedLogin != null)
+            			con.setRequestProperty("Authorization", "Basic " + encodedLogin);
+            		
+            		// really our only other option we care about.
+            		con.setInstanceFollowRedirects(true);
+                    
                     try {
-                        if(findText(open(new URL(value)), "P4Web")) {
+                        if(findText(open(con), "P4Web")) {
                             ok();
                         } else {
                             error("This is a valid URL but it doesn't look like P4Web is running");
                         }
                     } catch (IOException e) {
-                        handleIOException(value,e);
+                        handleIOException(host, e);
                     }
                     */
                 }
             }.process();
         }
-
+  
         public P4Web newInstance(StaplerRequest req) throws FormException {
             return req.bindParameters(P4Web.class,"p4web.");
         }
