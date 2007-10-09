@@ -151,7 +151,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
         	e.printStackTrace();
         	throw new IOException("Failed to issue perforce label.", e);
         }
-        
+        build.save();
         rsp.sendRedirect(".");
     }
 }
