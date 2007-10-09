@@ -201,11 +201,8 @@ public class PerforceSCM extends SCM {
 			long startTime = System.currentTimeMillis();
 			listener.getLogger().println("Sync'ing workspace to depot.");
 			
-			// XXX: There is a potential issue here.  If a user goes and deletes their workspace files they
-			// will never be downloaded from perforce again.  Perforce tracks what files you have on your local
-			// dev instance.  To get around this we would do a "force" sync.  Unfortunately, the API doesn't
-			// provide that option.  The workaround is to go into perforce and change the client to be sync'd
-			// to revision 0.
+			if(forceSync)
+				listener.getLogger().println("ForceSync flag is set, forcing: p4 sync " + projectPath);
 			depot.getWorkspaces().syncToHead(projectPath, forceSync);
 			forceSync = false;
 			

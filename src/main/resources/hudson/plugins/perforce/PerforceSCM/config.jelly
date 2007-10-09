@@ -18,7 +18,7 @@
             checkUrl="'${rootURL}/scm/PerforceSCM/checkProjectPath?value='+escape(this.value)"/>
     </f:entry>
     <f:entry title="One Time Force Sync">
-    	<f:checkbox name="forceSync" checked="false" value="True"/>
+    	<f:checkbox name="p4.forceSync" checked="false" value="True"/>
     </f:entry>
   	</table>
   </f:entry>
