@@ -306,11 +306,11 @@ public class PerforceSCM extends SCM {
         }
         
     	public String isValidProjectPath(String path) {
-    		if(!path.startsWith("//depot/")) {
-    			return "Path must start with //depot/";
+    		if(!path.startsWith("//")) {
+    			return "Path must start with '//' (Example: //depot/ProjectName/...)";
     		}
     		if(!path.endsWith("/...")) {
-    			return "Path must end with Perforce wildcard: '/...'";
+    			return "Path must end with Perforce wildcard: '/...'  (Example: //depot/ProjectName/...)";
     		}
     		return null;
     	}
