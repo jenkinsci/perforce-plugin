@@ -10,7 +10,7 @@
 	<artifactId>perforce</artifactId>
 	<name>Hudson Perforce Plugin</name>
 	<packaging>hpi</packaging>
-	<version>1.0.1</version>
+	<version>1.0.2</version>
 	<licenses>
 		<license>
 			<name>MIT License</name>

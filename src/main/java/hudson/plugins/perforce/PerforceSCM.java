@@ -193,8 +193,7 @@ public class PerforceSCM extends SCM {
 				PerforceChangeLogSet.saveToChangeLog(new FileOutputStream(changelogFile), changes);
 			} else if(!forceSync) {
 				listener.getLogger().println("No changes since last build.");
-				createEmptyChangeLog(changelogFile, listener, "changelog");
-				return false;
+				return createEmptyChangeLog(changelogFile, listener, "changelog");
 			}
 						
 			// 7. Now we can actually do the sync process...
