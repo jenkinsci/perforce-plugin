@@ -1,5 +1,6 @@
 package hudson.plugins.perforce;
 
+import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.scm.ChangeLogSet;
 
@@ -150,19 +151,20 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
 	 */
 	public static void saveToChangeLog(OutputStream outputStream, List<Changelist> changes) throws IOException {
 		PrintStream stream = new PrintStream(outputStream);
+		stream.println("<?xml version='1.0' encoding='UTF-8'?>");
 		stream.println("<changelog>");
 		for(Changelist change : changes) {
 			stream.println("\t<entry>");
 			stream.println("\t\t<changenumber>" + change.getChangeNumber() + "</changenumber>");
-			stream.println("\t\t<date>" + javaDateToStringDate(change.getDate()) + "</date>");
-			stream.println("\t\t<description>" + change.getDescription() + "</description>");
-			stream.println("\t\t<user>" + change.getUser() + "</user>");
-			stream.println("\t\t<workspace>" + change.getWorkspace() + "</workspace>");
+			stream.println("\t\t<date>" + Util.xmlEscape(javaDateToStringDate(change.getDate())) + "</date>");
+			stream.println("\t\t<description>" + Util.xmlEscape(change.getDescription()) + "</description>");
+			stream.println("\t\t<user>" + Util.xmlEscape(change.getUser()) + "</user>");
+			stream.println("\t\t<workspace>" + Util.xmlEscape(change.getWorkspace()) + "</workspace>");
 			stream.println("\t\t<files>");
 			for(Changelist.FileEntry entry : change.getFiles()) {
 				stream.println("\t\t\t<file>");
-				stream.println("\t\t\t\t<name>" + entry.getFilename() + "</name>");
-				stream.println("\t\t\t\t<rev>" + entry.getRevision() + "</rev>");
+				stream.println("\t\t\t\t<name>" + Util.xmlEscape(entry.getFilename()) + "</name>");
+				stream.println("\t\t\t\t<rev>" + Util.xmlEscape(entry.getRevision()) + "</rev>");
 				stream.println("\t\t\t\t<action>" + entry.getAction() + "</action>");
 				stream.println("\t\t\t</file>");
 			}
@@ -170,9 +172,9 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
 			stream.println("\t\t<jobs>");
 			for(Changelist.JobEntry entry : change.getJobs()) {
 				stream.println("\t\t\t<job>");
-				stream.println("\t\t\t\t<name>" + entry.getJob() + "</name>");
-				stream.println("\t\t\t\t<description>" + entry.getDescription() + "</description>");
-				stream.println("\t\t\t\t<status>" + entry.getStatus() + "</status>");
+				stream.println("\t\t\t\t<name>" + Util.xmlEscape(entry.getJob()) + "</name>");
+				stream.println("\t\t\t\t<description>" + Util.xmlEscape(entry.getDescription()) + "</description>");
+				stream.println("\t\t\t\t<status>" + Util.xmlEscape(entry.getStatus()) + "</status>");
 				stream.println("\t\t\t</job>");
 			}
 			stream.println("\t\t</jobs>");

@@ -19,6 +19,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.TaskListener;
+import hudson.model.Actionable;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.*;
 import hudson.scm.SCMDescriptor;
@@ -49,8 +50,6 @@ public class PerforceSCM extends SCM {
 	String p4Exe = "C:\\Program Files\\Perforce\\p4.exe";
 	String p4SysDrive = "C:";
 	String p4SysRoot = "C:\\WINDOWS";
-	
-	int lastChange = 0;
 	
 	Depot depot;
 	
@@ -184,12 +183,12 @@ public class PerforceSCM extends SCM {
 			depot.getWorkspaces().saveWorkspace(p4workspace);
 			
 			// 5. Get the list of changes since the last time we looked...
+			int lastChange = getLastChange(build.getPreviousBuild());
 			listener.getLogger().println("Last sync'd change: " + lastChange);
 			List<Changelist> changes = depot.getChanges().getChangelistsFromNumbers(depot.getChanges().getChangeNumbersTo(projectPath, lastChange + 1));
 			if(changes.size() > 0) {
 				// save the last change we sync'd to for use when polling...
 				lastChange = changes.get(0).getChangeNumber();
-				System.out.println("Changelog file: " + changelogFile);
 				PerforceChangeLogSet.saveToChangeLog(new FileOutputStream(changelogFile), changes);
 			} else if(!forceSync) {
 				listener.getLogger().println("No changes since last build.");
@@ -253,14 +252,17 @@ public class PerforceSCM extends SCM {
 	public boolean pollChanges(AbstractProject project, Launcher launcher, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
 		
 		try {
+			int lastChange = getLastChange(project.getLastBuild());
 			listener.getLogger().println("Looking for changes...");
 			List<Changelist> changes = getDepot().getChanges().getChangelists(projectPath, -1, 1);
 			listener.getLogger().println("Latest change in depot is: " + changes.get(0).getChangeNumber());
 			listener.getLogger().println(changes.get(0).toString());
 			listener.getLogger().println("Last sync'd change is : " + lastChange);
 			if(lastChange != changes.get(0).getChangeNumber()) {
+				listener.getLogger().println("New changes detected, triggering a build.");
 				return true;
 			}
+			listener.getLogger().println("We have nothing to do.");
 			return false;
 		} catch(PerforceException e) {
 			System.out.println("Problem: " + e.getMessage());
@@ -272,6 +274,12 @@ public class PerforceSCM extends SCM {
 		}
 		
 		//return false;
+	}
+	
+	public static int getLastChange(Actionable build) {
+		PerforceTagAction action = build.getAction(PerforceTagAction.class);
+		int lastChange = action.getChangeNumber();
+		return lastChange;
 	}
 	
 	public static final class PerforceSCMDescriptor extends SCMDescriptor<PerforceSCM> {
@@ -473,14 +481,5 @@ public class PerforceSCM extends SCM {
 	public void setP4Exe(String exe) {
 		p4Exe = exe;
 	}
-	
-	public void setLastChange(int change) {
-		lastChange = change;
-	}
-	
-	public int getLastChange() {
-		return lastChange;
-	}
-	
 }
 
