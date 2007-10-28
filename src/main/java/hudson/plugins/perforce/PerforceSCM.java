@@ -1,35 +1,34 @@
 package hudson.plugins.perforce;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.*;
-import java.net.*;
-import java.util.Date;
-import java.util.List;
-
-import org.apache.xml.utils.URI;
-import org.kohsuke.stapler.StaplerRequest;
-
+import static hudson.Util.fixNull;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.util.FormFieldValidator;
-import static hudson.Util.fixEmpty;
-import static hudson.Util.fixNull;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.Actionable;
 import hudson.model.BuildListener;
 import hudson.model.TaskListener;
-import hudson.model.Actionable;
 import hudson.scm.ChangeLogParser;
-import hudson.scm.*;
+import hudson.scm.RepositoryBrowsers;
+import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import hudson.util.FormFieldValidator;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URLDecoder;
+import java.util.List;
 
 import javax.servlet.ServletException;
 
-import com.tek42.perforce.*;
-import com.tek42.perforce.model.*;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+
+import com.tek42.perforce.Depot;
+import com.tek42.perforce.PerforceException;
+import com.tek42.perforce.model.Changelist;
+import com.tek42.perforce.model.Workspace;
 
 /**
  * Extends {@link SCM} to provide integration with Perforce SCM.
