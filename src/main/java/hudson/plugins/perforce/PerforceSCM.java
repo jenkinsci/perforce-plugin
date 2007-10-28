@@ -53,6 +53,12 @@ public class PerforceSCM extends SCM {
 	Depot depot;
 	
 	PerforceRepositoryBrowser browser;
+	
+	/**
+	 * This is being removed, including it as transient to fix exceptions on startup.
+	 */
+	transient int lastChange;
+	
 	/**
 	 * force sync is a one time trigger from the config area to force a sync with the depot.
 	 * it is reset to false after the first checkout.
