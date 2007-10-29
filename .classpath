@@ -2,7 +2,7 @@
 <classpath>
 	<classpathentry kind="src" path="src/main/java"/>
 	<classpathentry kind="src" path="src/main/resources"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk1.6.0"/>
 	<classpathentry kind="lib" path="lib/org.jvnet.hudson.plugins.perforce/jars/p4-1.0.jar"/>
 	<classpathentry kind="var" path="M2_REPO/com/tek42/perforce/p4java/0.7.2/p4java-0.7.2.jar" sourcepath="/M2_REPO/com/tek42/perforce/p4java/0.7.2/p4java-0.7.2-sources.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/apache/maven/maven-error-diagnostics/2.0.4/maven-error-diagnostics-2.0.4.jar" sourcepath="M2_REPO/org/apache/maven/maven-error-diagnostics/2.0.4/maven-error-diagnostics-2.0.4-sources.jar"/>
