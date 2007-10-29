@@ -79,5 +79,6 @@
 	<classpathentry kind="var" path="M2_REPO/org/jvnet/hudson/main/hudson-core/1.150-SNAPSHOT/hudson-core-1.150-SNAPSHOT.jar" sourcepath="/M2_REPO/org/jvnet/hudson/main/hudson-core/1.150-SNAPSHOT/hudson-core-1.150-SNAPSHOT-sources.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/kohsuke/stapler/stapler/1.45/stapler-1.45.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/jvnet/hudson/svnkit/svnkit/1.1.4-hudson-3/svnkit-1.1.4-hudson-3.jar"/>
+	<classpathentry kind="var" path="M2_REPO/net/sf/json-lib/json-lib/2.1/json-lib-2.1-jdk15.jar"/>
 	<classpathentry kind="output" path="target"/>
 </classpath>
