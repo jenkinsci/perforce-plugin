@@ -18,12 +18,8 @@
 	<classpathentry kind="var" path="M2_REPO/com/sun/xml/txw2/txw2/20070624/txw2-20070624.jar" sourcepath="M2_REPO/com/sun/xml/txw2/txw2/20070624/txw2-20070624-sources.jar"/>
 	<classpathentry kind="var" path="M2_REPO/dom4j/dom4j/1.6.1/dom4j-1.6.1.jar" sourcepath="M2_REPO/dom4j/dom4j/1.6.1/dom4j-1.6.1-sources.jar"/>
 	<classpathentry kind="var" path="M2_REPO/xerces/xercesImpl/2.2.1/xercesImpl-2.2.1.jar"/>
-	<classpathentry kind="var" path="M2_REPO/commons-jelly/commons-jelly-tags-junit/1.0/commons-jelly-tags-junit-1.0.jar"/>
-	<classpathentry kind="var" path="M2_REPO/commons-jelly/commons-jelly/1.1-hudson-20070821/commons-jelly-1.1-hudson-20070821.jar"/>
 	<classpathentry kind="var" path="M2_REPO/cglib/cglib-nodep/2.1_3/cglib-nodep-2.1_3.jar" sourcepath="M2_REPO/cglib/cglib-nodep/2.1_3/cglib-nodep-2.1_3-sources.jar"/>
-	<classpathentry kind="var" path="M2_REPO/commons-jexl/commons-jexl/1.1-hudson-20061106/commons-jexl-1.1-hudson-20061106.jar"/>
 	<classpathentry kind="var" path="M2_REPO/xom/xom/1.0b3/xom-1.0b3.jar"/>
-	<classpathentry kind="var" path="M2_REPO/groovy/groovy-all-1.0-jsr/06/groovy-all-1.0-jsr-06.jar"/>
 	<classpathentry kind="var" path="M2_REPO/commons-jelly/commons-jelly-tags-xml/1.1/commons-jelly-tags-xml-1.1.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/apache/maven/maven-artifact/2.0.4/maven-artifact-2.0.4.jar" sourcepath="M2_REPO/org/apache/maven/maven-artifact/2.0.4/maven-artifact-2.0.4-sources.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/apache/maven/wagon/wagon-provider-api/1.0-alpha-6/wagon-provider-api-1.0-alpha-6.jar" sourcepath="M2_REPO/org/apache/maven/wagon/wagon-provider-api/1.0-alpha-6/wagon-provider-api-1.0-alpha-6-sources.jar"/>
@@ -65,7 +61,6 @@
 	<classpathentry kind="var" path="M2_REPO/commons-digester/commons-digester/1.7/commons-digester-1.7.jar" sourcepath="M2_REPO/commons-digester/commons-digester/1.7/commons-digester-1.7-sources.jar"/>
 	<classpathentry kind="var" path="M2_REPO/commons-lang/commons-lang/2.3/commons-lang-2.3.jar" sourcepath="M2_REPO/commons-lang/commons-lang/2.3/commons-lang-2.3-sources.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/apache/maven/wagon/wagon-ssh/1.0-alpha-7/wagon-ssh-1.0-alpha-7.jar" sourcepath="M2_REPO/org/apache/maven/wagon/wagon-ssh/1.0-alpha-7/wagon-ssh-1.0-alpha-7-sources.jar"/>
-	<classpathentry kind="var" path="M2_REPO/commons-jelly/commons-jelly-tags-define/1.0.1-hudson-20061106/commons-jelly-tags-define-1.0.1-hudson-20061106.jar"/>
 	<classpathentry kind="var" path="M2_REPO/findbugs/annotations/1.0.0/annotations-1.0.0.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/apache/maven/wagon/wagon-http-lightweight/1.0-alpha-6/wagon-http-lightweight-1.0-alpha-6.jar" sourcepath="M2_REPO/org/apache/maven/wagon/wagon-http-lightweight/1.0-alpha-6/wagon-http-lightweight-1.0-alpha-6-sources.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/apache/maven/doxia/doxia-sink-api/1.0-alpha-7/doxia-sink-api-1.0-alpha-7.jar" sourcepath="M2_REPO/org/apache/maven/doxia/doxia-sink-api/1.0-alpha-7/doxia-sink-api-1.0-alpha-7-sources.jar"/>
@@ -81,9 +76,8 @@
 	<classpathentry kind="var" path="M2_REPO/com/thoughtworks/xstream/xstream/1.2.1/xstream-1.2.1.jar" sourcepath="M2_REPO/com/thoughtworks/xstream/xstream/1.2.1/xstream-1.2.1-sources.jar"/>
 	<classpathentry kind="var" path="M2_REPO/junit/junit/4.3.1/junit-4.3.1.jar" sourcepath="M2_REPO/junit/junit/4.3.1/junit-4.3.1-sources.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/apache/ant/ant-junit/1.7.0/ant-junit-1.7.0.jar"/>
-	<classpathentry kind="var" path="M2_REPO/org/jvnet/hudson/main/hudson-core/1.147/hudson-core-1.147.jar" sourcepath="/M2_REPO/org/jvnet/hudson/main/hudson-core/1.147/hudson-core-1.147-sources.jar"/>
-	<classpathentry kind="var" path="M2_REPO/org/kohsuke/stapler/stapler/1.44/stapler-1.44.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/jvnet/hudson/main/hudson-core/1.150-SNAPSHOT/hudson-core-1.150-SNAPSHOT.jar" sourcepath="/M2_REPO/org/jvnet/hudson/main/hudson-core/1.150-SNAPSHOT/hudson-core-1.150-SNAPSHOT-sources.jar"/>
+	<classpathentry kind="var" path="M2_REPO/org/kohsuke/stapler/stapler/1.45/stapler-1.45.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/jvnet/hudson/svnkit/svnkit/1.1.4-hudson-3/svnkit-1.1.4-hudson-3.jar"/>
-	<classpathentry kind="var" path="M2_REPO/net/sf/json-lib/json-lib/2.0/json-lib-2.0-jdk15.jar"/>
 	<classpathentry kind="output" path="target"/>
 </classpath>
