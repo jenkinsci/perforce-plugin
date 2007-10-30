@@ -7,9 +7,14 @@
     <b>Password</b> of the user.
   </p>
   <p>
-    <b>"Clientspec"</b> (oldskewl) or <b>"Workspace"</b> (newskewl) of the user.<br>
+    <b>"Clientspec"</b> (oldskewl) or <b>"Workspace"</b> (newskewl) of the user. If the workspace you specify does not exist, Hudson creates it.  <br>
     <b>Important Note:</b> Hudson will likely change the root of this workspace to fit Hudson's installation.  That means
     that unless you develop from the same directory that Hudson checks out to, you will not be able to reuse
-    this workspace.
+    this workspace outside of Hudson.<br>
+    <b>Important Note:</b> If two jobs retrieve the same file into their workspace, these jobs
+    must use a unique Perforce workspace. The reason is otherwise the p4
+    server will lose track of the actual contents of the workspaces, leading to inaccurate contents of the workspace. 
+    For example, if job1 and job2 use the same Perforce workspace, and both include file1, when the file1 is changed, a Perforce 'get latest' 
+    will only retrieve file1 into the first job (e.g. job1) that builds, it will not be retrieved into job2 unless you do a 'One Time Force Sync'.<br>  
   </p>
 </div>
