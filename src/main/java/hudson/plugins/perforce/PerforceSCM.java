@@ -15,6 +15,7 @@ import hudson.scm.SCMDescriptor;
 import hudson.util.FormFieldValidator;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.util.List;
@@ -48,17 +49,6 @@ public class PerforceSCM extends SCM {
 	String p4Exe = "C:\\Program Files\\Perforce\\p4.exe";
 	String p4SysDrive = "C:";
 	String p4SysRoot = "C:\\WINDOWS";
-
-	// use a job specific property (yet to be named) that governs 
-	// how far back in history we go when reporting
-	// a checkin to a project. This prevents modules 
-	// that have substantial history previous to using
-	// hudson from having a massive change report for 
-	// their initial hudson supported checkin. 
-	// when implementing this, consider Kohsuke's comment that 
-	// properties shouldn't be stored in the scm class. See mercurial
-	// plugin (written by K) or documentation for better ideas on this. 
-	static int earliestChangelistNumberToReportChangesOn = 1;
 	
 	Depot depot;
 	
@@ -211,14 +201,11 @@ public class PerforceSCM extends SCM {
 			// 5. Get the list of changes since the last time we looked...
 			int lastChange = getLastChange(build.getPreviousBuild());
 			listener.getLogger().println("Last sync'd change: " + lastChange);
-			List<Integer> changes = /* depot.getChanges().getChangelistsFromNumbers(*/ 
-				depot.getChanges().getChangeNumbersTo(projectPath, lastChange + 1) /* ) */ ;
+			List<Changelist> changes = depot.getChanges().getChangelistsFromNumbers(depot.getChanges().getChangeNumbersTo(projectPath, lastChange + 1));
 			if(changes.size() > 0) {
 				// save the last change we sync'd to for use when polling...
-// note: temporarily do not write changelog, since bug that causes last change to not be persisted across server instances is yet to be fixed.  
-				listener.getLogger().println("Future feature: changes since last build will be listed here.");
-//				lastChange = changes.get(0).getChangeNumber();
-//				PerforceChangeLogSet.saveToChangeLog(new FileOutputStream(changelogFile), changes);
+				lastChange = changes.get(0).getChangeNumber();
+				PerforceChangeLogSet.saveToChangeLog(new FileOutputStream(changelogFile), changes);
 			} else if(!forceSync) {
 				listener.getLogger().println("No changes since last build.");
 				return createEmptyChangeLog(changelogFile, listener, "changelog");
@@ -307,17 +294,7 @@ public class PerforceSCM extends SCM {
 	
 	public static int getLastChange(Actionable build) {
 		PerforceTagAction action = build.getAction(PerforceTagAction.class);
-		
-		if (action == null) { 
-			return earliestChangelistNumberToReportChangesOn;
-		}
-		
 		int lastChange = action.getChangeNumber();
-		
-		if (lastChange < earliestChangelistNumberToReportChangesOn) { 
-			lastChange = earliestChangelistNumberToReportChangesOn;
-		}
-				
 		return lastChange;
 	}
 	

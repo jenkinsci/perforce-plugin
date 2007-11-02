@@ -17,9 +17,9 @@
     For example, if job1 and job2 use the same Perforce workspace, and both include file1, when the file1 is changed, a Perforce 'get latest' 
     will only retrieve file1 into the first job (e.g. job1) that builds, it will not be retrieved into job2 unless you do a 'One Time Force Sync'.<br>  
     <b>Important Note:</b> When Hudson creates a workspace, the workspace will contain only one view. 
-    This view maps the depot path specified above to the root of the job's workspace directory. 
-    If Hudson uses an existing workspace that has one view, it automatically changes the view in a similar way. 
-    When Hudson uses an existing workspace that has more than one view, it leaves the view unchanged -- 
+    This view maps the Depot Path to the root of the Hudson job's workspace directory. 
+    If Hudson uses an existing workspace that has only one view, it automatically changes the view in a similar way. 
+    When Hudson uses an existing workspace with more than one view, it leaves the view unchanged -- 
     this allows you to retrieve more than one depot into the workspace of a given job. <br> 
   </p>
 </div>
