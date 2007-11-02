@@ -31,10 +31,10 @@ import com.tek42.perforce.model.Changelist;
 import com.tek42.perforce.model.Workspace;
 
 /**
- * Extends {@link SCM} to provide integration with Perforce SCM.
+ * Extends {@link SCM} to provide integration with Perforce SCM repositories.
  * 
  * @author Mike Wille
- * 
+ * @author Brian Westrich
  */
 public class PerforceSCM extends SCM {
 	
@@ -58,15 +58,24 @@ public class PerforceSCM extends SCM {
 	 * This is being removed, including it as transient to fix exceptions on startup.
 	 */
 	transient int lastChange;
-	
 	/**
 	 * force sync is a one time trigger from the config area to force a sync with the depot.
 	 * it is reset to false after the first checkout.
 	 */
 	boolean forceSync = false;
+	/**
+	 * If true, we will manage the workspace view within the plugin.  If false, we will leave the
+	 * view alone. 
+	 */
+	boolean updateView = true;
+	/**
+	 * If > 0 then will override the changelist we sync to for the first build. 
+	 */
+	int firstChange = -1;
 		
 	public PerforceSCM(String p4User, String p4Pass, String p4Client, String p4Port, String projectPath, 
-						String p4Exe, String p4SysRoot, String p4SysDrive, boolean forceSync, PerforceRepositoryBrowser browser) {
+						String p4Exe, String p4SysRoot, String p4SysDrive, boolean forceSync, 
+						boolean updateView, int firstChange, PerforceRepositoryBrowser browser) {
 		
 		this.p4User = p4User;
 		this.p4Passwd = p4Pass;
@@ -85,6 +94,8 @@ public class PerforceSCM extends SCM {
 		
 		this.forceSync = forceSync;
 		this.browser = browser;
+		this.updateView = updateView;
+		this.firstChange = firstChange;
 	}
 	
 	/**
@@ -160,10 +171,10 @@ public class PerforceSCM extends SCM {
 		    // that is possible, I think its wasteful makes setup time for the user longer as
 		    // they have to go and create a workspace in perforce for each new project.
 		    
-		    // 1. Retrieve or prepare to create the client specified, throw an exception if there's some Perforce problem.
-			// Note that if we are creating a new workspace we will still get a non-null return from getWorkspace().  
+		    // 1. Retrieve the client specified, throw an exception if we are configured wrong and the
+		    // client spec doesn't exist.
 			Workspace p4workspace = getDepot().getWorkspaces().getWorkspace(p4Client);
-			assert p4workspace != null; // guaranteed by current implementation of getWorkspace. 
+			assert p4workspace != null;
 			boolean creatingNewWorkspace = p4workspace.getAccess() == null 
 				|| p4workspace.getAccess().length() == 0;
 
@@ -172,30 +183,30 @@ public class PerforceSCM extends SCM {
 			// config property of the client spec. This tells perforce where to store the files on our local disk
 			String localPath = getLocalPathName(workspace);
 			listener.getLogger().println("Changing P4 Client Root to: " + localPath);
-					
-			// 3. optionally regenerate the workspace view. 
-			// If the workspace exists and has more than one view, assume the user 
-			// has set the view in a custom way that should not be overwritten. 
-			// This could be used for example to retrieve multiple depots into a single Hudson job.
-			boolean regenerateViews = creatingNewWorkspace || p4workspace.getViews().size() == 1;   
-			if (regenerateViews) { 
-				// We tell perforce to map the project contents directly (this drops off the project 
-				// name from the workspace. So instead of: 
-				//	[Hudson]/[job]/workspace/[Project]/contents
-				// we get:
-				//	[Hudson]/[job]/workspace/contents
+			p4workspace.setRoot(localPath);
+							
+			// 3. Optionally regenerate the workspace view.
+			// We tell perforce to map the project contents directly (this drops off the project 
+			// name from the workspace. So instead of: 
+			//	[Hudson]/[job]/workspace/[Project]/contents
+			// we get:
+			//	[Hudson]/[job]/workspace/contents
+			if(updateView || creatingNewWorkspace) {
 				String view = projectPath + " //" + p4workspace.getName() + "/...";
 				listener.getLogger().println("Changing P4 Client View to: " + view);
-			    p4workspace.clearViews();
-			    p4workspace.addView(view);
-			} else { 
-				listener.getLogger().println("P4 Client Root " + p4Client + " unchanged.");
+				p4workspace.clearViews();
+				p4workspace.addView(view);
 			}
 			
-			// 4. Go and save the client using our custom method and not the Perforce API...
-			p4workspace.setRoot(localPath);
-
-			// Save the workspace changes 
+			// 3b. There is a slight chance of failure with sync'ing to head.  I've experienced 
+			// a problem where a sync does not happen and there is no error message.  It is when 
+			// the host value of the workspace does not match up with the host hudson is working on.  
+			// Perforce reports an error like: "Client 'hudson' can only be used from host 'workstation'." 
+			// but this does not show up in P4Java as an error.  Until P4Java is fixed, the workaround is 
+			// to clear the host value.
+			p4workspace.setHost("");
+			
+			// 4. Go and save the client for use when sync'ing in a few...
 			depot.getWorkspaces().saveWorkspace(p4workspace);
 			
 			// 5. Get the list of changes since the last time we looked...
@@ -218,7 +229,10 @@ public class PerforceSCM extends SCM {
 			if(forceSync)
 				listener.getLogger().println("ForceSync flag is set, forcing: p4 sync " + projectPath);
 			depot.getWorkspaces().syncToHead(projectPath, forceSync);
+			
+			// reset one time use variables...
 			forceSync = false;
+			firstChange = -1;
 			
 			listener.getLogger().println("Sync complete, took " + (System.currentTimeMillis() - startTime) + " MS");
 			
@@ -226,14 +240,14 @@ public class PerforceSCM extends SCM {
 			build.addAction(new PerforceTagAction(build, depot, lastChange, projectPath));
 			
 			// And I'm spent...
+			build.getParent().save();  // The pertient things we want to save are the one time use variables...
 			
 			return true;
 			
 		} catch(PerforceException e) {
-			
-			listener.getLogger().print("Caught Exception communicating with perforce." + e.getMessage());
+			listener.getLogger().print("Caught Exception communicating with perforce. " + e.getMessage());
 			e.printStackTrace();
-			throw new IOException("Unable to communicate with perforce.  Check log file for: " + e.getMessage());
+			throw new IOException("Unable to communicate with perforce. " + e.getMessage());
 		} finally {
 			//Utils.cleanUp();
 		}
@@ -292,10 +306,21 @@ public class PerforceSCM extends SCM {
 		//return false;
 	}
 	
-	public static int getLastChange(Actionable build) {
+	public int getLastChange(Actionable build) {
+		// If we are starting a new hudson project on existing work and want to skip the prior history...
+		if(firstChange > 0)
+			return firstChange;
+		
+		// If anything is broken, we will default to 0.
+		if(build == null)
+			return 0;
+		
 		PerforceTagAction action = build.getAction(PerforceTagAction.class);
-		int lastChange = action.getChangeNumber();
-		return lastChange;
+		// If anything is broken, we will default to 0.
+		if(action == null)
+			return 0;
+		
+		return action.getChangeNumber();
 	}
 	
 	public static final class PerforceSCMDescriptor extends SCMDescriptor<PerforceSCM> {
@@ -315,6 +340,16 @@ public class PerforceSCM extends SCM {
         	if(value != null && !value.equals(""))
         		force = new Boolean(value);
         	
+        	value = req.getParameter("p4.updateView");
+        	boolean update = false;
+        	if(value != null && !value.equals(""))
+        		update = new Boolean(value);
+
+        	value = req.getParameter("p4.firstChange");
+        	int firstChange = -1;
+        	if(value != null && !value.equals(""))
+        		firstChange = new Integer(value);
+        	
             return new PerforceSCM(
                 req.getParameter("p4.user"),
                 req.getParameter("p4.passwd"),
@@ -325,6 +360,8 @@ public class PerforceSCM extends SCM {
                 req.getParameter("p4.sysRoot"),
                 req.getParameter("p4.sysDrive"),
                 force,
+                update,
+                firstChange,
                 RepositoryBrowsers.createInstance(PerforceRepositoryBrowser.class, req, "p4.browser"));
         }
         
@@ -338,28 +375,37 @@ public class PerforceSCM extends SCM {
     		return null;
     	}
     	
-    	public void doValidatePerforceLogin(StaplerRequest request, StaplerResponse rsp) throws IOException, ServletException {
-    		new FormFieldValidator(request,rsp,false) {
-                protected void check() throws IOException, ServletException {
-                	String port = fixNull(request.getParameter("port")).trim();
-                	String exe = fixNull(request.getParameter("exe")).trim();
-                	String user = fixNull(request.getParameter("user")).trim();
-                    String pass = fixNull(request.getParameter("pass")).trim();
+    	protected Depot getDepotFromRequest(StaplerRequest request) {
+    		String port = fixNull(request.getParameter("port")).trim();
+        	String exe = fixNull(request.getParameter("exe")).trim();
+        	String user = fixNull(request.getParameter("user")).trim();
+            String pass = fixNull(request.getParameter("pass")).trim();
 
-                    if(port.length()==0 || exe.length() == 0 || user.length() == 0 || pass.length() == 0) {// nothing entered yet
-                        ok();
-                        return;
-                    }
-                    Depot depot = new Depot();
-                    depot.setUser(user);
-        			depot.setPassword(pass);
-        			depot.setPort(port);
-        			depot.setExecutable(exe);
-        			
-        			try {
-        				depot.getStatus().isValid();
-        			} catch(PerforceException e) {
-        				error(e.getMessage());
+            if(port.length()==0 || exe.length() == 0 || user.length() == 0 || pass.length() == 0) {// nothing entered yet
+                return null;
+            }
+            Depot depot = new Depot();
+            depot.setUser(user);
+			depot.setPassword(pass);
+			depot.setPort(port);
+			depot.setExecutable(exe);
+			
+			return depot;
+    	}
+    	
+    	/**
+    	 * Checks if the perforce login credentials are good.
+    	 */
+    	public void doValidatePerforceLogin(StaplerRequest request, StaplerResponse rsp) throws IOException, ServletException {
+    		new FormFieldValidator(request, rsp, false) {
+                protected void check() throws IOException, ServletException {
+                	Depot depot = getDepotFromRequest(request);
+        			if(depot != null) {
+	        			try {
+	        				depot.getStatus().isValid();
+	        			} catch(PerforceException e) {
+	        				error(e.getMessage());
+	        			}
         			}
         			ok();
         			return;                    
@@ -367,19 +413,69 @@ public class PerforceSCM extends SCM {
             }.check();
     	}
         
+    	/**
+    	 * Checks to see if the specified workspace is valid.
+    	 */
+    	public void doValidateWorkspace(StaplerRequest request, StaplerResponse rsp) throws IOException, ServletException {
+    		new FormFieldValidator(request, rsp, false) {
+                protected void check() throws IOException, ServletException {
+                	Depot depot = getDepotFromRequest(request);
+                	String workspace = request.getParameter("workspace");
+        			if(depot != null) {
+	        			try {
+	        				depot.getWorkspaces().getWorkspace(workspace);
+	        			} catch(PerforceException e) {
+	        				error(e.getMessage());
+	        			}
+        			}
+        			ok();
+        			return;                    
+                }
+            }.check();
+    	}
+    	
         /**
          * Checks if the value is a valid Perforce project path.
          */
         public void doCheckProjectPath(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            new FormFieldValidator(req,rsp,false) {
+            new FormFieldValidator(req, rsp, false) {
                 protected void check() throws IOException, ServletException {
-                    String tag = fixNull(request.getParameter("value")).trim();
-                    if(tag.length()==0) {// nothing entered yet
+                    String path = fixNull(request.getParameter("value")).trim();
+                    if(path.length() == 0) {// nothing entered yet
                         ok();
                         return;
                     }
+                    // TODO: Check against depot if the path actually exists via: p4 fstat -m 1 [projectPath]
+                    error(isValidProjectPath(path));
+                }
+            }.check();
+        }
+        
+        /**
+         * Checks if the change list entered exists
+         */
+        public void doCheckChangeList(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+        	new FormFieldValidator(req, rsp, false) {
+                protected void check() throws IOException, ServletException {
+                	Depot depot = getDepotFromRequest(request);
+                    String change = fixNull(request.getParameter("change")).trim();
 
-                    error(isValidProjectPath(tag));
+                    if(change.length() == 0) {// nothing entered yet
+                        ok();
+                        return;
+                    }
+        			if(depot != null) {
+	        			try {
+	        				int number = new Integer(change);
+	        				Changelist changelist = depot.getChanges().getChangelist(number);
+	        				if(changelist.getChangeNumber() != number)
+	        					throw new PerforceException("broken");
+	        			} catch(Exception e) {
+	        				error("Changelist: " + change + " does not exist.");
+	        			}
+        			}
+        			ok();
+        			return;
                 }
             }.check();
         }
@@ -496,6 +592,48 @@ public class PerforceSCM extends SCM {
 	 */
 	public void setP4Exe(String exe) {
 		p4Exe = exe;
+	}
+	
+	/**
+	 * @param update	True to let the plugin manage the view, false to let the user manage it
+	 */
+	public void setUpdateView(boolean update) {
+		this.updateView = update;
+	}
+	
+	/**
+	 * @return 	True if the plugin manages the view, false if the user does.
+	 */
+	public boolean isUpdateView() {
+		return updateView;
+	}
+	
+	/**
+	 * @return	True if we are performing a one-time force sync 
+	 */
+	public boolean isForceSync() {
+		return forceSync;
+	}
+	
+	/**
+	 * @param force	True to perform a one time force sync, false to perform normal sync
+	 */
+	public void setForceSync(boolean force) {
+		this.forceSync = force;
+	}
+	
+	/**
+	 * This is only for the config screen.  Also, it returns a string and not an int.
+	 * This is because we want to show an empty value in the config option if it is not being
+	 * used.  The default value of -1 is not exactly empty.  So if we are set to default of
+	 * -1, we return an empty string.  Anything else and we return the actual change number.
+	 * 
+	 * @return	The one time use variable, firstChange.
+	 */
+	public String getFirstChange() {
+		if(firstChange < 0)
+			return "";
+		return new Integer(firstChange).toString();
 	}
 }
 

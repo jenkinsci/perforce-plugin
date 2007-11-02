@@ -22,4 +22,12 @@
     When Hudson uses an existing workspace with more than one view, it leaves the view unchanged -- 
     this allows you to retrieve more than one depot into the workspace of a given job. <br> 
   </p>
+  <p>
+   <b>Let Hudson Manage Workspace View</b>: For most cases, leave this checked.  Hudson will update the workspace's
+   view to match the project's settings.  If you uncheck it, you must manage the workspace's view yourself.  
+   This is useful if, for this job, you need to checkout and build multiple projects from 
+   Perforce at once.  (For those managing the workspace view themselves and looking for a starting point, 
+   the typical hudson view is: '//depot/[PROJECTNAME]/... //[WORKSPACENAME]/...'  You'll notice this is slightly
+   different from typical workspaces.  The [PROJECTNAME] is not normally included.)
+  </p>
 </div>
