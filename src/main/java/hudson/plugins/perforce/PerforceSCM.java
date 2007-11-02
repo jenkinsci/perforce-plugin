@@ -15,7 +15,6 @@ import hudson.scm.SCMDescriptor;
 import hudson.util.FormFieldValidator;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.util.List;
@@ -49,6 +48,17 @@ public class PerforceSCM extends SCM {
 	String p4Exe = "C:\\Program Files\\Perforce\\p4.exe";
 	String p4SysDrive = "C:";
 	String p4SysRoot = "C:\\WINDOWS";
+
+	// use a job specific property (yet to be named) that governs 
+	// how far back in history we go when reporting
+	// a checkin to a project. This prevents modules 
+	// that have substantial history previous to using
+	// hudson from having a massive change report for 
+	// their initial hudson supported checkin. 
+	// when implementing this, consider Kohsuke's comment that 
+	// properties shouldn't be stored in the scm class. See mercurial
+	// plugin (written by K) or documentation for better ideas on this. 
+	static int earliestChangelistNumberToReportChangesOn = 1;
 	
 	Depot depot;
 	
@@ -160,41 +170,55 @@ public class PerforceSCM extends SCM {
 		    // that is possible, I think its wasteful makes setup time for the user longer as
 		    // they have to go and create a workspace in perforce for each new project.
 		    
-		    // 1. Retrieve the client specified, throw an exception if we are configured wrong and the
-		    // client spec doesn't exist.
+		    // 1. Retrieve or prepare to create the client specified, throw an exception if there's some Perforce problem.
+			// Note that if we are creating a new workspace we will still get a non-null return from getWorkspace().  
 			Workspace p4workspace = getDepot().getWorkspaces().getWorkspace(p4Client);
-			if(p4workspace == null) {
-				throw new PerforceException("Workspace: " + p4Client + " doesn't exist.");
-			}
+			assert p4workspace != null; // guaranteed by current implementation of getWorkspace. 
+			boolean creatingNewWorkspace = p4workspace.getAccess() == null 
+				|| p4workspace.getAccess().length() == 0;
 
 			// 2. Before we sync, we need to update the client spec. (we do this on every build)
 			// Here we are getting the local file path to the workspace.  We will use this as the "Root"
 			// config property of the client spec. This tells perforce where to store the files on our local disk
 			String localPath = getLocalPathName(workspace);
 			listener.getLogger().println("Changing P4 Client Root to: " + localPath);
-							
-			// 3. We tell perforce to map the project contents directly (this drops off the project 
-			// name from the workspace. So instead of: 
-			//	[Hudson]/[job]/workspace/[Project]/contents
-			// we get:
-			//	[Hudson]/[job]/workspace/contents
-			String view = projectPath + " //" + p4workspace.getName() + "/...";
-			listener.getLogger().println("Changing P4 Client View to: " + view);
+					
+			// 3. optionally regenerate the workspace view. 
+			// If the workspace exists and has more than one view, assume the user 
+			// has set the view in a custom way that should not be overwritten. 
+			// This could be used for example to retrieve multiple depots into a single Hudson job.
+			boolean regenerateViews = creatingNewWorkspace || p4workspace.getViews().size() == 1;   
+			if (regenerateViews) { 
+				// We tell perforce to map the project contents directly (this drops off the project 
+				// name from the workspace. So instead of: 
+				//	[Hudson]/[job]/workspace/[Project]/contents
+				// we get:
+				//	[Hudson]/[job]/workspace/contents
+				String view = projectPath + " //" + p4workspace.getName() + "/...";
+				listener.getLogger().println("Changing P4 Client View to: " + view);
+			    p4workspace.clearViews();
+			    p4workspace.addView(view);
+			} else { 
+				listener.getLogger().println("P4 Client Root " + p4Client + " unchanged.");
+			}
 			
 			// 4. Go and save the client using our custom method and not the Perforce API...
 			p4workspace.setRoot(localPath);
-			p4workspace.clearViews();
-			p4workspace.addView(view);
+
+			// Save the workspace changes 
 			depot.getWorkspaces().saveWorkspace(p4workspace);
 			
 			// 5. Get the list of changes since the last time we looked...
 			int lastChange = getLastChange(build.getPreviousBuild());
 			listener.getLogger().println("Last sync'd change: " + lastChange);
-			List<Changelist> changes = depot.getChanges().getChangelistsFromNumbers(depot.getChanges().getChangeNumbersTo(projectPath, lastChange + 1));
+			List<Integer> changes = /* depot.getChanges().getChangelistsFromNumbers(*/ 
+				depot.getChanges().getChangeNumbersTo(projectPath, lastChange + 1) /* ) */ ;
 			if(changes.size() > 0) {
 				// save the last change we sync'd to for use when polling...
-				lastChange = changes.get(0).getChangeNumber();
-				PerforceChangeLogSet.saveToChangeLog(new FileOutputStream(changelogFile), changes);
+// note: temporarily do not write changelog, since bug that causes last change to not be persisted across server instances is yet to be fixed.  
+				listener.getLogger().println("Future feature: changes since last build will be listed here.");
+//				lastChange = changes.get(0).getChangeNumber();
+//				PerforceChangeLogSet.saveToChangeLog(new FileOutputStream(changelogFile), changes);
 			} else if(!forceSync) {
 				listener.getLogger().println("No changes since last build.");
 				return createEmptyChangeLog(changelogFile, listener, "changelog");
@@ -283,7 +307,17 @@ public class PerforceSCM extends SCM {
 	
 	public static int getLastChange(Actionable build) {
 		PerforceTagAction action = build.getAction(PerforceTagAction.class);
+		
+		if (action == null) { 
+			return earliestChangelistNumberToReportChangesOn;
+		}
+		
 		int lastChange = action.getChangeNumber();
+		
+		if (lastChange < earliestChangelistNumberToReportChangesOn) { 
+			lastChange = earliestChangelistNumberToReportChangesOn;
+		}
+				
 		return lastChange;
 	}
 	
