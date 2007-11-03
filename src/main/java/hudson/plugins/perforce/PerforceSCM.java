@@ -7,6 +7,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Actionable;
 import hudson.model.BuildListener;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.RepositoryBrowsers;
@@ -210,7 +211,7 @@ public class PerforceSCM extends SCM {
 			depot.getWorkspaces().saveWorkspace(p4workspace);
 			
 			// 5. Get the list of changes since the last time we looked...
-			int lastChange = getLastChange(build.getPreviousBuild());
+			int lastChange = getLastChange((Run)build.getPreviousBuild());
 			listener.getLogger().println("Last sync'd change: " + lastChange);
 			List<Changelist> changes = depot.getChanges().getChangelistsFromNumbers(depot.getChanges().getChangeNumbersTo(projectPath, lastChange + 1));
 			if(changes.size() > 0) {
@@ -306,7 +307,7 @@ public class PerforceSCM extends SCM {
 		//return false;
 	}
 	
-	public int getLastChange(Actionable build) {
+	public int getLastChange(Run build) {
 		// If we are starting a new hudson project on existing work and want to skip the prior history...
 		if(firstChange > 0)
 			return firstChange;
@@ -317,9 +318,14 @@ public class PerforceSCM extends SCM {
 		
 		PerforceTagAction action = build.getAction(PerforceTagAction.class);
 		// If anything is broken, we will default to 0.
-		if(action == null)
-			return 0;
-		
+		if(action == null) {
+			Run previousBuild = build.getPreviousBuild();
+			if (previousBuild == null) { 
+				return 0; 
+			}
+			return getLastChange(previousBuild);
+		}
+			
 		return action.getChangeNumber();
 	}
 	
