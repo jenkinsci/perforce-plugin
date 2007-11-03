@@ -316,13 +316,10 @@ public class PerforceSCM extends SCM {
 			return 0;
 		
 		PerforceTagAction action = build.getAction(PerforceTagAction.class);
-		// If anything is broken, we will default to 0.
+		
+		// if build had no actions, keep going back until we find one that does.
 		if(action == null) {
-			Run previousBuild = build.getPreviousBuild();
-			if (previousBuild == null) { 
-				return 0; 
-			}
-			return getLastChange(previousBuild);
+			return getLastChange(build.getPreviousBuild());
 		}
 			
 		return action.getChangeNumber();
