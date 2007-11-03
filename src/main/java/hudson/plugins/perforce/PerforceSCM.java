@@ -178,7 +178,7 @@ public class PerforceSCM extends SCM {
 			boolean creatingNewWorkspace = p4workspace.getAccess() == null 
 				|| p4workspace.getAccess().length() == 0;
 
-			// 2. Before we sync, we need to update the client spec. (we do this on every build)
+			// 2. Before we sync, we need to update the client spec (we do this on every build).
 			// Here we are getting the local file path to the workspace.  We will use this as the "Root"
 			// config property of the client spec. This tells perforce where to store the files on our local disk
 			String localPath = getLocalPathName(workspace);
@@ -240,7 +240,7 @@ public class PerforceSCM extends SCM {
 			build.addAction(new PerforceTagAction(build, depot, lastChange, projectPath));
 			
 			// And I'm spent...
-			build.getParent().save();  // The pertient things we want to save are the one time use variables...
+			build.getParent().save();  // The pertinent things we want to save are the one time use variables...
 			
 			return true;
 			
