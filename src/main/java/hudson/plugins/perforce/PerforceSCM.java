@@ -69,7 +69,7 @@ public class PerforceSCM extends SCM {
 	 */
 	boolean updateView = true;
 	/**
-	 * If > 0 then will override the changelist we sync to for the first build. 
+	 * If > 0, then will override the changelist we sync to for the first build. 
 	 */
 	int firstChange = -1;
 		
