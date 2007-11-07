@@ -14,7 +14,7 @@ import com.tek42.perforce.model.Changelist;
  */
 public abstract class PerforceRepositoryBrowser extends RepositoryBrowser<PerforceChangeLogEntry> {
     /**
-     * Determines the link to the diff between the version
+     * Determines the link to the diff between the version.
      * in the {@link PerforceChangeLogEntry.Change.File} to its previous version.
      *
      * @return
