@@ -32,15 +32,15 @@ public class ChangesTest extends TestCase {
 		}
 	}
 
-	public void testGetChangeNumbersTo() throws PerforceException {
-		if (!depotIsValid) { 
-			return; 
-		}
-		
-		List<Integer> numbers = depot.getChanges()
-			.getChangeNumbersTo(WORKSPACE, PATH, 107);
-		assert(numbers != null);
-	}
+//	public void testGetChangeNumbersTo() throws PerforceException {
+//		if (!depotIsValid) { 
+//			return; 
+//		}
+//		
+//		List<Integer> numbers = depot.getChanges()
+//			.getChangeNumbersTo(WORKSPACE, PATH, 107);
+//		assert(numbers != null);
+//	}
 	
 	public void testGetChangeNumbers() throws PerforceException { 
 		if (!depotIsValid) { 
