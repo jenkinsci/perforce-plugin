@@ -24,7 +24,7 @@
 		<dependency>
 			<groupId>com.tek42.perforce</groupId>
 			<artifactId>p4java</artifactId>
-			<version>0.7.2</version>
+			<version>0.7.3-SNAPSHOT</version>
 			<scope>compile</scope>
 		</dependency>
 	</dependencies>
