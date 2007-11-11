@@ -206,13 +206,23 @@ public class PerforceSCM extends SCM {
 			// to clear the host value.
 			p4workspace.setHost("");
 			
+			// 3c. Validate the workspace. Currently this only involves making sure project path is set to //...
+			// if more than one workspace view exists (mostly because we don't know when you'd want to use any
+			// project path other than that with multiple views, so haven't designed support for it. 
+			if (!updateView && p4workspace.getViews().size() > 1 && !projectPath.equals("//...")) { 
+				throw new PerforceException("the only project path currently supported when you have " +
+						"multiple workspace views is '//...'. Please revise your project path or P4 workspace " +
+						"accordingly.");
+			}
+			
 			// 4. Go and save the client for use when sync'ing in a few...
 			depot.getWorkspaces().saveWorkspace(p4workspace);
 			
 			// 5. Get the list of changes since the last time we looked...
 			int lastChange = getLastChange((Run)build.getPreviousBuild());
 			listener.getLogger().println("Last sync'd change: " + lastChange);
-			List<Changelist> changes = depot.getChanges().getChangelistsFromNumbers(depot.getChanges().getChangeNumbersTo(projectPath, lastChange + 1));
+			List<Changelist> changes = depot.getChanges().getChangelistsFromNumbers(depot.getChanges()
+					.getChangeNumbersTo(getChangesPaths(p4workspace), lastChange + 1));
 			if(changes.size() > 0) {
 				// save the last change we sync'd to for use when polling...
 				lastChange = changes.get(0).getChangeNumber();
@@ -252,7 +262,22 @@ public class PerforceSCM extends SCM {
 			//Utils.cleanUp();
 		}
 	}
-	
+
+	/** compute the path(s) that we search on to detect whether the project
+	 *  has any unsynched changes
+	 * @param p4workspace the workspace
+	 * @return a string of path(s), e.g. //mymodule1/... //mymodule2/... 
+	 */
+	private String getChangesPaths(Workspace p4workspace) {
+		String changesPath;
+		if (p4workspace.getViews().size() > 1) { 
+			changesPath = PerforceSCMHelper.computePathFromViews(p4workspace.getViews()); 
+		} else { 
+			changesPath = projectPath;
+		}
+		return changesPath;
+	}
+
 	@Override
 	public PerforceRepositoryBrowser getBrowser() {
 	   return browser;
@@ -284,11 +309,16 @@ public class PerforceSCM extends SCM {
 		try {
 			int lastChange = getLastChange(project.getLastBuild());
 			listener.getLogger().println("Looking for changes...");
-			List<Changelist> changes = getDepot().getChanges().getChangelists(projectPath, -1, 1);
-			listener.getLogger().println("Latest change in depot is: " + changes.get(0).getChangeNumber());
-			listener.getLogger().println(changes.get(0).toString());
+			Workspace p4workspace = getDepot().getWorkspaces().getWorkspace(p4Client);
+			
+			// List<Changelist> changes = getDepot().getChanges().getChangelists(getChangesPaths(p4workspace), -1, 1);
+			// the above call is slightly more efficient, but doesn't support multiple paths. 
+			// May not be worth optimizing (by implementing multiple path version of getChangelists) since after the first 
+			// build we rarely have more than a couple of changelists per build. 
+			List<Integer> changes = depot.getChanges().getChangeNumbersTo(getChangesPaths(p4workspace), lastChange + 1);
+			
 			listener.getLogger().println("Last sync'd change is : " + lastChange);
-			if(lastChange != changes.get(0).getChangeNumber()) {
+			if (changes.size() > 0) {
 				listener.getLogger().println("New changes detected, triggering a build.");
 				return true;
 			}
@@ -299,11 +329,8 @@ public class PerforceSCM extends SCM {
 			listener.getLogger().println("Caught Exception communicating with perforce." + e.getMessage());
 			e.printStackTrace();
 			throw new IOException("Unable to communicate with perforce.  Check log file for: " + e.getMessage());
-		} finally {
-			//Utils.cleanUp();
 		}
 		
-		//return false;
 	}
 	
 	public int getLastChange(Run build) {
