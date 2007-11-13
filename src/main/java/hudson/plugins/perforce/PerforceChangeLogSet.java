@@ -60,7 +60,7 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
 	}
 
 	/**
-	 * Parses the change log stream and returns a clear case change log set.
+	 * Parses the change log stream and returns a Perforce change log set.
 	 * 
 	 * @param build
 	 *            the build for the change log
