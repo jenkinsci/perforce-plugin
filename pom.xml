@@ -10,7 +10,7 @@
 	<artifactId>perforce</artifactId>
 	<name>Hudson Perforce Plugin</name>
 	<packaging>hpi</packaging>
-	<version>1.0.3-SNAPSHOT</version>
+	<version>1.0.4</version>
 	<licenses>
 		<license>
 			<name>MIT License</name>
@@ -24,7 +24,7 @@
 		<dependency>
 			<groupId>com.tek42.perforce</groupId>
 			<artifactId>p4java</artifactId>
-			<version>0.7.3-SNAPSHOT</version>
+			<version>0.7.3</version>
 			<scope>compile</scope>
 		</dependency>
 	</dependencies>
