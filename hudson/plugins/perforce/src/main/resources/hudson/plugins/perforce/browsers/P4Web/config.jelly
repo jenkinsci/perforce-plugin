@@ -1,0 +1,6 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <f:entry title="URL" help="/plugin/perforce/help/browsers/p4web/url.html">
+    <f:textbox name="p4web.url" value="${browser.url}"
+        checkUrl="'${rootURL}/repositoryBrowser/P4Web/check?url='+escape(this.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)"/>
+  </f:entry>
+</j:jelly>
