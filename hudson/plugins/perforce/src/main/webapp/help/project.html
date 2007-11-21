@@ -1,0 +1,23 @@
+<div>
+  <p><b>Depot Path</b><br/>
+    The depot path is the full depot path of the project root folder.  This is what will be checked out
+    when a build occurs.  Make sure to include the depot specific path and Perforce specific wildcard (...).
+  </p>
+  <p>
+    Example:<br>
+    //depot/ProjectName/...
+  </p>
+  <p>
+  <b>One Time Force Sync</b> allows you to tell perforce to do a p4 sync -f //... which will make sure to
+  pull down ALL files to the workspace, regardless if they have been sync'd before.  Use this to get around
+  a problem where the Perforce workspace became out of sync with what hudson actually has a copy of.  For
+  most users, you should never need to worry about this.
+  </p>
+  <p>Note: this is reset after the next subsequent build.</p>
+  <p>
+  <b>First Changelist to Track</b> allows you to specify the first changelist to start recording build
+  history from.  If you are adding an existing project, with lots of history, to Hudson, this will 
+  prevent out of memory errors and your first build from having thousands of change records.     
+  </p>
+  <p>Note: this is reset after the next subsequent build.</p>
+</div>

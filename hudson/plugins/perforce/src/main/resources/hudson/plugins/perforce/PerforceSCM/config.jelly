@@ -1,0 +1,66 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    
+  <f:entry title="P4 Setup" help="/plugin/perforce/help/p4port.html">
+  	<table width="100%">
+  	<f:entry title="P4PORT (hostname:port)">
+    	<f:textbox name="p4.port" value="${scm.p4Port}" id="p4Port"/>
+    </f:entry>
+    <f:entry title="Path to p4 executable">
+    	<f:textbox name="p4.exe" value="${scm.p4Exe}" id="p4Exe"/>
+    </f:entry>
+    </table>
+  </f:entry>
+  
+  <f:entry title="User Details" help="/plugin/perforce/help/p4user.html">
+  	<table width="100%">
+  	<f:entry title="Username">
+    	<f:textbox name="p4.user" value="${scm.p4User}" id="p4User"/>
+    </f:entry>
+    
+    <f:entry title="Password">
+    	<f:textbox name="p4.passwd" value="${scm.p4Passwd}" id="p4Passwd"
+    		checkUrl="'${rootURL}/scm/PerforceSCM/validatePerforceLogin?port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)"/>
+    </f:entry>
+    
+    <f:entry title="Workspace (client)">
+    	<f:textbox name="p4.client" value="${scm.p4Client}"
+    		checkUrl="'${rootURL}/scm/PerforceSCM/validateWorkspace?port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)+'&amp;workspace='+escape(this.value)"/>
+    </f:entry>
+    
+    <f:entry title="Let Hudson Manage Workspace View">
+    	<f:checkbox name="p4.updateView" checked="${h.defaultToTrue(scm.updateView)}" value="True"/>
+    </f:entry>
+    
+    </table>
+  </f:entry>
+  
+  <f:entry title="Project Details" help="/plugin/perforce/help/project.html">
+  	<table width="100%">
+  	<f:entry title="Depot Path">
+    	<f:textbox name="projectPath" value="${scm.projectPath}" 
+            checkUrl="'${rootURL}/scm/PerforceSCM/checkProjectPath?value='+escape(this.value)"/>
+    </f:entry>
+    <f:entry title="One Time Force Sync">
+    	<f:checkbox name="p4.forceSync" checked="${scm.forceSync}" value="True"/>
+    </f:entry>
+    <f:entry title="First Changelist to Track">
+    	<f:textbox name="p4.firstChange" value="${scm.firstChange}" 
+    		checkUrl="'${rootURL}/scm/PerforceSCM/checkChangeList?port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)+'&amp;change='+escape(this.value)"/>
+    </f:entry>
+  	</table>
+  </f:entry>
+  
+  <f:entry title="Windows Specific Details" help="/plugin/perforce/help/windows.html">
+  	<table width="100%">
+  	<f:entry title="System Drive">
+    	<f:textbox name="p4.sysDrive" value="${scm.p4SysDrive}" />
+    </f:entry>
+    <f:entry title="System Root">
+    	<f:textbox name="p4.sysRoot" value="${scm.p4SysRoot}" />
+    </f:entry>
+    </table>
+  </f:entry>
+  
+  <t:listScmBrowsers name="p4.browser" />
+  
+</j:jelly>

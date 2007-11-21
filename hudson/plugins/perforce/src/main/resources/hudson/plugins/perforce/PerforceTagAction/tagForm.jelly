@@ -1,0 +1,66 @@
+<!--
+  Displays the form to choose the tag name.
+
+  This belongs to a build view.
+  
+  Note: though the hudson api uses the term tag (as well as the other SCMs) Perforce uses
+  the term label.  So because of that, we will use the term when displaying UI to the end user
+-->
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <d:taglib uri="local">
+    <d:tag name="listTags">
+      <ul>
+        <j:forEach var="t" items="${tags}">
+          <li>${t}</li>
+        </j:forEach>
+      </ul>
+    </d:tag>
+  </d:taglib>
+
+  <l:layout norefresh="true" xmlns:local="local">
+    <st:include it="${it.build}" page="sidepanel.jelly" />
+    <l:main-panel>
+      <h1>Build #${it.build.number}</h1>
+				
+      <j:set var="change" value="${it.changeNumber}" />
+      
+      <j:choose>
+          <j:when test="${it.isTagged()}">
+        	<p>	
+          	This build is labeled: <b>${it.tag}</b>
+        	</p>
+        	<p>
+        	${it.description}
+        	</p>    
+          </j:when>
+          <j:otherwise>
+          <p>You may label this build using Perforce's label feature.  This will
+			create a Perforce label with a view matching this project and a revision matching
+			the change number: ${it.changeNumber}.</p>
+            <form action="submit" method="get">
+	      	<table border="0" width="400">
+	      	<tr>
+	      		<td nowrap="nowrap"><b>Label Name:</b> </td>
+	      		<td><input type="text" name="name"
+	                       	value="${it.build.project.name}-Build-${it.build.number}" style="width:300px" id="name" 
+                   			checkUrl="'checkTag?value='+escape(this.value)"/>
+				</td>
+	        </tr>
+	        <tr>
+	        	<td><b>Description:</b> </td>
+	        	<td><textarea name="desc" rows="5" cols="50">Changelist: ${it.changeNumber}</textarea></td>
+	        </tr>
+	        <tr>
+	        	<td colspan="2"> </td>
+	        </tr>
+	        <tr>
+	        	<td colspan="2" align="right"><input type="submit" value="Label Build"/></td>
+	        </tr>
+	        </table>
+	        </form>
+          </j:otherwise>
+        </j:choose>
+          
+    </l:main-panel>
+  </l:layout>
+</j:jelly>
