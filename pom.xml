@@ -11,6 +11,8 @@
 	<name>Hudson Perforce Plugin</name>
 	<packaging>hpi</packaging>
 	<version>1.0.10-SNAPSHOT</version>
+	<url>http://hudson.gotdns.com/wiki/display/HUDSON/Perforce+Plugin</url>
+	
 	<licenses>
 		<license>
 			<name>MIT License</name>
