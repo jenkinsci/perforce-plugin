@@ -19,6 +19,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 
@@ -116,6 +117,12 @@ public class PerforceSCM extends SCM {
 			depot.setSystemRoot(p4SysRoot);
 		}
 		return depot;
+	}
+
+	public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
+		super.buildEnvVars(build, env);
+		int lastChange = getLastChange(build.getPreviousBuild());
+		env.put("P4_CHANGELIST", Integer.toString(lastChange));
 	}
 	
 	/**

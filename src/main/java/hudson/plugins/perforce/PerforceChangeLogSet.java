@@ -1,19 +1,18 @@
 package hudson.plugins.perforce;
 
 import hudson.Util;
+import hudson.util.WriterOutputStream;
 import hudson.model.AbstractBuild;
 import hudson.scm.ChangeLogSet;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.List;
+import java.nio.charset.Charset;
 
 import org.dom4j.Document;
 import org.dom4j.Node;
@@ -134,7 +133,7 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
 				history.add(entry);
 			}
 		} catch(Exception e) {
-			throw new IOException("Failed to parse changelog file.", e);
+			throw new IOException("Failed to parse changelog file: " + e.getMessage());
 		}
 
 		return new PerforceChangeLogSet(build, history);
@@ -145,14 +144,17 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
 	 * 
 	 * @param outputStream
 	 *            the stream to write to
-	 * @param history
+	 * @param changes
 	 *            the history objects to store
 	 * @throws IOException
 	 */
 	public static void saveToChangeLog(OutputStream outputStream, List<Changelist> changes) throws IOException {
-		PrintStream stream = new PrintStream(outputStream);
-		stream.println("<?xml version='1.0' encoding='UTF-8'?>");
-		stream.println("<changelog>");
+		OutputStreamWriter writer = new OutputStreamWriter(outputStream, Charset.forName("UTF-8"));
+		WriterOutputStream stream1 = new WriterOutputStream(writer);
+		PrintStream stream = new PrintStream(stream1);
+
+ 		stream.println("<?xml version='1.0' encoding='UTF-8'?>");
+ 		stream.println("<changelog>");
 		for(Changelist change : changes) {
 			stream.println("\t<entry>");
 			stream.println("\t\t<changenumber>" + change.getChangeNumber() + "</changenumber>");
