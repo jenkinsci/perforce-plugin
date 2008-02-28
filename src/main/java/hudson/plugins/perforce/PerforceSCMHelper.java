@@ -41,6 +41,21 @@ public final class PerforceSCMHelper {
 		
 		return path.toString(); 
 	}
+
+	/**
+	 * Assuming there are multiple views, see whether the project path is valid. 
+	 * @param projectPath the project path specified by the user.
+	 * @return true if valid, false if invalid 
+	 */
+	static boolean projectPathIsValidForMultiviews(String projectPath) {
+		if (
+				projectPath.equals("//...") // root of depot ok
+				|| projectPath.indexOf('@') > -1) // labels ok
+		{
+			return true;
+		}
+		return false; 
+	}
 	
 	
 

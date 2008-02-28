@@ -216,8 +216,9 @@ public class PerforceSCM extends SCM {
 			// 3c. Validate the workspace. Currently this only involves making sure project path is set to //...
 			// if more than one workspace view exists (mostly because we don't know when you'd want to use any
 			// project path other than that with multiple views, so haven't designed support for it. 
-			if (!updateView && p4workspace.getViews().size() > 1 && !projectPath.equals("//...")) { 
-				throw new PerforceException("the only project path currently supported when you have " +
+			if (!updateView && p4workspace.getViews().size() > 1 && !PerforceSCMHelper.projectPathIsValidForMultiviews(projectPath)) { 
+				throw new PerforceException("Unless you are using a label, " +
+						"the only project path currently supported when you have " +
 						"multiple workspace views is '//...'. Please revise your project path or P4 workspace " +
 						"accordingly.");
 			}
