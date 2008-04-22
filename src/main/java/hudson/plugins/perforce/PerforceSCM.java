@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.URLDecoder;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 import javax.servlet.ServletException;
 
@@ -104,8 +105,11 @@ public class PerforceSCM extends SCM {
 	 * back to life.  I'm not quite clear on stapler and how all that works.
 	 * At any rate, it doesn't look like we have an init() method for setting up our Depot
 	 * after all of the setters have been called.  Someone correct me if I'm wrong...
+	 *
+	 * UPDATE: With the addition of PerforceMailResolver, we now have need to share the depot object.  I'm making
+	 * this protected to enable that.
 	 */
-	private Depot getDepot() {
+	protected Depot getDepot() {
 		if(depot == null) {
 			depot = new Depot();
 			depot.setUser(p4User);
@@ -182,8 +186,8 @@ public class PerforceSCM extends SCM {
 		    // client spec doesn't exist.
 			Workspace p4workspace = getDepot().getWorkspaces().getWorkspace(p4Client);
 			assert p4workspace != null;
-			boolean creatingNewWorkspace = p4workspace.getAccess() == null 
-				|| p4workspace.getAccess().length() == 0;
+			boolean creatingNewWorkspace = p4workspace.getAccess() == null || p4workspace.getAccess().length() == 0;
+			boolean usingLabel = projectPath.contains("@");
 
 			// 2. Before we sync, we need to update the client spec (we do this on every build).
 			// Here we are getting the local file path to the workspace.  We will use this as the "Root"
@@ -229,12 +233,22 @@ public class PerforceSCM extends SCM {
 			// 5. Get the list of changes since the last time we looked...
 			int lastChange = getLastChange((Run)build.getPreviousBuild());
 			listener.getLogger().println("Last sync'd change: " + lastChange);
-			List<Changelist> changes = depot.getChanges().getChangelistsFromNumbers(depot.getChanges()
-					.getChangeNumbersTo(getChangesPaths(p4workspace), lastChange + 1));
+
+			List<Changelist> changes;
+			if(usingLabel) {
+				changes = new ArrayList<Changelist>(0);	
+			} else {
+				changes = depot.getChanges().getChangelistsFromNumbers(depot.getChanges().getChangeNumbersTo(getChangesPaths(p4workspace), lastChange + 1));
+			}
+
 			if(changes.size() > 0) {
 				// save the last change we sync'd to for use when polling...
 				lastChange = changes.get(0).getChangeNumber();
 				PerforceChangeLogSet.saveToChangeLog(new FileOutputStream(changelogFile), changes);
+
+			} else if(usingLabel) {
+				createEmptyChangeLog(changelogFile, listener, "changelog");
+
 			} else if(!forceSync) {
 				listener.getLogger().println("No changes since last build.");
 				return createEmptyChangeLog(changelogFile, listener, "changelog");
@@ -246,7 +260,16 @@ public class PerforceSCM extends SCM {
 			
 			if(forceSync)
 				listener.getLogger().println("ForceSync flag is set, forcing: p4 sync " + projectPath);
-			depot.getWorkspaces().syncToHead(projectPath, forceSync);
+
+			// Here we are testing to see if there is a label we are sync'ing to.  If so, we can't use the standard
+			// sync to head method.  Note: this assumes that there are no @ in the project path.  If there are,
+			// configure the plugin with %40 in place of @.  This is what P4V and P4Win do internally.
+			if(projectPath.contains("@")) {
+				listener.getLogger().println("Label found in projectPath, NOT sync'ing to the head.");
+				depot.getWorkspaces().syncTo(projectPath, forceSync);
+			} else {
+				depot.getWorkspaces().syncToHead(projectPath, forceSync);
+			}
 			
 			// reset one time use variables...
 			forceSync = false;
@@ -254,8 +277,10 @@ public class PerforceSCM extends SCM {
 			
 			listener.getLogger().println("Sync complete, took " + (System.currentTimeMillis() - startTime) + " MS");
 			
-			// Add tagging action...
-			build.addAction(new PerforceTagAction(build, depot, lastChange, projectPath));
+			// Add tagging action... (Only if we are not using labels.  You can't label a label...)
+			if(!usingLabel) {
+				build.addAction(new PerforceTagAction(build, depot, lastChange, projectPath));
+			}
 			
 			// And I'm spent...
 			build.getParent().save();  // The pertinent things we want to save are the one time use variables...
@@ -407,8 +432,10 @@ public class PerforceSCM extends SCM {
     			return "Path must start with '//' (Example: //depot/ProjectName/...)";
     		}
     		if(!path.endsWith("/...")) {
-    			return "Path must end with Perforce wildcard: '/...'  (Example: //depot/ProjectName/...)";
-    		}
+				if(!path.contains("@")) {
+					return "Path must end with Perforce wildcard: '/...'  (Example: //depot/ProjectName/...)";
+				}
+			}
     		return null;
     	}
     	

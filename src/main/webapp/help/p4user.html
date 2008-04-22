@@ -19,8 +19,8 @@
     <b>Important Note:</b> When Hudson creates a workspace, the workspace will contain only one view. 
     This view maps the Depot Path to the root of the Hudson job's workspace directory. 
     If Hudson uses an existing workspace that has only one view, it automatically changes the view in a similar way. 
-    When Hudson uses an existing workspace with more than one view, it leaves the view unchanged -- 
-    this allows you to retrieve more than one depot into the workspace of a given job. <br> 
+    This behavior can be disabled by the option, "Let Hudson Manage Workspace View.  This will allow you to retrieve
+	more than one depot into the workspace of a given job by providing your own list of views.<br> 
   </p>
   <p>
    <b>Let Hudson Manage Workspace View</b>: For most cases, leave this checked.  Hudson will update the workspace's
