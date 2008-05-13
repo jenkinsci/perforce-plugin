@@ -68,24 +68,24 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
 	 * @return the change log set
 	 */
 	@SuppressWarnings("unchecked")
-	public static PerforceChangeLogSet parse(AbstractBuild build, InputStream changeLogStream) throws IOException,
-			SAXException {
+	public static PerforceChangeLogSet parse(AbstractBuild build, InputStream changeLogStream) throws IOException, SAXException {
 
-		ArrayList<PerforceChangeLogEntry> history = new ArrayList<PerforceChangeLogEntry>();
+		ArrayList<PerforceChangeLogEntry> changeLogEntries = new ArrayList<PerforceChangeLogEntry>();
 
 		SAXReader reader = new SAXReader();
 		Document changeDoc = null;
+		PerforceChangeLogSet changeLogSet = new PerforceChangeLogSet(build, changeLogEntries);
 
 		try {
 			changeDoc = reader.read(changeLogStream);
 
 			Node historyNode = changeDoc.selectSingleNode("/changelog");
 			if(historyNode == null)
-				return new PerforceChangeLogSet(build, history);
+				return changeLogSet;
 
 			List<Node> entries = historyNode.selectNodes("entry");
 			if(entries == null)
-				return new PerforceChangeLogSet(build, history);
+				return changeLogSet;
 
 			for(Node node : entries) {
 				Changelist change = new Changelist();
@@ -128,15 +128,15 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
 				}
 				change.setJobs(jobs);
 
-				PerforceChangeLogEntry entry = new PerforceChangeLogEntry();
+				PerforceChangeLogEntry entry = new PerforceChangeLogEntry(changeLogSet);
 				entry.setChange(change);
-				history.add(entry);
+				changeLogEntries.add(entry);
 			}
 		} catch(Exception e) {
 			throw new IOException("Failed to parse changelog file: " + e.getMessage());
 		}
 
-		return new PerforceChangeLogSet(build, history);
+		return changeLogSet;
 	}
 
 	/**
