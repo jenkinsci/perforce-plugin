@@ -99,19 +99,42 @@ public class PerforceSCM extends SCM {
 		this.updateView = updateView;
 		this.firstChange = firstChange;
 	}
-	
+
+	/**
+	 * Convenience method for retrieving a depot using local Perforce execution.
+	 * {@see PerforceSCM#getDepot(Lancher, FilePath)}
+	 * 
+	 * @return A depot object
+	 */
+	protected Depot getDepot() {
+		return getDepot(null, null);
+	}
+
 	/**
 	 * This only exists because we need to do initialization after we have been brought
 	 * back to life.  I'm not quite clear on stapler and how all that works.
 	 * At any rate, it doesn't look like we have an init() method for setting up our Depot
 	 * after all of the setters have been called.  Someone correct me if I'm wrong...
-	 *
+	 * <p>
 	 * UPDATE: With the addition of PerforceMailResolver, we now have need to share the depot object.  I'm making
 	 * this protected to enable that.
+	 *
+	 * @param launcher	The Hudson launcher (can be null if used outside of a build.)
+	 * @param workspace	The Hudson filePath object (can be null if used outside of a build.)
+	 *
+	 * @return A P4Java Depot object that represents the connected and authenticated Perforce server.
 	 */
-	protected Depot getDepot() {
+	protected Depot getDepot(Launcher launcher, FilePath workspace) {
+
 		if(depot == null) {
-			depot = new Depot();
+			// Check to see if we are in a position that requires executing on the slave.  If we are not, just
+			// create the normal depot for local use.  (PerforceMailResolver executes locally.)
+			if(launcher != null && workspace != null) {
+				HudsonP4ExecutorFactory hudsonExecFactory = new HudsonP4ExecutorFactory(launcher,workspace);
+				depot = new Depot(hudsonExecFactory);
+			} else {
+				depot = new Depot();
+			}
 			depot.setUser(p4User);
 			depot.setPassword(p4Passwd);
 			depot.setPort(p4Port);
@@ -123,6 +146,13 @@ public class PerforceSCM extends SCM {
 		return depot;
 	}
 
+	/**
+	 * Override of SCM.buildEnvVars() in order to setup the last change we have sync'd to as a Hudson
+	 * environment variable: P4_CHANGELIST
+	 * 
+	 * @param build
+	 * @param env
+	 */
 	public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
 		super.buildEnvVars(build, env);
 		int lastChange = getLastChange(build.getPreviousBuild());
@@ -184,7 +214,11 @@ public class PerforceSCM extends SCM {
 		    
 		    // 1. Retrieve the client specified, throw an exception if we are configured wrong and the
 		    // client spec doesn't exist.
-			Workspace p4workspace = getDepot().getWorkspaces().getWorkspace(p4Client);
+			//Update Hudson Exec Factory with new values:   
+			
+
+			Workspace p4workspace = getDepot(launcher, workspace).getWorkspaces().getWorkspace(p4Client);
+			
 			assert p4workspace != null;
 			boolean creatingNewWorkspace = p4workspace.getAccess() == null || p4workspace.getAccess().length() == 0;
 			boolean usingLabel = projectPath.contains("@");
@@ -342,7 +376,8 @@ public class PerforceSCM extends SCM {
 		try {
 			int lastChange = getLastChange(project.getLastBuild());
 			listener.getLogger().println("Looking for changes...");
-			Workspace p4workspace = getDepot().getWorkspaces().getWorkspace(p4Client);
+			  	
+			Workspace p4workspace = getDepot(launcher, workspace).getWorkspaces().getWorkspace(p4Client);
 			
 			// List<Changelist> changes = getDepot().getChanges().getChangelists(getChangesPaths(p4workspace), -1, 1);
 			// the above call is slightly more efficient, but doesn't support multiple paths. 
