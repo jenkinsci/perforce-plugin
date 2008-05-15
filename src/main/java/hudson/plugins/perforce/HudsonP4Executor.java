@@ -11,24 +11,26 @@ import hudson.Launcher;
 import hudson.Proc;
 
 /**
- * Implementation of the P4Java Executor interface that provides support for remotely executing 
- * Perforce commands.
+ * Implementation of the P4Java Executor interface that provides support for
+ * remotely executing Perforce commands.
+ * <p/>
+ * User contract: Use this class only once to execute a command. ,to execute
+ * another command, spawn another Exector using the Exector Factory
  *
- * // TODO: Add user contract for using this class (What is this about?  It was added by Victor?)
+ * @author Victor Szoltysek
  */
 public class HudsonP4Executor implements Executor {
-
-	private Launcher hudsonLauncher;
-	private Proc process;
 
 	private BufferedReader reader;
 	private BufferedWriter writer;
 
+	private Launcher hudsonLauncher;
 	private String[] env;
 	private FilePath filePath;
 
 	/**
-	 * Constructor that takes Hudson specific details for launching the Perforce commands.
+	 * Constructor that takes Hudson specific details for launching the
+	 * Perforce commands.
 	 *
 	 * @param hudsonLauncher
 	 * @param envMap
@@ -41,48 +43,49 @@ public class HudsonP4Executor implements Executor {
 	}
 
 	public void close() {
-		//TODO: Add closing of streams (Is this needed because of the closeOnProcess()?)
+		// Need to close writer
+		// (reader gets closed in HudsonPipedOutputStream)
+		try {
+			writer.close();
+		} catch(IOException e) {
+			// Do nothing
+		}
+
 	}
 
-	/**
-	 *{@inheritDoc}
-	 */
 	public void exec(String[] cmd) throws PerforceException {
 
 		try {
-			//hudsonOut->p4in->reader
+			// hudsonOut->p4in->reader
 			HudsonPipedOutputStream hudsonOut = new HudsonPipedOutputStream();
 			PipedInputStream p4in = new PipedInputStream(hudsonOut);
 			reader = new BufferedReader(new InputStreamReader(p4in));
 
-			//hudsonIn<-p4Out<-writer
+			// hudsonIn<-p4Out<-writer
 			PipedInputStream hudsonIn = new PipedInputStream();
 			PipedOutputStream p4out = new PipedOutputStream(hudsonIn);
 			writer = new BufferedWriter(new OutputStreamWriter(p4out));
 
-			process = hudsonLauncher.launch(cmd, env, hudsonIn, hudsonOut, filePath);
+			Proc process = hudsonLauncher.launch(cmd, env, hudsonIn, hudsonOut, filePath);
 
-			//Required to close hudsonOut stream
+			// Required to close hudsonOut stream
 			hudsonOut.closeOnProcess(process);
 
 		} catch(IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			// Do nothing
 		}
 
 	}
 
 	/**
-	 * Function for converting map of environment variables to a String array as hudson does not provide a
-	 * launcher method that takes
-	 * <p>
-	 *  (1) Environment Map
-	 *  (2) InputStream
-	 *  (3) OutputStream
-	 * <p>
-	 * .. at the same time
+	 * Function for converting map of environment variables to a String
+	 * array as hudson does not provide a launcher method that takes
+	 * <p/>
+	 * (1) Environment Map (2) InputStream (3) OutputStream
+	 * <p> .. at the same time
 	 *
 	 * @param envMap
+	 *
 	 * @return
 	 */
 	private String[] convertEnvMaptoArray(Map<String, String> envMap) {

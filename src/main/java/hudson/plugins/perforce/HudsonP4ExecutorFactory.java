@@ -6,19 +6,21 @@ import com.tek42.perforce.process.ExecutorFactory;
 import hudson.FilePath;
 import hudson.Launcher;
 
-/**
+/*
  * Implementation of P4Java's ExecutorFactory to create new HudsonP4Executors
+ *
+ * @author Victor Szoltysek
  */
 public class HudsonP4ExecutorFactory implements ExecutorFactory {
 
 	/**
-	 * Launcher and FilePath have to be transient as they are NOT seriazable,
-	 * whereas Hudson will attempt to serizalize this class via:
-	 * PerforceSCM->Depot->HudsonP4ExectorFactory.
+	 * FilePath, and Launcher are Hudson classes that are not serializable
+	 * They need to be set as transient, or Hudson will throw exceptions.
+	 * Make sure to create a new HudsonP4ExecutorFactory after de-serialization
 	 */
-	transient Launcher hudsonLauncher;
-	transient Map<String, String> env;
-	transient FilePath filePath;
+	transient private Launcher hudsonLauncher;
+	transient private Map<String, String> env;
+	transient private FilePath filePath;
 
 	/**
 	 * Hudson specific constructor to deal with launching P4 remotely.
@@ -30,7 +32,7 @@ public class HudsonP4ExecutorFactory implements ExecutorFactory {
 		this.hudsonLauncher = hudsonLauncher;
 		this.filePath = filePath;
 	}
-	
+
 	public HudsonP4Executor newExecutor() {
 		return new HudsonP4Executor(hudsonLauncher, env, filePath);
 	}
