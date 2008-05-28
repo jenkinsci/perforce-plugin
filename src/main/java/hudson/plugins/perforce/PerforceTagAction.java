@@ -1,40 +1,21 @@
 package hudson.plugins.perforce;
 
-import hudson.scm.*;
+import com.tek42.perforce.Depot;
+import com.tek42.perforce.PerforceException;
+import com.tek42.perforce.model.Label;
+import static hudson.Util.fixEmpty;
 import hudson.model.AbstractBuild;
 import hudson.model.Action;
 import hudson.model.Hudson;
-import hudson.model.TaskListener;
-import hudson.model.LargeText;
-import hudson.scm.SubversionSCM.SvnInfo;
-import hudson.util.CopyOnWriteMap;
+import hudson.scm.AbstractScmTagAction;
 import hudson.util.FormFieldValidator;
-import static hudson.Util.fixEmpty;
-import static hudson.Util.fixNull;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.SVNURL;
-import org.tmatesoft.svn.core.wc.SVNClientManager;
-import org.tmatesoft.svn.core.wc.SVNCopyClient;
-import org.tmatesoft.svn.core.wc.SVNRevision;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-import java.util.Map.Entry;
-import java.lang.ref.WeakReference;
-
-import com.tek42.perforce.*;
-import com.tek42.perforce.model.*;
+import java.util.regex.Pattern;
 
 /**
  * {@link Action} that lets people create tag for the given build.
