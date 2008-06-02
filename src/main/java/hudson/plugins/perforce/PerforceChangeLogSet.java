@@ -1,7 +1,6 @@
 package hudson.plugins.perforce;
 
 import hudson.Util;
-import hudson.util.WriterOutputStream;
 import hudson.model.AbstractBuild;
 import hudson.scm.ChangeLogSet;
 
@@ -18,6 +17,7 @@ import org.dom4j.Document;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
 import org.xml.sax.SAXException;
+import org.kohsuke.stapler.framework.io.WriterOutputStream;
 
 import com.tek42.perforce.model.Changelist;
 
