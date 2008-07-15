@@ -9,6 +9,8 @@
   <p>
     <b>"Clientspec"</b> (oldskewl) or <b>"Workspace"</b> (newskewl) of the user. If the workspace you specify does not exist, Hudson creates it.  <br>
     <b>Important Note:</b> Hudson will likely change the root of this workspace to fit Hudson's installation.  That means
+    Hudson also automatically creates a workspace for each slave on every project.  The hostname of the slave is appended to the end of the given
+    workspace name to ensure that all workspaces are unique    
     that unless you develop from the same directory that Hudson checks out to, you will not be able to reuse
     this workspace outside of Hudson.<br>
     <b>Important Note:</b> If two jobs retrieve the same file into their workspace, these jobs

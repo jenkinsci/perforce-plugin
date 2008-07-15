@@ -3,11 +3,13 @@ package hudson.plugins.perforce;
 import static hudson.Util.fixNull;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.FilePath.FileCallable;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.remoting.VirtualChannel;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.RepositoryBrowsers;
 import hudson.scm.SCM;
@@ -17,6 +19,7 @@ import hudson.util.FormFieldValidator;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.util.List;
 import java.util.Map;
@@ -48,11 +51,12 @@ public class PerforceSCM extends SCM {
 	String p4Passwd;
 	String p4Port;
 	String p4Client;
+	String nodeSuffix;
 	String projectPath;
 
 	String p4Exe = "C:\\Program Files\\Perforce\\p4.exe";
 	String p4SysDrive = "C:";
-	String p4SysRoot = "C:\\WINDOWS";
+	String p4SysRoot = "C:\\WINDOWS";	
 
 	transient Depot depot;
 
@@ -117,11 +121,13 @@ public class PerforceSCM extends SCM {
 	protected Depot getDepot(Launcher launcher, FilePath workspace) {
 
 		HudsonP4ExecutorFactory p4Factory = new HudsonP4ExecutorFactory(launcher,workspace);
+		
 		depot = new Depot(p4Factory);
 		depot.setUser(p4User);
 		depot.setPassword(p4Passwd);
 		depot.setPort(p4Port);
-		depot.setClient(p4Client);
+		depot.setClient(p4Client + nodeSuffix);		
+		
 		depot.setExecutable(p4Exe);
 		depot.setSystemDrive(p4SysDrive);
 		depot.setSystemRoot(p4SysRoot);
@@ -208,16 +214,18 @@ public class PerforceSCM extends SCM {
 
 		return uriString;
 	}
-
+	
+    
 	/* (non-Javadoc)
 	 * @see hudson.scm.SCM#checkout(hudson.model.AbstractBuild, hudson.Launcher, hudson.FilePath, hudson.model.BuildListener, java.io.File)
 	 */
 	@Override
 	public boolean checkout(AbstractBuild build, Launcher launcher, FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
-
+		
 		try {
+			
 			listener.getLogger().println("Performing sync with Perforce for: " + projectPath);
-
+			boolean creatingNewWorkspace = false;
 			// Check to make sure our client is mapped to the local hudson directory...
 		    // The problem is that perforce assumes a local directory on your computer maps
 		    // directly to the remote depot.  Unfortunately, this doesn't work with they way
@@ -227,13 +235,27 @@ public class PerforceSCM extends SCM {
 		    // that is possible, I think its wasteful makes setup time for the user longer as
 		    // they have to go and create a workspace in perforce for each new project.
 
-		    // 1. Retrieve the client specified, throw an exception if we are configured wrong and the
-		    // client spec doesn't exist.
-			//Update Hudson Exec Factory with new values:
+		    // 1. Retrieve the client specified.  If we're on a slave add nodesuffix to
+			// the p4 client name to get the correct p4 client for that slave.  If
+			// a p4 client doesn't exist then create it.
+			//Update Hudson Exec Factory with new values:			
+			nodeSuffix = null;
+			if (build.getBuiltOnStr() != null) {
+				//use the 1st part of the hostname as the node suffix
+				String host = workspace.act(new GetHostname());
+				nodeSuffix = "-" + host.subSequence(0, host.indexOf('.'));
+				listener.getLogger().println("Changing client to " + p4Client + 
+						nodeSuffix);
+				creatingNewWorkspace = true;
+			}			
+			Workspace p4workspace = 
+				getDepot(launcher,workspace).getWorkspaces().getWorkspace(
+						p4Client+nodeSuffix);
 
-			Workspace p4workspace = getDepot(launcher,workspace).getWorkspaces().getWorkspace(p4Client);
+			//if the client doesn't we need to set the name so it will be created
+			p4workspace.setName(p4Client+nodeSuffix);
 			assert p4workspace != null;
-			boolean creatingNewWorkspace = p4workspace.getAccess() == null || p4workspace.getAccess().length() == 0;
+			creatingNewWorkspace = p4workspace.getAccess() == null || p4workspace.getAccess().length() == 0;
 			boolean usingLabel = projectPath.contains("@");
 
 			// 2. Before we sync, we need to update the client spec (we do this on every build).
@@ -297,7 +319,9 @@ public class PerforceSCM extends SCM {
 				createEmptyChangeLog(changelogFile, listener, "changelog");
 
 			} else if(!forceSync) {
-				listener.getLogger().println("No changes since last build.");
+				listener.getLogger().println("No changes since last build.  " +
+						"Syncing workspace.");
+				depot.getWorkspaces().syncTo(projectPath+"@"+lastChange, forceSync);
 				return createEmptyChangeLog(changelogFile, listener, "changelog");
 			}
 
@@ -315,7 +339,7 @@ public class PerforceSCM extends SCM {
 				listener.getLogger().println("Label found in projectPath, NOT sync'ing to the head.");
 				depot.getWorkspaces().syncTo(projectPath, forceSync);
 			} else {
-				depot.getWorkspaces().syncToHead(projectPath, forceSync);
+				depot.getWorkspaces().syncTo(projectPath+"@"+lastChange, forceSync);
 			}
 
 			// reset one time use variables...
@@ -338,6 +362,8 @@ public class PerforceSCM extends SCM {
 			listener.getLogger().print("Caught Exception communicating with perforce. " + e.getMessage());
 			e.printStackTrace();
 			throw new IOException("Unable to communicate with perforce. " + e.getMessage());
+		} catch (InterruptedException e) {
+			throw new IOException("Unable to get hostname from slave. " + e.getMessage());
 		} finally {
 			//Utils.cleanUp();
 		}
@@ -749,5 +775,11 @@ public class PerforceSCM extends SCM {
 			return "";
 		return new Integer(firstChange).toString();
 	}
+    private static final class GetHostname implements FileCallable<String> {
+        public String invoke(File f, VirtualChannel channel) throws IOException {
+                return InetAddress.getLocalHost().getHostName();
+        }
+        private static final long serialVersionUID = 1L;
+    }	
 }
 
