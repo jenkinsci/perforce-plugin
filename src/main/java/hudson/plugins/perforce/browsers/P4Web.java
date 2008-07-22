@@ -34,10 +34,9 @@ public class P4Web extends PerforceRepositoryBrowser {
 	 */
     public final URL url;
 
-    public final String p4WebBegShite = "@md=d&rc=s&rt=s&thb=y&c=ihy@";
-    // in between goes the path we are looking for...
-    public final String p4WebEndShite = "?ac=22";
-    public final String p4DifEndShite = "?ac=19&";
+	// 'ac' stands for action and corresponds to a unique screen in P4Web
+	public final String p4WebEndShite = "?ac=22";	// The file contents screen
+    public final String p4DifEndShite = "?ac=19";	// The file comparison screen (diff)
     
     @DataBoundConstructor
     public P4Web(URL url) throws MalformedURLException {
@@ -51,12 +50,12 @@ public class P4Web extends PerforceRepositoryBrowser {
         int r = new Integer(file.getRevision());
         if(r <= 1)
         	return null;
-        return new URL(url, p4WebBegShite + file.getFilename() + p4DifEndShite + "&rev1=" + (r - 1) + "&rev2=" + (r));
+        return new URL(url, file.getFilename() + p4DifEndShite + "&rev1=" + (r - 1) + "&rev2=" + (r));
     }
 
     @Override
     public URL getFileLink(Changelist.FileEntry file) throws IOException {
-        return new URL(url, p4WebBegShite + file.getFilename() + p4WebEndShite);
+        return new URL(url, file.getFilename() + p4WebEndShite);
     }
 
     /**
