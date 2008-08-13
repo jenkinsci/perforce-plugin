@@ -176,7 +176,7 @@ public class PerforceSCM extends SCM {
 	 */
 	public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
 		super.buildEnvVars(build, env);
-		int lastChange = getLastChange(build.getPreviousBuild());
+		int lastChange = getLastChange(build);
 		env.put("P4_CHANGELIST", Integer.toString(lastChange));
 	}
 
