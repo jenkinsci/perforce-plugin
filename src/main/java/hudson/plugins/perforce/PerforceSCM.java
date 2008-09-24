@@ -7,6 +7,7 @@ import hudson.FilePath.FileCallable;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
+import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
@@ -24,9 +25,12 @@ import java.net.URLDecoder;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.logging.Logger;
 import java.io.ObjectInputStream;
 
 import javax.servlet.ServletException;
+
+import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -243,7 +247,12 @@ public class PerforceSCM extends SCM {
 			if (build.getBuiltOnStr() != null) {
 				//use the 1st part of the hostname as the node suffix
 				String host = workspace.act(new GetHostname());
-				nodeSuffix = "-" + host.subSequence(0, host.indexOf('.'));
+				if (host.contains(".")) {
+					nodeSuffix = "-" + host.subSequence(0, host.indexOf('.'));	
+				} else {
+					nodeSuffix = "-" + host;
+				}
+				
 				listener.getLogger().println("Changing client to " + p4Client + 
 						nodeSuffix);
 				creatingNewWorkspace = true;
@@ -472,12 +481,12 @@ public class PerforceSCM extends SCM {
             return "Perforce";
         }
 
-        public SCM newInstance(StaplerRequest req) throws FormException {
+        public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
         	String value = req.getParameter("p4.forceSync");
         	boolean force = false;
         	if(value != null && !value.equals(""))
         		force = new Boolean(value);
-
+        	
         	value = req.getParameter("p4.updateView");
         	boolean update = false;
         	if(value != null && !value.equals(""))
@@ -500,7 +509,7 @@ public class PerforceSCM extends SCM {
                 force,
                 update,
                 firstChange,
-                RepositoryBrowsers.createInstance(PerforceRepositoryBrowser.class, req, "p4.browser"));
+                RepositoryBrowsers.createInstance(PerforceRepositoryBrowser.class, req, formData, "browser"));
         }
 
     	public String isValidProjectPath(String path) {
@@ -775,11 +784,44 @@ public class PerforceSCM extends SCM {
 			return "";
 		return new Integer(firstChange).toString();
 	}
+	
+	/**
+	 * Get the hostname of the client to use as the node suffix
+	 */	
     private static final class GetHostname implements FileCallable<String> {
         public String invoke(File f, VirtualChannel channel) throws IOException {
                 return InetAddress.getLocalHost().getHostName();
         }
         private static final long serialVersionUID = 1L;
     }	
+    
+    
+    /**
+     * With Perforce the server keeps track of files in the workspace.  We never
+     * want files deleted without the knowledge of the server so we disable the 
+     * cleanup process.
+     * 
+     * @param project
+     *      The project that owns this {@link SCM}. This is always the same 
+     *      object for a particular instanceof {@link SCM}. Just passed in here 
+     *      so that {@link SCM} itself doesn't have to remember the value.
+     * @param workspace
+     *      The workspace which is about to be deleted. Never null. This can be 
+     *      a remote file path.
+     * @param node
+     *      The node that hosts the workspace. SCM can use this information to 
+     *      determine the course of action.
+     *
+     * @return
+     *      true if {@link SCM} is OK to let Hudson proceed with deleting the 
+     *      workspace.
+     *      False to veto the workspace deletion.
+     */
+    @Override
+    public boolean processWorkspaceBeforeDeletion(AbstractProject<?,?> project, FilePath workspace, Node node) {
+    	Logger.getLogger(PerforceSCM.class.getName()).info(
+    			"Veto workspace cleanup");
+        return false;
+    }    
 }
 

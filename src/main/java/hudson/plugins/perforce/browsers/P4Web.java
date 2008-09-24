@@ -48,12 +48,13 @@ public class P4Web extends PerforceRepositoryBrowser {
         int r = new Integer(file.getRevision());
         if(r <= 1)
         	return null;
-        return new URL(url, file.getFilename() + p4DifEndShite + "&rev1=" + (r - 1) + "&rev2=" + (r));
+        return new URL(url.toString() + file.getFilename() + p4DifEndShite + 
+        		"&rev1=" + (r - 1) + "&rev2=" + (r));
     }
 
     @Override
     public URL getFileLink(Changelist.FileEntry file) throws IOException {
-        return new URL(url, file.getFilename() + p4WebEndShite);
+        return new URL(url.toString() + file.getFilename() + p4WebEndShite);
     }
 
     /**
