@@ -5,6 +5,7 @@ import hudson.model.Descriptor;
 import hudson.plugins.perforce.*;
 import hudson.scm.RepositoryBrowser;
 import hudson.util.FormFieldValidator;
+import hudson.Extension;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -71,17 +72,8 @@ public class P4Web extends PerforceRepositoryBrowser {
     	return url;
     }
     
-    public Descriptor<RepositoryBrowser<?>> getDescriptor() {
-        return DESCRIPTOR;
-    }
-
-    public static final Descriptor<RepositoryBrowser<?>> DESCRIPTOR = new DescriptorImpl();
-
+    @Extension
     public static class DescriptorImpl extends Descriptor<RepositoryBrowser<?>> {
-        public DescriptorImpl() {
-            super(P4Web.class);
-        }
-
         public String getDisplayName() {
             return "P4Web";
         }

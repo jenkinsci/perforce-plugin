@@ -1,6 +1,7 @@
 package hudson.plugins.perforce.browsers;
 
 import hudson.Util;
+import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.scm.*;
 import hudson.util.FormFieldValidator;
@@ -61,18 +62,9 @@ public final class FishEyePerforce extends PerforceRepositoryBrowser {
         int idx = p.lastIndexOf('/');
         return p.substring(idx+1);
     }
-    
-    public DescriptorImpl getDescriptor() {
-        return DESCRIPTOR;
-    }
 
-    public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
-
+    @Extension
     public static class DescriptorImpl extends Descriptor<RepositoryBrowser<?>> {
-
-        public DescriptorImpl() {
-            super(FishEyePerforce.class);
-        }
 
         @Override
         public String getDisplayName() {

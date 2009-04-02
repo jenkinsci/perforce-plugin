@@ -1,9 +1,14 @@
 package hudson.plugins.perforce;
 
-import static hudson.Util.fixNull;
+import com.tek42.perforce.Depot;
+import com.tek42.perforce.PerforceException;
+import com.tek42.perforce.model.Changelist;
+import com.tek42.perforce.model.Workspace;
+import hudson.Extension;
 import hudson.FilePath;
-import hudson.Launcher;
 import hudson.FilePath.FileCallable;
+import hudson.Launcher;
+import static hudson.Util.fixNull;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -12,33 +17,24 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
 import hudson.scm.ChangeLogParser;
-import hudson.scm.RepositoryBrowsers;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import hudson.util.FormFieldValidator;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.URLDecoder;
-import java.util.List;
-import java.util.Map;
-import java.util.ArrayList;
-import java.util.logging.Logger;
-import java.io.ObjectInputStream;
-
-import javax.servlet.ServletException;
-
-import net.sf.json.JSONObject;
-
+import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
-import com.tek42.perforce.Depot;
-import com.tek42.perforce.PerforceException;
-import com.tek42.perforce.model.Changelist;
-import com.tek42.perforce.model.Workspace;
+import javax.servlet.ServletException;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.net.InetAddress;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * Extends {@link SCM} to provide integration with Perforce SCM repositories.
@@ -48,8 +44,6 @@ import com.tek42.perforce.model.Workspace;
  * @author Victor Szoltysek
  */
 public class PerforceSCM extends SCM {
-
-	public static final PerforceSCM.PerforceSCMDescriptor DESCRIPTOR = new PerforceSCM.PerforceSCMDescriptor();
 
 	String p4User;
 	String p4Passwd;
@@ -85,12 +79,13 @@ public class PerforceSCM extends SCM {
 	 */
 	int firstChange = -1;
 
-	public PerforceSCM(String p4User, String p4Pass, String p4Client, String p4Port, String projectPath,
+    @DataBoundConstructor
+	public PerforceSCM(String p4User, String p4Passwd, String p4Client, String p4Port, String projectPath,
 						String p4Exe, String p4SysRoot, String p4SysDrive, boolean forceSync,
 						boolean updateView, int firstChange, PerforceRepositoryBrowser browser) {
 
 		this.p4User = p4User;
-		this.p4Passwd = p4Pass;
+		this.p4Passwd = p4Passwd;
 		this.p4Client = p4Client;
 		this.p4Port = p4Port;
 		this.projectPath = projectPath;
@@ -410,14 +405,6 @@ public class PerforceSCM extends SCM {
 	}
 
 	/* (non-Javadoc)
-	 * @see hudson.scm.SCM#getDescriptor()
-	 */
-	@Override
-	public SCMDescriptor<?> getDescriptor() {
-		return DESCRIPTOR;
-	}
-
-	/* (non-Javadoc)
 	 * @see hudson.scm.SCM#pollChanges(hudson.model.AbstractProject, hudson.Launcher, hudson.FilePath, hudson.model.TaskListener)
 	 */
 	@Override
@@ -470,46 +457,15 @@ public class PerforceSCM extends SCM {
 		return action.getChangeNumber();
 	}
 
+    @Extension
 	public static final class PerforceSCMDescriptor extends SCMDescriptor<PerforceSCM> {
-
-        private PerforceSCMDescriptor() {
+        public PerforceSCMDescriptor() {
             super(PerforceSCM.class, PerforceRepositoryBrowser.class);
             load();
         }
 
         public String getDisplayName() {
             return "Perforce";
-        }
-
-        public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
-        	String value = req.getParameter("p4.forceSync");
-        	boolean force = false;
-        	if(value != null && !value.equals(""))
-        		force = new Boolean(value);
-        	
-        	value = req.getParameter("p4.updateView");
-        	boolean update = false;
-        	if(value != null && !value.equals(""))
-        		update = new Boolean(value);
-
-        	value = req.getParameter("p4.firstChange");
-        	int firstChange = -1;
-        	if(value != null && !value.equals(""))
-        		firstChange = new Integer(value);
-
-            return new PerforceSCM(
-                req.getParameter("p4.user"),
-                req.getParameter("p4.passwd"),
-                req.getParameter("p4.client"),
-                req.getParameter("p4.port"),
-                req.getParameter("projectPath"),
-                req.getParameter("p4.exe"),
-                req.getParameter("p4.sysRoot"),
-                req.getParameter("p4.sysDrive"),
-                force,
-                update,
-                firstChange,
-                RepositoryBrowsers.createInstance(PerforceRepositoryBrowser.class, req, formData, "browser"));
         }
 
     	public String isValidProjectPath(String path) {
