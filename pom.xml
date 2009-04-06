@@ -10,7 +10,7 @@
 	<artifactId>perforce</artifactId>
 	<name>Hudson Perforce Plugin</name>
 	<packaging>hpi</packaging>
-	<version>1.0.12</version>
+	<version>1.0.13-SNAPSHOT</version>
 	<url>http://hudson.gotdns.com/wiki/display/HUDSON/Perforce+Plugin</url>
 	
 	<licenses>
