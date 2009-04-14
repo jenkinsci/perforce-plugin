@@ -6,6 +6,7 @@ import com.tek42.perforce.model.Changelist;
 import com.tek42.perforce.model.Workspace;
 import hudson.Extension;
 import hudson.FilePath;
+import hudson.Util;
 import hudson.FilePath.FileCallable;
 import hudson.Launcher;
 import static hudson.Util.fixNull;
@@ -20,6 +21,8 @@ import hudson.scm.ChangeLogParser;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import hudson.util.FormFieldValidator;
+import hudson.util.FormValidation;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -35,6 +38,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Extends {@link SCM} to provide integration with Perforce SCM repositories.
@@ -51,6 +56,7 @@ public class PerforceSCM extends SCM {
 	String p4Client;
 	String nodeSuffix;
 	String projectPath;
+	String p4Label;
 
 	String p4Exe = "C:\\Program Files\\Perforce\\p4.exe";
 	String p4SysDrive = "C:";
@@ -73,35 +79,60 @@ public class PerforceSCM extends SCM {
 	 * If true, we will manage the workspace view within the plugin.  If false, we will leave the
 	 * view alone.
 	 */
-	boolean updateView = true;
+	boolean updateView = true;	
+	
+	/**
+	 * If true we add the slave hostname to then end of the client name when 
+	 * running on a slave
+	 */
+	boolean renameClient;	
+		
 	/**
 	 * If > 0, then will override the changelist we sync to for the first build.
 	 */
 	int firstChange = -1;
+	
 
     @DataBoundConstructor
 	public PerforceSCM(String p4User, String p4Passwd, String p4Client, String p4Port, String projectPath,
-						String p4Exe, String p4SysRoot, String p4SysDrive, boolean forceSync,
-						boolean updateView, int firstChange, PerforceRepositoryBrowser browser) {
-
-		this.p4User = p4User;
+						String p4Exe, String p4SysRoot, String p4SysDrive, String p4Label, boolean forceSync,
+						boolean updateView, boolean renameClient, int firstChange, PerforceRepositoryBrowser browser) {
+    	
+    	this.p4User = p4User;
 		this.p4Passwd = p4Passwd;
 		this.p4Client = p4Client;
 		this.p4Port = p4Port;
-		this.projectPath = projectPath;
+				
+		//make it backwards compatible with the old way of specifying a label
+		Matcher m = Pattern.compile("(@\\S+)\\s*").matcher(projectPath);
+		if (m.find()) {
+			p4Label = m.group(1);					
+			projectPath = projectPath.substring(0,m.start(1)) 
+				+ projectPath.substring(m.end(1)); 			
+		}
+		
+		if (this.p4Label != null && p4Label != null) {
+			Logger.getLogger(PerforceSCM.class.getName()).warning(
+					"Label found in views and in label field.  Using:" 
+					+ p4Label);
+		}
+		this.p4Label = Util.fixEmptyAndTrim(p4Label);		
+
+		this.projectPath = fixProjectPath(projectPath);
 
 		if(p4Exe != null)
 			this.p4Exe = p4Exe;
-
-		if(p4SysRoot != null)
+		
+		if(p4SysRoot != null && p4SysRoot != "")
 			this.p4SysRoot = p4SysRoot;
 
-		if(p4SysDrive != null)
+		if(p4SysDrive != null && p4SysDrive != "")
 			this.p4SysDrive = p4SysDrive;
 
 		this.forceSync = forceSync;
 		this.browser = browser;
 		this.updateView = updateView;
+		this.renameClient = renameClient;
 		this.firstChange = firstChange;
 	}
 
@@ -140,7 +171,7 @@ public class PerforceSCM extends SCM {
 	protected Depot getDepot() {
 	    return depot;
 	}
-
+	
 	/**
 	 * Depot is transient, so we need to create a new one on start up
 	 * specifically for the getDepot() method.
@@ -175,7 +206,7 @@ public class PerforceSCM extends SCM {
 	 */
 	public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
 		super.buildEnvVars(build, env);
-		int lastChange = getLastChange(build);
+		int lastChange = getLastDepotChange(build);
 		env.put("P4_CHANGELIST", Integer.toString(lastChange));
 	}
 
@@ -238,8 +269,11 @@ public class PerforceSCM extends SCM {
 			// the p4 client name to get the correct p4 client for that slave.  If
 			// a p4 client doesn't exist then create it.
 			//Update Hudson Exec Factory with new values:			
-			nodeSuffix = null;
-			if (build.getBuiltOnStr() != null) {
+			nodeSuffix = "";
+			if ( renameClient &&
+					build.getBuiltOnStr() != null && 
+					build.getBuiltOnStr() != "") {
+
 				//use the 1st part of the hostname as the node suffix
 				String host = workspace.act(new GetHostname());
 				if (host.contains(".")) {
@@ -251,16 +285,16 @@ public class PerforceSCM extends SCM {
 				listener.getLogger().println("Changing client to " + p4Client + 
 						nodeSuffix);
 				creatingNewWorkspace = true;
-			}			
+			}
+			this.projectPath = fixProjectPath(projectPath);
 			Workspace p4workspace = 
 				getDepot(launcher,workspace).getWorkspaces().getWorkspace(
-						p4Client+nodeSuffix);
+						p4Client + nodeSuffix);
 
-			//if the client doesn't we need to set the name so it will be created
-			p4workspace.setName(p4Client+nodeSuffix);
+			//if the client doesn't exist set the name so it will be created
+			p4workspace.setName(p4Client + nodeSuffix);
 			assert p4workspace != null;
 			creatingNewWorkspace = p4workspace.getAccess() == null || p4workspace.getAccess().length() == 0;
-			boolean usingLabel = projectPath.contains("@");
 
 			// 2. Before we sync, we need to update the client spec (we do this on every build).
 			// Here we are getting the local file path to the workspace.  We will use this as the "Root"
@@ -275,11 +309,13 @@ public class PerforceSCM extends SCM {
 			//	[Hudson]/[job]/workspace/[Project]/contents
 			// we get:
 			//	[Hudson]/[job]/workspace/contents
-			if(updateView || creatingNewWorkspace) {
-				String view = projectPath + " //" + p4workspace.getName() + "/...";
-				listener.getLogger().println("Changing P4 Client View to: " + view);
-				p4workspace.clearViews();
-				p4workspace.addView(view);
+			if(updateView || creatingNewWorkspace) {				
+				listener.getLogger().println("Changing P4 Client View to: " + 
+						projectPath);
+				p4workspace.clearViews();				
+				for (String view : projectPath.split("\n")) {
+					p4workspace.addView(view);
+				}				
 			}
 
 			// 3b. There is a slight chance of failure with sync'ing to head.  I've experienced
@@ -308,7 +344,7 @@ public class PerforceSCM extends SCM {
 			listener.getLogger().println("Last sync'd change: " + lastChange);
 
 			List<Changelist> changes;
-			if(usingLabel) {
+			if(p4Label != null) {
 				changes = new ArrayList<Changelist>(0);
 			} else {
 				changes = depot.getChanges().getChangelistsFromNumbers(depot.getChanges().getChangeNumbersTo(getChangesPaths(p4workspace), lastChange + 1));
@@ -319,13 +355,17 @@ public class PerforceSCM extends SCM {
 				lastChange = changes.get(0).getChangeNumber();
 				PerforceChangeLogSet.saveToChangeLog(new FileOutputStream(changelogFile), changes);
 
-			} else if(usingLabel) {
+			} else if(p4Label != null) {
 				createEmptyChangeLog(changelogFile, listener, "changelog");
 
 			} else if(!forceSync) {
 				listener.getLogger().println("No changes since last build.  " +
 						"Syncing workspace.");
-				depot.getWorkspaces().syncTo(projectPath+"@"+lastChange, forceSync);
+				for (String view : projectPath.split("\n")) {
+					
+					depot.getWorkspaces().syncTo(
+							view.split(" ")[0]+"@"+lastChange, forceSync);
+				}
 				return createEmptyChangeLog(changelogFile, listener, "changelog");
 			}
 
@@ -339,11 +379,19 @@ public class PerforceSCM extends SCM {
 			// Here we are testing to see if there is a label we are sync'ing to.  If so, we can't use the standard
 			// sync to head method.  Note: this assumes that there are no @ in the project path.  If there are,
 			// configure the plugin with %40 in place of @.  This is what P4V and P4Win do internally.
-			if(projectPath.contains("@")) {
+			if(p4Label != null) {
 				listener.getLogger().println("Label found in projectPath, NOT sync'ing to the head.");
-				depot.getWorkspaces().syncTo(projectPath, forceSync);
+				for (String view : projectPath.split("\n")) {
+					depot.getWorkspaces().syncTo(
+							view.split(" ")[0]+"@"+p4Label, forceSync);
+				}				
+				
 			} else {
-				depot.getWorkspaces().syncTo(projectPath+"@"+lastChange, forceSync);
+				for (String view : projectPath.split("\n")) {
+					depot.getWorkspaces().syncTo(
+							view.split(" ")[0]+"@"+lastChange, forceSync);
+				}				
+				
 			}
 
 			// reset one time use variables...
@@ -353,7 +401,7 @@ public class PerforceSCM extends SCM {
 			listener.getLogger().println("Sync complete, took " + (System.currentTimeMillis() - startTime) + " MS");
 
 			// Add tagging action... (Only if we are not using labels.  You can't label a label...)
-			if(!usingLabel) {
+			if(p4Label == null) {
 				build.addAction(new PerforceTagAction(build, depot, lastChange, projectPath));
 			}
 
@@ -381,12 +429,8 @@ public class PerforceSCM extends SCM {
 	 * @return a string of path(s), e.g. //mymodule1/... //mymodule2/...
 	 */
 	private String getChangesPaths(Workspace p4workspace) {
-		String changesPath;
-		if (p4workspace.getViews().size() > 1) {
-			changesPath = PerforceSCMHelper.computePathFromViews(p4workspace.getViews());
-		} else {
-			changesPath = projectPath;
-		}
+		String changesPath;		
+		changesPath = PerforceSCMHelper.computePathFromViews(p4workspace.getViews());		
 		return changesPath;
 	}
 
@@ -403,19 +447,48 @@ public class PerforceSCM extends SCM {
 	public ChangeLogParser createChangeLogParser() {
 		return new PerforceChangeLogParser();
 	}
+	
+	public int getLastDepotChange(Run build){
+		Depot depot = getDepot();
+		int returnValue = -1;
+		try{
+			returnValue = depot.getChanges().getChangeNumbers("//...", -1, 1).get(0);
+		}
+		catch(PerforceException pe)
+		{
+			System.out.println("Problem: " + pe.getMessage());
+			pe.printStackTrace();
+		}
+		return returnValue;
+	}	
 
 	/* (non-Javadoc)
 	 * @see hudson.scm.SCM#pollChanges(hudson.model.AbstractProject, hudson.Launcher, hudson.FilePath, hudson.model.TaskListener)
 	 */
 	@Override
 	public boolean pollChanges(AbstractProject project, Launcher launcher, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
-
+		this.projectPath = fixProjectPath(projectPath);
 		try {
 			int lastChange = getLastChange(project.getLastBuild());
 			listener.getLogger().println("Looking for changes...");
 
 			Workspace p4workspace = getDepot(launcher,workspace).getWorkspaces().getWorkspace(p4Client);
+			//make sure we're polling the specified paths
+			if (p4workspace.getAccess() == null || 
+					p4workspace.getAccess().length() == 0) {
 
+				listener.getLogger().println(
+						"Changing P4 Client View to: " + projectPath);					
+				p4workspace.clearViews();
+				for (String view : projectPath.split("\n")) {
+					//add a default workspace path if necessary
+					if (projectPath.contains(p4Client)) {
+						p4workspace.addView(view);
+					} else {
+						p4workspace.addView(view + " //" + p4Client + "/...\n");
+					}
+				}				
+			}
 			// List<Changelist> changes = getDepot().getChanges().getChangelists(getChangesPaths(p4workspace), -1, 1);
 			// the above call is slightly more efficient, but doesn't support multiple paths.
 			// May not be worth optimizing (by implementing multiple path version of getChangelists) since after the first
@@ -485,8 +558,8 @@ public class PerforceSCM extends SCM {
         	String exe = fixNull(request.getParameter("exe")).trim();
         	String user = fixNull(request.getParameter("user")).trim();
             String pass = fixNull(request.getParameter("pass")).trim();
-
-            if(port.length()==0 || exe.length() == 0 || user.length() == 0 || pass.length() == 0) {// nothing entered yet
+            
+            if(port.length()==0 || exe.length() == 0 || user.length() == 0 ) {// nothing entered yet
                 return null;
             }
             Depot depot = new Depot();
@@ -521,39 +594,67 @@ public class PerforceSCM extends SCM {
     	/**
     	 * Checks to see if the specified workspace is valid.
     	 */
-    	public void doValidateWorkspace(StaplerRequest request, StaplerResponse rsp) throws IOException, ServletException {
-    		new FormFieldValidator(request, rsp, false) {
-                protected void check() throws IOException, ServletException {
-                	Depot depot = getDepotFromRequest(request);
-                	String workspace = request.getParameter("workspace");
-        			if(depot != null) {
-	        			try {
-	        				depot.getWorkspaces().getWorkspace(workspace);
-	        			} catch(PerforceException e) {
-	        				error(e.getMessage());
-	        			}
-        			}
-        			ok();
-        			return;
-                }
-            }.check();
+    	public FormValidation doValidateP4Client(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {    		
+    		
+        	String workspace = Util.fixEmptyAndTrim(req.getParameter("client"));        	
+        	Depot depot = getDepotFromRequest(req);
+        	if (depot == null) {
+        		return FormValidation.error(
+        				"Unable to check workspace against depot");
+        	}
+        	if (workspace == null) {
+        		return FormValidation.error("You must enter a workspaces name");
+        	}        	
+        	try {
+        		Workspace p4Workspace = 
+        			depot.getWorkspaces().getWorkspace(workspace); 
+        		
+        		if (p4Workspace.getAccess() == null || 
+        				p4Workspace.getAccess() == "")		
+					return FormValidation.warning("Workspace does not exist. " +
+							"If \"Let Hudson Manage Workspace View\" is check" +
+							" the workspace will be automatically created.");
+			} catch (PerforceException e) {
+				return FormValidation.error(
+						"Error accessing perforce while checking workspace");
+			} 
+			
+			return FormValidation.ok();
     	}
+    	
+        /**
+         * Performs syntactical check on the P4Label
+          */
+        public FormValidation doValidateP4Label(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+        	
+        	String label = Util.fixEmptyAndTrim(req.getParameter("label"));
+        	
+        	if (label == null) 
+        		return FormValidation.ok();
+        	
+        	Depot depot = getDepotFromRequest(req);
+        	try {        		
+            	com.tek42.perforce.model.Label p4Label = depot.getLabels().getLabel(label);        		
+				if (p4Label.getAccess() == null || p4Label.getAccess() == "")		
+					return FormValidation.error("Label does not exist");
+			} catch (PerforceException e) {
+				return FormValidation.error(
+						"Error accessing perforce while checking label");
+			}
+            	
+            return FormValidation.ok();
+        }    	
 
         /**
          * Checks if the value is a valid Perforce project path.
          */
-        public void doCheckProjectPath(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            new FormFieldValidator(req, rsp, false) {
-                protected void check() throws IOException, ServletException {
-                    String path = fixNull(request.getParameter("value")).trim();
-                    if(path.length() == 0) {// nothing entered yet
-                        ok();
-                        return;
-                    }
-                    // TODO: Check against depot if the path actually exists via: p4 fstat -m 1 [projectPath]
-                    error(isValidProjectPath(path));
-                }
-            }.check();
+        public FormValidation doCheckProjectPath(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+        	String views = Util.fixEmptyAndTrim(req.getParameter("value"));
+        	for(String view : views.split("\n")) {
+        		if (Pattern.matches("\\/\\/\\S+ \\/\\/\\S+", view))
+        			return FormValidation.error("Invalid view:" + view);
+        	}
+        	return FormValidation.ok();
         }
 
         /**
@@ -586,6 +687,22 @@ public class PerforceSCM extends SCM {
         }
 
 	}
+    
+	private String fixProjectPath(String projectPath) {
+		
+		String newPath = "";
+		for (String line : projectPath.split("\n")) {
+			
+			//add a default workspace path if necessary
+			if (line.contains(this.p4Client)) {
+				newPath = newPath + line + "\n";
+			} else {
+				newPath = newPath + line + 
+					" //" + p4Client + nodeSuffix + "/...\n";
+			}			
+		}		
+		return newPath;
+	}    
 
 	/**
 	 * @return the projectPath
@@ -698,6 +815,20 @@ public class PerforceSCM extends SCM {
 	public void setP4Exe(String exe) {
 		p4Exe = exe;
 	}
+	
+	/**
+	 * @return the p4Label
+	 */
+	public String getP4Label() {
+		return p4Label;
+	}
+
+	/**
+	 * @param exe the p4Label to set
+	 */
+	public void setP4Label(String label) {
+		p4Label = label;
+	}	
 
 	/**
 	 * @param update	True to let the plugin manage the view, false to let the user manage it
@@ -726,6 +857,35 @@ public class PerforceSCM extends SCM {
 	public void setForceSync(boolean force) {
 		this.forceSync = force;
 	}
+	
+	/**
+	 * @return	True if we are using a label
+	 */
+	public boolean isUseLabel() {
+		return p4Label != null;
+	}
+
+	/**
+	 * @param force	True to perform a one time force sync, false to perform normal sync
+	 */
+//	public void setForceSync(boolean force) {
+//		this.forceSync = force;
+//	}	
+	
+	/**
+	 * @param renameClient	True if the client will rename the client spec for each 
+	 * slave
+	 */
+	public void setRnameClient(boolean renameClient) {
+		this.renameClient = renameClient;
+	}
+
+	/**
+	 * @return 	True if the client will rename the client spec for each slave
+	 */
+	public boolean isRenameClient() {
+		return renameClient;
+	}	
 
 	/**
 	 * This is only for the config screen.  Also, it returns a string and not an int.

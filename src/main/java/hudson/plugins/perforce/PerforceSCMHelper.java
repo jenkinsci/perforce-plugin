@@ -1,5 +1,6 @@
 package hudson.plugins.perforce;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.StringTokenizer;
 
@@ -23,8 +24,8 @@ public final class PerforceSCMHelper {
 	 *
 	 * @return
 	 */
-	static String computePathFromViews(List<String> views) {
-
+	static String computePathFromViews(Collection<String> views) {
+		
 		StringBuilder path = new StringBuilder("");
 
 		for(String view : views) {

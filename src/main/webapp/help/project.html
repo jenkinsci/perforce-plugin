@@ -1,17 +1,14 @@
 <div>
-  <p><b>Depot Path</b><br/>
-    The depot path is the full depot path of the project root folder.  This is what will be checked out
-    when a build occurs.  Make sure to include the depot specific path and Perforce specific wildcard (...).  Perforce
-	  labels are supported.  However, you must uncheck "Let Hudson Manage Workspace View" and set the view up yourself.
-	  Additionally, when using a label, the recent changes history view in hudson will not show any history and you will
-	  not be able to tag (label) your builds.
+  <p><b>Views</b><br/>
+    This is the depot to client mapping in the same format as a standard perforce workspace spec
+    If "Let Hudson Manage Workspace View" is checked the view entered here will overwrite anything
+    in the existing client
   </p>
   <p>
     Typical Example:<br>
-    //depot/ProjectName/...<br>
+    //depot/folder1/... //workspace-name/folder1/...<br>
+    //depot/folder2/... //workspace-name/folder2/...<br>
 	  <br>
-	  Using a label:<br>
-	//depot/ProjectName/...@NightlyBuild
   </p>
   <p>
   <b>One Time Force Sync</b> allows you to tell perforce to do a p4 sync -f //... which will make sure to

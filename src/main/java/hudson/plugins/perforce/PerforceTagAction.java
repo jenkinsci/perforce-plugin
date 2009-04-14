@@ -29,11 +29,11 @@ public class PerforceTagAction extends AbstractScmTagAction {
 	private String desc;
 	private String view;
     
-    public PerforceTagAction(AbstractBuild build, Depot depot, int changeNumber, String view) {
+    public PerforceTagAction(AbstractBuild build, Depot depot, int changeNumber, String views) {
         super(build);
         this.depot = depot;
         this.changeNumber = changeNumber;
-        this.view = view;
+        this.view = views;
     }
 
     public int getChangeNumber() {
@@ -123,7 +123,9 @@ public class PerforceTagAction extends AbstractScmTagAction {
         label.setName(tag);
         label.setDescription(desc);
         label.setRevision(new Integer(changeNumber).toString());
-        label.addView(view);
+        for (String eachView : view.split("\n")) {
+        	label.addView(eachView);
+        }
         try {
         	depot.getLabels().saveLabel(label);
         } catch(PerforceException e) {

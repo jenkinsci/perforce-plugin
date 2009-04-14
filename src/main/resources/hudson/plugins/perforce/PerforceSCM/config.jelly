@@ -23,44 +23,52 @@
     </f:entry>
     
     <f:entry title="Workspace (client)">
-    	<f:textbox field="p4Client"
-    		checkUrl="'${rootURL}/scm/PerforceSCM/validateWorkspace?port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)+'&amp;workspace='+escape(this.value)"/>
-    </f:entry>
-    
-    <f:entry title="Let Hudson Manage Workspace View">
-    	<f:checkbox field="updateView" default="true" value="True"/>
-    </f:entry>
-    
+    	<f:textbox field="p4Client" id="p4Client"
+	    	checkUrl="'${rootURL}/scm/PerforceSCM/validateP4Client?port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)+'&amp;client='+escape(document.forms[1].p4Client.value)"/>
+    </f:entry>    
     </table>
   </f:entry>
   
   <f:entry title="Project Details" help="/plugin/perforce/help/project.html">
   	<table width="100%">
-  	<f:entry title="Depot Path">
-    	<f:textbox field="projectPath"
-            checkUrl="'${rootURL}/scm/PerforceSCM/checkProjectPath?value='+escape(this.value)"/>
+  	<f:entry title="Views">
+    	<f:textarea field="projectPath"/>            
     </f:entry>
+    
     <f:entry title="One Time Force Sync">
     	<f:checkbox field="forceSync" value="True"/>
     </f:entry>
+    
     <f:entry title="First Changelist to Track">
     	<f:textbox field="firstChange"
     		checkUrl="'${rootURL}/scm/PerforceSCM/checkChangeList?port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)+'&amp;change='+escape(this.value)"/>
     </f:entry>
   	</table>
   </f:entry>
-  
-  <f:entry title="Windows Specific Details" help="/plugin/perforce/help/windows.html">
-  	<table width="100%">
-  	<f:entry title="System Drive">
-    	<f:textbox field="p4SysDrive" />
-    </f:entry>
-    <f:entry title="System Root">
-    	<f:textbox field="p4SysRoot" />
-    </f:entry>
-    </table>
-  </f:entry>
-  
   <t:listScmBrowsers name="browser" />
-  
+	<f:advanced>    
+		<f:entry title="P4 Label" help="/plugin/perforce/help/p4label.html">
+			<f:textbox field="p4Label" id="p4Label"
+				checkUrl="'${rootURL}/scm/PerforceSCM/validateP4Label?label='+escape(document.forms[1].p4Label.value)+'&amp;port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)"/>
+		</f:entry>
+	    <f:entry title="Let Hudson Manage Workspace View"
+	    	help="/plugin/perforce/help/updateView.html">
+	    	<f:checkbox field="updateView" default="true" value="True"/>
+	    </f:entry>   
+	
+	    <f:entry title="Rename workspace for each slave" 
+	    	help="/plugin/perforce/help/renameClient.html">
+	    	<f:checkbox field="renameClient" default="true"  value="True"/>
+	    </f:entry>			
+		<f:entry title="Windows Specific Details" help="/plugin/perforce/help/windows.html">
+		<table width="100%">
+	 		<f:entry title="System Drive">
+		   		<f:textbox field="p4SysDrive" />
+		    </f:entry>
+		    <f:entry title="System Root">
+		   		<f:textbox field="p4SysRoot" />
+		    </f:entry>
+		</table>
+		</f:entry>
+	</f:advanced>      
 </j:jelly>
