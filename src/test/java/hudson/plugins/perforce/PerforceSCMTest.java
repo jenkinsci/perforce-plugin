@@ -6,6 +6,7 @@ import org.jvnet.hudson.test.HudsonTestCase;
 
 import java.net.URL;
 
+
 /**
  * @author Kohsuke Kawaguchi
  */
@@ -24,10 +25,9 @@ public class PerforceSCMTest extends HudsonTestCase {
         // config roundtrip
         submit(new WebClient().getPage(p,"configure").getFormByName("config"));
 
-        // verify that the data is intact        
-        assertEqualBeans(scm,p.getScm(),
-        		"p4User,p4Passwd,p4Client,p4Port,p4Exe,p4SysRoot,p4SysDrive," +
-        		"p4Label,forceSync,updateView,renameClient,firstChange");
-        assertEqualBeans(scm.getBrowser(),p.getScm().getBrowser(),"URL");
+        // verify that the data is intact
+        assertEqualBeans(scm,p.getScm(),"p4User,p4Passwd,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,dontRenameClient,updateView,firstChange");
+        //assertEqualBeans(scm.getBrowser(),p.getScm().getBrowser(),"URL");
     }
 }
+

@@ -56,9 +56,9 @@
 	    	<f:checkbox field="updateView" default="true" value="True"/>
 	    </f:entry>   
 	
-	    <f:entry title="Rename workspace for each slave" 
-	    	help="/plugin/perforce/help/renameClient.html">
-	    	<f:checkbox field="renameClient" default="true"  value="True"/>
+	    <f:entry title="Don't rename workspace for each slave" 
+	    	help="/plugin/perforce/help/dontRenameClient.html">
+	    	<f:checkbox field="dontRenameClient" default="false" />
 	    </f:entry>			
 		<f:entry title="Windows Specific Details" help="/plugin/perforce/help/windows.html">
 		<table width="100%">
