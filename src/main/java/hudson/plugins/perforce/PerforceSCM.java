@@ -259,7 +259,17 @@ public class PerforceSCM extends SCM {
 		
 		//keep projectPath local so any modifications for slaves don't get saved
 		String projectPath = this.projectPath;
-		depot = getDepot(launcher,workspace);	
+		depot = getDepot(launcher,workspace);
+		
+		
+		//this is a work around for issue 2062
+		//https://hudson.dev.java.net/issues/show_bug.cgi?id=2062
+		//we don't why but sometimes the connection drops when communicating 
+		//with perforce retrying seems to work for now but this really needs
+		//to be fixed properly
+		int RETRY_COUNT = 6;
+		int WAIT_PERIOD = 10000;
+		for (int retryAttempt = 0; retryAttempt < RETRY_COUNT; retryAttempt++){		
 		try {
 			
 
@@ -396,13 +406,21 @@ public class PerforceSCM extends SCM {
 		} catch(PerforceException e) {
 			log.print("Caught Exception communicating with perforce. " + 
 					e.getMessage());
-			e.printStackTrace();			
-			throw new IOException(
-					"Unable to communicate with perforce. " + e.getMessage());
+			e.printStackTrace();
+			if (retryAttempt < RETRY_COUNT){
+				try { Thread.sleep(WAIT_PERIOD); }
+				catch (InterruptedException exception) {}
+			} else {			
+				throw new IOException(
+						"Unable to communicate with perforce. " + 
+						e.getMessage());
+			}
 		} catch (InterruptedException e) {
 			throw new IOException(
 					"Unable to get hostname from slave. " + e.getMessage());
 		} 
+		}
+		return false;		
 	}
 
 	/**
