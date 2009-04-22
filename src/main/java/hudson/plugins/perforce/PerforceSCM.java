@@ -259,7 +259,7 @@ public class PerforceSCM extends SCM {
 		
 		//keep projectPath local so any modifications for slaves don't get saved
 		String projectPath = this.projectPath;
-		
+		depot = getDepot(launcher,workspace);	
 		try {
 			
 
@@ -281,13 +281,13 @@ public class PerforceSCM extends SCM {
 				}
 				
 				log.println("Changing client to " + p4Client + nodeSuffix);
+				depot.setClient(p4Client + nodeSuffix);
 				creatingNewWorkspace = true;
-			}
-			
+			}			
+					
 			Workspace p4workspace = 
-				getDepot(launcher,workspace).getWorkspaces().getWorkspace(
-						p4Client + nodeSuffix);
-
+				depot.getWorkspaces().getWorkspace(p4Client + nodeSuffix);
+			
 			//if the client doesn't exist set the name so it will be created
 			p4workspace.setName(p4Client + nodeSuffix);
 			assert p4workspace != null;
@@ -313,7 +313,7 @@ public class PerforceSCM extends SCM {
 			if (dontRenameClient) {			 
 				p4workspace.setHost("");
 			}	
-
+			
 			//save the client for use when sync'ing in a few...
 			depot.getWorkspaces().saveWorkspace(p4workspace);
 
@@ -464,7 +464,7 @@ public class PerforceSCM extends SCM {
 			if (p4workspace.getAccess() == null || 
 					p4workspace.getAccess().length() == 0) {
 				if (updateView) {
-					this.projectPath = fixProjectPath(projectPath, null);
+					this.projectPath = fixProjectPath(projectPath, "");
 					listener.getLogger().println(
 							"Changing P4 Client View to: " + projectPath);					
 					p4workspace.clearViews();
