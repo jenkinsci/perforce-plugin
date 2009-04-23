@@ -11,7 +11,7 @@
 	<name>Hudson Perforce Plugin</name>
 	<packaging>hpi</packaging>
 	<version>1.0.14-SNAPSHOT</version>
-	<url>http://hudson.gotdns.com/wiki/display/HUDSON/Perforce+Plugin</url>
+	<url>http://wiki.hudson-ci.org/display/HUDSON/Perforce+Plugin</url>
 	
 	<licenses>
 		<license>
