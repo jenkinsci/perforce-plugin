@@ -34,6 +34,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -314,7 +316,7 @@ public class PerforceSCM extends SCM {
 				log.println("Changing P4 Client View to: " + projectPath);				
 				p4workspace.clearViews();				
 				for (String view : projectPath.split("\n")) {
-					p4workspace.addView(view);
+					p4workspace.addView(" " + view);
 				}				
 			} 	
 			
@@ -404,9 +406,17 @@ public class PerforceSCM extends SCM {
 			return true;
 
 		} catch(PerforceException e) {
+			
+			
 			log.print("Caught Exception communicating with perforce. " + 
 					e.getMessage());
-			e.printStackTrace();
+			StringWriter sw = new StringWriter();
+			PrintWriter pw = new PrintWriter(sw, true);
+			e.printStackTrace(pw);
+			pw.flush();
+			sw.flush();
+			log.print(sw.toString());
+			
 			if (retryAttempt < RETRY_COUNT){
 				try { Thread.sleep(WAIT_PERIOD); }
 				catch (InterruptedException exception) {}
@@ -416,6 +426,8 @@ public class PerforceSCM extends SCM {
 						e.getMessage());
 			}
 		} catch (InterruptedException e) {
+			retryAttempt = RETRY_COUNT;
+			
 			throw new IOException(
 					"Unable to get hostname from slave. " + e.getMessage());
 		} 
@@ -537,7 +549,7 @@ public class PerforceSCM extends SCM {
 		if(action == null) {
 			return getLastChange(build.getPreviousBuild());
 		}
-
+		//log.println("Found last change: " + action.getChangeNumber());
 		return action.getChangeNumber();
 	}
 
