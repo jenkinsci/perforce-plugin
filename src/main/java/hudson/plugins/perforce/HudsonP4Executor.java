@@ -9,6 +9,8 @@ import com.tek42.perforce.process.Executor;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Proc;
+import hudson.model.Hudson;
+import hudson.util.StreamTaskListener;
 
 /**
  * Implementation of the P4Java Executor interface that provides support for
@@ -56,6 +58,14 @@ public class HudsonP4Executor implements Executor {
 	public void exec(String[] cmd) throws PerforceException {
 
 		try {
+
+                        //ensure we actually have a valid hudson launcher
+                        if(null == hudsonLauncher)
+                        {
+                            hudsonLauncher = Hudson.getInstance().createLauncher(new StreamTaskListener(System.out));
+                        
+                        }
+
 			// hudsonOut->p4in->reader
 			HudsonPipedOutputStream hudsonOut = new HudsonPipedOutputStream();
 			PipedInputStream p4in = new PipedInputStream(hudsonOut);
