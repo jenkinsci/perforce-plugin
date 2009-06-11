@@ -48,7 +48,7 @@ public class PerforceSCMTest extends HudsonTestCase {
 
         PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
         String encryptedPassword = encryptor.encryptString(password);
-        assertEquals(encryptedPassword, scm.getP4Passwd());
+        assertEquals(encryptedPassword, ((PerforceSCM)project.getScm()).getP4Passwd());
 
     }
 
@@ -59,11 +59,34 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "exe", "sysRoot",
         		"sysDrive", "label", true, true, true, 0, browser);
-               
-        assertEquals(password, scm.getDepot(null, null).getPassword());
-        assertEquals(password, scm.getDepot().getPassword());
+
+        project.setScm(scm);
+        
+        assertEquals(password, ((PerforceSCM)project.getScm()).getDepot(null, null).getPassword());
+        assertEquals(password, ((PerforceSCM)project.getScm()).getDepot().getPassword());
 
     }
+
+      public void testConfigSaveReloadAndSaveDoesNotDoubleEncryptThePassword() throws Exception {
+          FreeStyleProject project = createFreeStyleProject();
+        P4Web browser = new P4Web(new URL("http://localhost/"));
+        String password = "pass";
+        PerforceSCM scm = new PerforceSCM(
+        		"user", password, "client", "port", "path", "exe", "sysRoot",
+        		"sysDrive", "label", true, true, true, 0, browser);
+        project.setScm(scm);
+
+        // config roundtrip
+        submit(new WebClient().getPage(project,"configure").getFormByName("config"));
+        submit(new WebClient().getPage(project,"configure").getFormByName("config"));
+        
+        // verify that the data is intact
+        assertEqualBeans(scm,project.getScm(),"p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,dontRenameClient,updateView,firstChange");
+
+        PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+        String encryptedPassword = encryptor.encryptString(password);
+        assertEquals(encryptedPassword, ((PerforceSCM)project.getScm()).getP4Passwd());
+      }
 
 }
 

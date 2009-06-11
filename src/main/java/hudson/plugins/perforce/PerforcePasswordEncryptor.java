@@ -30,13 +30,22 @@ import sun.misc.BASE64Encoder;
 public class PerforcePasswordEncryptor {
 
     private static final String keyString = "405kqo0gc20f9985142rj17779v4922568on29pwj92toqt884";
+    private static final String ENCRYPTION_PREFFACE = "0f0kqlwa";
 
     public PerforcePasswordEncryptor()
     {
 
 
     }
-    
+
+    public boolean appearsToBeAnEncryptedPassword(String toCheck)
+    {
+        if(toCheck.startsWith(ENCRYPTION_PREFFACE))
+            return true;
+        return false;
+
+    }
+
     public String encryptString(String toEncrypt)
     {
         byte[] keyBytes = null;
@@ -118,13 +127,14 @@ public class PerforcePasswordEncryptor {
         BASE64Encoder encoder = new BASE64Encoder();
 
         
-        return encoder.encode(encryptedtext);
+        return ENCRYPTION_PREFFACE + encoder.encode(encryptedtext);
 
     }
 
 
      public String decryptString(String toDecrypt)
     {
+
         byte[] keyBytes = null;
         try
         {
@@ -191,7 +201,8 @@ public class PerforcePasswordEncryptor {
         byte[] encryptedtext = null;
         try
         {
-            encryptedtext = decoder.decodeBuffer(toDecrypt);
+            String processedToDecrypt = toDecrypt.replaceFirst(ENCRYPTION_PREFFACE, "");
+            encryptedtext = decoder.decodeBuffer(processedToDecrypt);
         }
         catch(IOException ioe)
         {

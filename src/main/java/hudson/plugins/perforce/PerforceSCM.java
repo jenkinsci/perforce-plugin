@@ -781,8 +781,12 @@ public class PerforceSCM extends SCM {
 	 * @param passwd the p4Passwd to set
 	 */
 	public void setP4Passwd(String passwd) {
+
                 PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
-		p4Passwd = encryptor.encryptString(passwd);
+                if(encryptor.appearsToBeAnEncryptedPassword(passwd))
+                    p4Passwd = passwd;
+                else
+                    p4Passwd = encryptor.encryptString(passwd);
 	}
 
 	/**
