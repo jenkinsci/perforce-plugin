@@ -102,7 +102,7 @@ public class PerforceSCM extends SCM {
 						boolean updateView, boolean dontRenameClient, int firstChange, PerforceRepositoryBrowser browser) {
     	
     	this.p4User = p4User;
-		this.p4Passwd = p4Passwd;
+		this.setP4Passwd(p4Passwd);
 		this.p4Client = p4Client;
 		this.p4Port = p4Port;
 				
@@ -157,7 +157,9 @@ public class PerforceSCM extends SCM {
 		
 		depot = new Depot(p4Factory);
 		depot.setUser(p4User);
-		depot.setPassword(p4Passwd);
+                PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+
+		depot.setPassword(encryptor.decryptString(p4Passwd));
 		depot.setPort(p4Port);
 		depot.setClient(p4Client);		
 		
@@ -185,7 +187,9 @@ public class PerforceSCM extends SCM {
 
 		depot = new Depot();
 		depot.setUser(p4User);
-		depot.setPassword(p4Passwd);
+		 PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+
+		depot.setPassword(encryptor.decryptString(p4Passwd));
 		depot.setPort(p4Port);
 		depot.setClient(p4Client);
 		depot.setExecutable(p4Exe);
@@ -777,7 +781,8 @@ public class PerforceSCM extends SCM {
 	 * @param passwd the p4Passwd to set
 	 */
 	public void setP4Passwd(String passwd) {
-		p4Passwd = passwd;
+                PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+		p4Passwd = encryptor.encryptString(passwd);
 	}
 
 	/**
