@@ -39,7 +39,6 @@
     <version>2.7.1</version>
 </dependency> 
 
-      <scope>test</scope>
 
 	</dependencies>
 
