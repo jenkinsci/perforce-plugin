@@ -37,6 +37,7 @@ import java.util.StringTokenizer;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Changelist;
+import com.tek42.perforce.model.Workspace;
 
 /**
  * Base API object for interacting with changelists.
@@ -378,4 +379,37 @@ public class Changes extends AbstractPerforceTemplate {
 		}
 		return changes;
 	}
+	
+	/**
+     * Return the change numbers in the range [first, last] that apply to the
+     * specified workspace.  The change numbers are returned highest (most
+     * recent) first.
+     * 
+     * @param first
+     *            The number of the change to start from
+     * @param last
+     *            The last change to include (if applies to the workspace)
+     * @return list of change numbers
+     * @throws PerforceException
+     */
+    public List<Integer> getChangeNumbersInRange(Workspace workspace, int first, int last) throws PerforceException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("//");
+        sb.append(workspace.getName());
+        sb.append("/...@");
+        sb.append(first);
+        sb.append(",@");
+        sb.append(last);
+
+        String path = sb.toString();
+        String[] cmd = new String[] { "p4", "changes", path };
+
+        StringBuilder response = getPerforceResponse(cmd);
+        List<String> ids = parseList(response, 1);
+        List<Integer> numbers = new ArrayList<Integer>(ids.size());
+        for(String id : ids) {
+            numbers.add(new Integer(id));
+        }
+        return numbers;
+    }
 }

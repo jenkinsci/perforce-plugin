@@ -118,4 +118,16 @@ public class Workspaces extends AbstractPerforceTemplate {
 		else
 			return getPerforceResponse(new String[] { "p4", "sync", path });
 	}
+
+	/**
+     * Test whether there are any changes pending for the current client (P4CLIENT env var).
+     * 
+     * @return
+     *          A StringBuilder that contains the output of the p4 execution.
+     * @throws PerforceException
+     */
+    public StringBuilder syncDryRun() throws PerforceException {
+        StringBuilder result = getPerforceResponse(new String[] { "p4", "sync", "-n" });
+        return result;
+    }
 }

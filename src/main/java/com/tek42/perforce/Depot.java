@@ -82,7 +82,8 @@ public class Depot {
 	private Labels labels;
 	private Status status;
 	private Groups groups;
-	private Counters counters;
+	private Counters counters;
+
 	/**
 	 * If not using this in a Dependancy Injection environment, use this method to get ahold of the depot.
 	 * 
@@ -102,12 +103,12 @@ public class Depot {
 
 	public Depot(ExecutorFactory factory) {
 		settings = new HashMap<String, String>();
-		settings.put("P4USER", "robot");
-		settings.put("P4CLIENT", "robot-client");
-		settings.put("P4PORT", "localhost:1666");
-		settings.put("P4PASSWD", "");
-		settings.put("PATH", "C:\\Program Files\\Perforce");
-		settings.put("CLASSPATH", "/usr/share/java/p4.jar");
+		setUser("robot"); // Specific to some prior developers environment, presumably
+		setClient("robot-client");
+		setPort("localhost:1666");
+		setPassword("");
+		setPath("C:\\Program Files\\Perforce");
+		setenv("CLASSPATH", "/usr/share/java/p4.jar");
 		setSystemDrive("C:");
 		setSystemRoot("C:\\WINDOWS");
 		setExecutable("p4");
@@ -120,7 +121,7 @@ public class Depot {
 		}
 
 		if(os.startsWith("Windows")) {
-			settings.put("PATHEXT", ".COM;.EXE;.BAT;.CMD");
+			setenv("PATHEXT", ".COM;.EXE;.BAT;.CMD");
 			String windir = System.getProperty("com.ms.windir");
 			if(windir != null) {
 				appendPath(windir.substring(0, 1) + "\\Program Files\\Perforce");
@@ -129,7 +130,7 @@ public class Depot {
 			}
 		}
 		execFactory = factory;
-		execFactory.setEnv(settings);
+		validEnvp = false;
 	}
 
 	/**
@@ -222,7 +223,18 @@ public class Depot {
 		return groups;
 	}
 
-	/**	 * Retrieves the {@link Counters} object for interacting with this depot's counters.	 * 	 * @return Counters object	 */	public Counters getCounters() {		if(counters == null)			counters = new Counters(this);		return counters;	}	/**
+	/**
+	 * Retrieves the {@link Counters} object for interacting with this depot's counters.
+	 * 
+	 * @return Counters object
+	 */
+	public Counters getCounters() {
+		if(counters == null)
+			counters = new Counters(this);
+		return counters;
+	}
+
+	/**
 	 * Retrieves the status object for interacting with the depot's status.
 	 * <p>
 	 * E.g., depot.getStatus().isValid() for checking if the settings are correct.
@@ -283,10 +295,7 @@ public class Depot {
 	 *            P4USER value.
 	 */
 	public void setUser(String user) {
-		if(null == user)
-			return;
-		settings.put("P4USER", user);
-		validEnvp = false;
+		setenv("P4USER", user);
 	}
 
 	/**
@@ -305,10 +314,7 @@ public class Depot {
 	 *            P4CLIENT value.
 	 */
 	public void setClient(String client) {
-		if(null == client)
-			return;
-		settings.put("P4CLIENT", client);
-		validEnvp = false;
+		setenv("P4CLIENT", client);
 	}
 
 	/**
@@ -327,10 +333,7 @@ public class Depot {
 	 *            P4PORT value.
 	 */
 	public void setPort(String port) {
-		if(null == port)
-			return;
-		settings.put("P4PORT", port);
-		validEnvp = false;
+		 setenv("P4PORT", port);
 	}
 
 	/**
@@ -349,10 +352,7 @@ public class Depot {
 	 *            P4PASSWD value.
 	 */
 	public void setPassword(String password) {
-		if(null == password)
-			return;
-		settings.put("P4PASSWD", password);
-		validEnvp = false;
+		setenv("P4PASSWD", password);
 	}
 
 	/**
@@ -371,10 +371,7 @@ public class Depot {
 	 *            PATH value.
 	 */
 	public void setPath(String path) {
-		if(null == path)
-			return;
-		settings.put("PATH", path);
-		validEnvp = false;
+		setenv("PATH", path);
 	}
 
 	/**
@@ -422,10 +419,7 @@ public class Depot {
 	 *            SystemDrive value.
 	 */
 	public void setSystemDrive(String drive) {
-		if(null == drive)
-			return;
-		settings.put("SystemDrive", drive);
-		validEnvp = false;
+		setenv("SystemDrive", drive);
 	}
 
 	/**
@@ -444,10 +438,7 @@ public class Depot {
 	 *            SystemRoot value.
 	 */
 	public void setSystemRoot(String root) {
-		if(null == root)
-			return;
-		settings.put("SystemRoot", root);
-		validEnvp = false;
+		setenv("SystemRoot", root);
 	}
 
 	/**
@@ -466,7 +457,7 @@ public class Depot {
 	 * <pre>
 	 * p4.executable=/usr/bin/p4   # This will work
 	 * p4.executable=/usr/bin/     # This will work
-	 * &lt;font color=Red&gt;p4.executable=/usr/bin      # This won't work&lt;/font&gt;
+	 * <font color=Red>p4.executable=/usr/bin      # This won't work</font>
 	 * </pre>
 	 * 
 	 * @param exe
@@ -486,7 +477,6 @@ public class Depot {
 			pathSep = System.getProperties().getProperty("path.separator", ";");
 		}
 		appendPath(exe.substring(0, pos));
-		validEnvp = false;
 	}
 
 	/**
@@ -535,5 +525,31 @@ public class Depot {
 	public void setP4Ticket(String ticket) {
 		p4Ticket = ticket;
 	}
+
+	private void setenv(String key, String newValue) {
+           if (newValue != null) {
+               newValue = newValue.trim();
+               if (newValue.length() == 0)
+                   newValue = null;
+           }
+
+           String currentValue = settings.get(key);
+           if (safeEquals(newValue, currentValue))
+               return;
+
+           if (newValue == null)
+               settings.remove(key);
+           else
+               settings.put(key, newValue);
+           validEnvp = false;
+           return;
+       }
+
+       private boolean safeEquals(String newValue, String currentValue) {
+	       if (newValue == null)
+		       return currentValue == null;
+	       else
+		       return newValue.equals(currentValue);
+       }
 
 }

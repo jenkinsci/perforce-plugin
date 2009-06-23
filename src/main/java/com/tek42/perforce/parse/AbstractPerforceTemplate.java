@@ -247,7 +247,9 @@ public abstract class AbstractPerforceTemplate {
 		boolean loop = false;
 		boolean attemptLogin = true;
 
-		StringBuilder response = new StringBuilder();
+		List<String> lines = null;
+		int totalLength = 0;
+
 		do {
 			int mesgIndex = -1, i, count = 0;
 			Executor p4 = depot.getExecFactory().newExecutor();
@@ -260,21 +262,23 @@ public abstract class AbstractPerforceTemplate {
 				debugCmd += cm + " ";
 			}
 
-			// Performe execution and IO
+			// Perform execution and IO
 			p4.exec(cmd);
 			BufferedReader reader = p4.getReader();
-			String line;
-			response = new StringBuilder();
+			String line = null;
+			totalLength = 0;
+			lines = new ArrayList<String>(1024);
+
 			try
 			{
 				while((line = reader.readLine()) != null) {
+				    lines.add(line);
+				    totalLength += line.length();
 					count++;
 					for(i = 0; i < errors.length; i++) {
 						if(line.indexOf(errors[i]) != -1)
 							mesgIndex = i;
 					}
-					response.append(line);
-					response.append("\n");
 				}
 			}
 			catch(IOException ioe)
@@ -313,6 +317,13 @@ public abstract class AbstractPerforceTemplate {
 			if(count == 0)
 				throw new PerforceException("No output for: " + debugCmd);
 		} while(loop);
+
+		StringBuilder response = new StringBuilder(totalLength + lines.size());
+		for (String line : lines)
+        {
+	        response.append(line);
+	        response.append("\n");
+        }
 
 		return response;
 	}
