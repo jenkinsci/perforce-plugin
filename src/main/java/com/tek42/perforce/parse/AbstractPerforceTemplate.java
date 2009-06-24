@@ -328,6 +328,68 @@ public abstract class AbstractPerforceTemplate {
 		return response;
 	}
 
+    /**
+     * Executes a p4 command and returns the output as list of lines.
+     * 
+     * TODO Introduce a method that handles prefixed messages (i.e. "p4 -s <sub-command>"),
+     * and can thus stop reading once if reads the "exit: <exit-code>" line, which
+     * should avoid the "expected" Exception at EOF.
+     * 
+     * @param cmd
+     *      The perforce command to execute.  The command and arguments are
+     *      each in their own array element (e.g. cmd = {"p4", "info"}).
+     * @return
+     *      The response from perforce as a list
+     * @throws PerforceException 
+     */
+    protected List<String> getRawPerforceResponseLines(String cmd[]) throws PerforceException {
+        List<String> lines = new ArrayList<String>(1024);
+
+        Executor p4 = depot.getExecFactory().newExecutor();
+        String debugCmd = "";
+        // get entire cmd to execute
+        cmd = getExtraParams(cmd);
+
+        // setup information for logging...
+        for(String cm : cmd) {
+            debugCmd += cm + " ";
+        }
+
+        // Perform execution and IO
+        p4.exec(cmd);
+
+        try
+        {
+            BufferedReader reader = p4.getReader();
+            String line = null;
+            while((line = reader.readLine()) != null) {
+                lines.add(line);
+            }
+        }
+        catch(IOException ioe)
+        {
+            //this is generally not anything to worry about.  The underlying
+            //perforce process terminated and that causes java to be angry.
+
+            // TODO Given the above comment, should we bother to log a warning?
+            // See this blog for a discussion of IOException with message "Write end dead" from pipes:
+            //      http://techtavern.wordpress.com/2008/07/16/whats-this-ioexception-write-end-dead/
+
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw, true);
+            ioe.printStackTrace(pw);
+            pw.flush();
+            sw.flush();
+            logger.warn("IOException reading from Perforce process (may just be EOF)");
+            logger.warn(sw.toString());
+        }
+        finally{
+            p4.close();
+        }
+
+        return lines;
+    }
+
 	/**
 	 * Tries to perform a p4 login if the security level on the server is set to level 3 and no ticket was set via
 	 * depot.setP4Ticket().

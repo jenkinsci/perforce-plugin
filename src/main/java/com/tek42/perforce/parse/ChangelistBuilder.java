@@ -145,7 +145,7 @@ public class ChangelistBuilder implements Builder<Changelist> {
 
 					while(lines.hasMoreElements()) {
 						String entry = lines.nextToken();
-						logger.warn("File Line: " + entry);
+						logger.debug("File Line: " + entry);
 						// if(!entry.startsWith("..."))
 						// break;
 						// line looks lie:

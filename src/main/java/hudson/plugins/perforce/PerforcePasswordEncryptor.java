@@ -48,6 +48,9 @@ public class PerforcePasswordEncryptor {
 
     public String encryptString(String toEncrypt)
     {
+      if (toEncrypt == null || toEncrypt.trim().length() == 0)
+        return "";
+
         byte[] keyBytes = null;
         try
         {
@@ -134,6 +137,8 @@ public class PerforcePasswordEncryptor {
 
      public String decryptString(String toDecrypt)
     {
+       if (toDecrypt == null || toDecrypt.length() == 0)
+         return "";
 
         byte[] keyBytes = null;
         try

@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
  * @author Mike Wille
  */
 public class PerforceTagAction extends AbstractScmTagAction {
-	private int changeNumber;
+	private final int changeNumber;
 	private Depot depot;
 	private String tag;
 	private String desc;
@@ -33,6 +33,14 @@ public class PerforceTagAction extends AbstractScmTagAction {
         super(build);
         this.depot = depot;
         this.changeNumber = changeNumber;
+        this.view = views;
+    }
+    
+    public PerforceTagAction(AbstractBuild build, Depot depot, String label, String views) {
+        super(build);
+        this.depot = depot;
+        this.changeNumber = -1;
+        this.tag = label;
         this.view = views;
     }
 

@@ -1,5 +1,6 @@
 package hudson.plugins.perforce;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import com.tek42.perforce.process.ExecutorFactory;
@@ -38,7 +39,6 @@ public class HudsonP4ExecutorFactory implements ExecutorFactory {
 	}
 
 	public void setEnv(Map<String, String> env) {
-		this.env = env;
+		this.env = new HashMap<String, String>(env);
 	}
-
 }

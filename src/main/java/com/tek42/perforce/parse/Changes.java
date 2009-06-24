@@ -402,13 +402,23 @@ public class Changes extends AbstractPerforceTemplate {
         sb.append(last);
 
         String path = sb.toString();
-        String[] cmd = new String[] { "p4", "changes", path };
+        String[] cmd = new String[] { "p4", "-s", "changes", path };
 
-        StringBuilder response = getPerforceResponse(cmd);
-        List<String> ids = parseList(response, 1);
-        List<Integer> numbers = new ArrayList<Integer>(ids.size());
-        for(String id : ids) {
-            numbers.add(new Integer(id));
+        List<String> response = getRawPerforceResponseLines(cmd);
+        List<Integer> numbers = new ArrayList<Integer>(response.size());
+
+        // TODO Handle error cases, and "exit: <exit-code>" (currently just ignored,
+        // should really be parsing that line, and providing that value to the caller
+        // by some means).
+
+        for (String line : response) {
+            if (line.startsWith("info: Change ")) {
+                int offset = line.indexOf(' ', 13);
+                String s = line.substring(13, offset);
+                Integer n = Integer.valueOf(s);
+                numbers.add(n);
+                continue;
+            }
         }
         return numbers;
     }

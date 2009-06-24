@@ -3,7 +3,10 @@ package hudson.plugins.perforce;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Changelist;
+import com.tek42.perforce.model.Counter;
 import com.tek42.perforce.model.Workspace;
+import com.tek42.perforce.parse.Workspaces;
+
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Util;
@@ -86,9 +89,10 @@ public class PerforceSCM extends SCM {
 	
 	/**
 	 * If false we add the slave hostname to then end of the client name when 
-	 * running on a slave
+	 * running on a slave.  Defaulting to true so as not to change the behavior
+     * for existing users.
 	 */
-	boolean dontRenameClient = false;	
+	boolean dontRenameClient = true;	
 		
 	/**
 	 * If > 0, then will override the changelist we sync to for the first build.
@@ -126,10 +130,10 @@ public class PerforceSCM extends SCM {
 		if(p4Exe != null)
 			this.p4Exe = p4Exe;
 		
-		if(p4SysRoot != null && p4SysRoot != "")
+		if(p4SysRoot != null && p4SysRoot.length() != 0)
 			this.p4SysRoot = p4SysRoot;
 
-		if(p4SysDrive != null && p4SysDrive != "")
+		if(p4SysDrive != null && p4SysDrive.length() != 0)
 			this.p4SysDrive = p4SysDrive;
 
 		this.forceSync = forceSync;
@@ -157,9 +161,10 @@ public class PerforceSCM extends SCM {
 		
 		depot = new Depot(p4Factory);
 		depot.setUser(p4User);
-                PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
 
+		PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
 		depot.setPassword(encryptor.decryptString(p4Passwd));
+
 		depot.setPort(p4Port);
 		depot.setClient(p4Client);		
 		
@@ -214,8 +219,18 @@ public class PerforceSCM extends SCM {
 	 */
 	public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
 		super.buildEnvVars(build, env);
-		int lastChange = getLastDepotChange(build);
-		env.put("P4_CHANGELIST", Integer.toString(lastChange));
+		PerforceTagAction pta = getMostRecentTagAction(build);
+		if (pta != null) {
+		    if (pta.getChangeNumber() > 0) {
+		        int lastChange = pta.getChangeNumber();
+		        env.put("P4_CHANGELIST", Integer.toString(lastChange));
+		    }
+		    else if (pta.getTag() != null) {
+		        String label = pta.getTag();
+		        env.put("P4_LABEL", label);
+		    }
+		}
+		return;
 	}
 
 	/**
@@ -309,7 +324,8 @@ public class PerforceSCM extends SCM {
 			assert p4workspace != null;
 			creatingNewWorkspace = p4workspace.getAccess() == null || p4workspace.getAccess().length() == 0;
 
-			//update the root to where hudson builds from
+			// update the root to where hudson builds from
+            // TODO Only print message if actually changing root
 			String localPath = getLocalPathName(workspace,launcher.isUnix());
 			log.println("Changing P4 Client Root to: " + localPath);
 			p4workspace.setRoot(localPath);
@@ -324,8 +340,8 @@ public class PerforceSCM extends SCM {
 				}				
 			} 	
 			
-			//if we don't use the same client for each slave, erase the host 
-			//field
+			// If we use the same client on multiple hosts (e.g. master and slave),
+			// erase the host field so the client isn't tied to a single host.
 			if (dontRenameClient) {			 
 				p4workspace.setHost("");
 			}	
@@ -334,75 +350,85 @@ public class PerforceSCM extends SCM {
 			depot.getWorkspaces().saveWorkspace(p4workspace);
 
 			//Get the list of changes since the last time we looked...
-			int lastChange = getLastChange((Run)build.getPreviousBuild());
+			String p4WorkspacePath = "//" + p4workspace.getName() + "/...";
+			final int lastChange = getLastChange((Run)build.getPreviousBuild());
 			log.println("Last sync'd change: " + lastChange);
 
-			List<Changelist> changes;
+			List<Changelist> changes = null;
+			int newestChange = lastChange;
 			if(p4Label != null) {
 				changes = new ArrayList<Changelist>(0);
 			} else {
-				changes = depot.getChanges().getChangelistsFromNumbers(
-						depot.getChanges().getChangeNumbersTo(getChangesPaths(
-								p4workspace), lastChange + 1));
+                Counter counter = depot.getCounters().getCounter("change");
+                newestChange = counter.getValue();
+
+                if (lastChange <= 0 || lastChange >= newestChange) {
+                    changes = new ArrayList<Changelist>(0);
+                } else {
+                    List<Integer> changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange);
+                    changes = depot.getChanges().getChangelistsFromNumbers(changeNumbersTo);
+                }
 			}
 
 			if(changes.size() > 0) {
-				// save the last change we sync'd to for use when polling...
-				lastChange = changes.get(0).getChangeNumber();
+                // Save the changes we discovered.
 				PerforceChangeLogSet.saveToChangeLog(
 						new FileOutputStream(changelogFile), changes);
-
-			} else if(p4Label != null) {
-				createEmptyChangeLog(changelogFile, listener, "changelog");
-
-			} else if(!forceSync) {
-				log.println("No changes since last build.  Syncing workspace.");
-				for (String view : projectPath.split("\n")) {
-					
-					depot.getWorkspaces().syncTo(
-							view.split(" ")[0]+"@"+lastChange, forceSync);
-				}
-				return createEmptyChangeLog(
-						changelogFile, listener, "changelog");
+			}
+			else {
+			    // No new changes discovered (though the definition of the workspace or label may have changed).
+			    createEmptyChangeLog(changelogFile, listener, "changelog");
 			}
 
 			// Now we can actually do the sync process...
-			long startTime = System.currentTimeMillis();
-			log.println("Sync'ing workspace to depot.");
+            StringBuilder sbMessage = new StringBuilder("Sync'ing workspace to ");
+			StringBuilder sbSyncPath = new StringBuilder(p4WorkspacePath);
+			sbSyncPath.append("@");
 
-			if(forceSync)
-				log.println("Forcing: p4 sync " + projectPath);
-
-			//sync to the last changeset or a label if specified
-			if(p4Label == null) {		
-				
-				for (String view : projectPath.split("\n")) {
-					depot.getWorkspaces().syncTo(
-							view.split(" ")[0]+"@"+lastChange, forceSync);
-				}	
-				
-			} else {	
-				
-				listener.getLogger().println("Syncing to Label " + 
-						p4Label + " instead of last change");
-				for (String view : projectPath.split("\n")) {
-					depot.getWorkspaces().syncTo(
-							view.split(" ")[0]+"@"+p4Label, forceSync);
-				}						
+			if(p4Label != null) {
+			    sbMessage.append("label ");
+			    sbMessage.append(p4Label);
+			    sbSyncPath.append(p4Label);
+			}
+			else {
+                sbMessage.append("changelist ");
+                sbMessage.append(newestChange);
+                sbSyncPath.append(newestChange);
 			}
 
-			// reset one time use variables...
+			if (forceSync)
+			    sbMessage.append(" (forcing sync of unchanged files).");
+            else
+                sbMessage.append(".");
+
+			log.println(sbMessage.toString());
+			String syncPath = sbSyncPath.toString();
+
+			long startTime = System.currentTimeMillis();
+
+			depot.getWorkspaces().syncTo(syncPath, forceSync);
+
+			long endTime = System.currentTimeMillis();
+            long duration = endTime - startTime;
+
+            listener.getLogger().println("Sync complete, took " + duration + " ms");
+
+            // reset one time use variables...
 			forceSync = false;
 			firstChange = -1;
 
-			listener.getLogger().println("Sync complete, took " + 
-					(System.currentTimeMillis() - startTime) + " MS");
-
-			// Add tagging action unless using labels. You can't label a label
-			if(p4Label == null) {
+			if(p4Label != null) {
+	            // Add tagging action that indicates that the build is already
+			    // tagged (you can't label a label).
 				build.addAction(new PerforceTagAction(
-						build, depot, lastChange, projectPath));
+						build, depot, p4Label, projectPath));
 			}
+			else {
+	            // Add tagging action that enables the user to create a label
+			    // for this build.
+                build.addAction(new PerforceTagAction(
+                        build, depot, newestChange, projectPath));
+            }
 
 			//save the one time use variables...
 			build.getParent().save();  
@@ -410,8 +436,6 @@ public class PerforceSCM extends SCM {
 			return true;
 
 		} catch(PerforceException e) {
-			
-			
 			log.print("Caught Exception communicating with perforce. " + 
 					e.getMessage());
 			StringWriter sw = new StringWriter();
@@ -482,60 +506,134 @@ public class PerforceSCM extends SCM {
 
 	/* (non-Javadoc)
 	 * @see hudson.scm.SCM#pollChanges(hudson.model.AbstractProject, hudson.Launcher, hudson.FilePath, hudson.model.TaskListener)
+	 * 
+	 * There may or may not have been a previous build.  That build may or may not
+	 * have been done using Perforce, and if with Perforce, may have been done
+	 * using a label or latest, and may or may not be for the same view as currently
+	 * defined.  If any change has occurred, we'll treat that as a reason to build.
+	 * 
+	 * Note that the launcher and workspace may operate remotely (as of 2009-06-21,
+	 * they correspond to the node where the last build occurred, if any; if none,
+	 * then the master is used).
+	 * 
+	 * Note also that this method won't be called while the workspace (not job)
+	 * is in use for building or some other polling thread.
 	 */
 	@Override
 	public boolean pollChanges(AbstractProject project, Launcher launcher, 
 			FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
-		
-		try {
-			int lastChange = getLastChange(project.getLastBuild());
-			listener.getLogger().println("Looking for changes...");
 
-			Workspace p4workspace = getDepot(
-					launcher,workspace).getWorkspaces().getWorkspace(p4Client);
-			
-			//make sure we're polling the specified paths
-			if (p4workspace.getAccess() == null || 
-					p4workspace.getAccess().length() == 0) {
-				if (updateView) {
-					this.projectPath = fixProjectPath(projectPath, "");
-					listener.getLogger().println(
-							"Changing P4 Client View to: " + projectPath);					
-					p4workspace.clearViews();
-					for (String view : projectPath.split("\n")) {
-						//add a default workspace path if necessary
-						if (projectPath.contains(p4Client)) {
-							p4workspace.addView(view);
-						} else {
-							p4workspace.addView(view + 
-									" //" + p4Client + "/...\n");
-						}
-					}				
-				} else {
-					listener.getLogger().println(
-							Messages.AbstractProject_NoWorkspace());
-				}
-			}
-			// List<Changelist> changes = getDepot().getChanges().getChangelists(getChangesPaths(p4workspace), -1, 1);
-			// the above call is slightly more efficient, but doesn't support multiple paths.
-			// May not be worth optimizing (by implementing multiple path version of getChangelists) since after the first
-			// build we rarely have more than a couple of changelists per build.
-			List<Integer> changes = depot.getChanges().getChangeNumbersTo(getChangesPaths(p4workspace), lastChange + 1);
+		PrintStream logger = listener.getLogger();
+		Depot depot = getDepot(launcher,workspace);
+        try {
+            logger.println("Looking for changes...");
 
-			listener.getLogger().println("Last sync'd change is : " + lastChange);
-			if (changes.size() > 0) {
-				listener.getLogger().println("New changes detected, triggering a build.");
-				return true;
-			}
-			listener.getLogger().println("We have nothing to do.");
-			return false;
+            Boolean needToBuild = needToBuild(project, depot, logger);
+            if (needToBuild == null) {
+                needToBuild = wouldSyncChangeWorkspace(project, depot, logger);
+            }
+
+            if (needToBuild == Boolean.FALSE) {
+                return false;
+            }
+            else {
+                logger.println("Triggering a build.");
+                return true;
+            }
 		} catch(PerforceException e) {
 			System.out.println("Problem: " + e.getMessage());
-			listener.getLogger().println("Caught Exception communicating with perforce." + e.getMessage());
+			logger.println("Caught Exception communicating with perforce." + e.getMessage());
 			e.printStackTrace();
 			throw new IOException("Unable to communicate with perforce.  Check log file for: " + e.getMessage());
 		}
+	}
 
+	private Boolean needToBuild(AbstractProject project, Depot depot,
+            PrintStream logger) throws IOException, InterruptedException, PerforceException {
+
+        /*
+         * Don't bother polling if we're already building, or soon will.
+         * Ideally this would be a policy exposed to the user, perhaps for all
+         * jobs with all types of scm, not just those using Perforce.
+         */
+        if (project.isBuilding() || project.isInQueue()) {
+            logger.println("Job is already building or in the queue; skipping polling.");
+            return Boolean.FALSE;
+        }
+
+        Run lastBuild = project.getLastBuild();
+        if (lastBuild == null) {
+            logger.println("No previous build exists.");
+            return null;    // Unable to determine if there are changes.
+        }
+
+        PerforceTagAction action = lastBuild.getAction(PerforceTagAction.class);
+        if (action == null) {
+            logger.println("Previous build doesn't have Perforce info.");
+            return null;
+        }
+
+        int lastChangeNumber = action.getChangeNumber();
+        String lastLabelName = action.getTag();
+
+        if (lastChangeNumber <= 0 && lastLabelName != null) {
+            logger.println("Previous build was based on label " + lastLabelName);
+            // Last build was based on a label, so we want to know if:
+            //      the definition of the label was changed;
+            //      or the view has been changed; 
+            //      or p4Label has been changed.
+            if (p4Label == null) {
+                logger.println("Job configuration changed to build from head, not a label.");
+                return Boolean.TRUE;
+            }
+
+            if (!lastLabelName.equals(p4Label)) {
+                logger.println("Job configuration changed to build using label " + p4Label);
+                return Boolean.TRUE;
+            }
+
+            // No change in job definition (w.r.t. p4Label).  Don't currently
+            // save enough info about the label to determine if it changed.
+            logger.println("Assuming that the workspace and label definitions have not changed.");
+            return Boolean.FALSE;
+        }
+
+        if (lastChangeNumber > 0) {
+            logger.println("Last sync'd change was " + lastChangeNumber);
+            if (p4Label != null) {
+                logger.println("Job configuration changed to build from label " + p4Label + ", not from head.");
+                return Boolean.TRUE;
+            }
+
+            // Has any new change been created since then?
+            int latestChangeNumber = depot.getCounters().getCounter("change").getValue();
+            logger.println("Latest change in depot is " + latestChangeNumber);
+            if (lastChangeNumber >= latestChangeNumber) {
+                // Note, can't determine with currently saved info whether a change
+                // in the workspace definition has been performed.
+                logger.println("Assuming that the workspace definition has not changed.");
+                return Boolean.FALSE;
+            }
+        }
+        
+        return null;
+	}
+
+	// TODO Handle the case where p4Label is set.
+	private boolean wouldSyncChangeWorkspace(AbstractProject project, Depot depot,
+            PrintStream logger) throws IOException, InterruptedException, PerforceException {
+
+	    Workspaces workspaces = depot.getWorkspaces();
+	    String result = workspaces.syncDryRun().toString();
+
+	    if (result.startsWith("File(s) up-to-date.")) {
+	        logger.println("Workspace up-to-date.");
+	        return false;
+	    }
+	    else {
+	        logger.println("Workspace not up-to-date.");
+            return true;
+	    }
 	}
 
 	public int getLastChange(Run build) {
@@ -543,18 +641,26 @@ public class PerforceSCM extends SCM {
 		if(firstChange > 0)
 			return firstChange;
 
-		// If anything is broken, we will default to 0.
-		if(build == null)
-			return 0;
+		// If we can't find a PerforceTagAction, we will default to 0.
 
-		PerforceTagAction action = build.getAction(PerforceTagAction.class);
+		PerforceTagAction action = getMostRecentTagAction(build);
+        if(action == null)
+            return 0;
 
-		// if build had no actions, keep going back until we find one that does.
-		if(action == null) {
-			return getLastChange(build.getPreviousBuild());
-		}
 		//log.println("Found last change: " + action.getChangeNumber());
 		return action.getChangeNumber();
+	}
+
+	private PerforceTagAction getMostRecentTagAction(Run build) {
+	    if(build == null)
+	        return null;
+
+	    PerforceTagAction action = build.getAction(PerforceTagAction.class);
+	    if (action != null)
+	        return action;
+
+        // if build had no actions, keep going back until we find one that does.
+        return getMostRecentTagAction(build.getPreviousBuild());
 	}
 
     @Extension
@@ -585,8 +691,8 @@ public class PerforceSCM extends SCM {
         	String exe = fixNull(request.getParameter("exe")).trim();
         	String user = fixNull(request.getParameter("user")).trim();
             String pass = fixNull(request.getParameter("pass")).trim();
-            
-            if(port.length()==0 || exe.length() == 0 || user.length() == 0 ) {// nothing entered yet
+
+            if(port.length()==0 || exe.length() == 0) {// Not enough entered yet
                 return null;
             }
             Depot depot = new Depot();
@@ -594,8 +700,17 @@ public class PerforceSCM extends SCM {
 			depot.setPassword(pass);
 			depot.setPort(port);
 			depot.setExecutable(exe);
+			try
+            {
+                Counter counter = depot.getCounters().getCounter("change");
+                if (counter != null)
+                    return depot;
+            }
+            catch (PerforceException e)
+            {
+            }
 
-			return depot;
+			return null;
     	}
 
     	/**
@@ -660,15 +775,16 @@ public class PerforceSCM extends SCM {
         		return FormValidation.ok();
         	
         	Depot depot = getDepotFromRequest(req);
-        	try {        		
-            	com.tek42.perforce.model.Label p4Label = depot.getLabels().getLabel(label);        		
-				if (p4Label.getAccess() == null || p4Label.getAccess() == "")		
-					return FormValidation.error("Label does not exist");
-			} catch (PerforceException e) {
-				return FormValidation.error(
-						"Error accessing perforce while checking label");
-			}
-            	
+        	if (depot != null) {
+            	try {        		
+                	com.tek42.perforce.model.Label p4Label = depot.getLabels().getLabel(label);        		
+    				if (p4Label.getAccess() == null || p4Label.getAccess() == "")		
+    					return FormValidation.error("Label does not exist");
+    			} catch (PerforceException e) {
+    				return FormValidation.error(
+    						"Error accessing perforce while checking label");
+    			}
+        	}
             return FormValidation.ok();
         }    	
 
@@ -939,7 +1055,7 @@ public class PerforceSCM extends SCM {
 	 * @return	The one time use variable, firstChange.
 	 */
 	public String getFirstChange() {
-		if(firstChange < 0)
+		if(firstChange <= 0)
 			return "";
 		return new Integer(firstChange).toString();
 	}

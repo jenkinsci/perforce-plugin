@@ -82,8 +82,7 @@ public class Depot {
 	private Labels labels;
 	private Status status;
 	private Groups groups;
-	private Counters counters;
-
+	private Counters counters;
 	/**
 	 * If not using this in a Dependancy Injection environment, use this method to get ahold of the depot.
 	 * 
@@ -104,7 +103,7 @@ public class Depot {
 	public Depot(ExecutorFactory factory) {
 		settings = new HashMap<String, String>();
 		setUser("robot"); // Specific to some prior developers environment, presumably
-		setClient("robot-client");
+        setClient("robot-client");
 		setPort("localhost:1666");
 		setPassword("");
 		setPath("C:\\Program Files\\Perforce");
@@ -223,18 +222,7 @@ public class Depot {
 		return groups;
 	}
 
-	/**
-	 * Retrieves the {@link Counters} object for interacting with this depot's counters.
-	 * 
-	 * @return Counters object
-	 */
-	public Counters getCounters() {
-		if(counters == null)
-			counters = new Counters(this);
-		return counters;
-	}
-
-	/**
+	/**	 * Retrieves the {@link Counters} object for interacting with this depot's counters.	 * 	 * @return Counters object	 */	public Counters getCounters() {		if(counters == null)			counters = new Counters(this);		return counters;	}	/**
 	 * Retrieves the status object for interacting with the depot's status.
 	 * <p>
 	 * E.g., depot.getStatus().isValid() for checking if the settings are correct.
@@ -333,7 +321,7 @@ public class Depot {
 	 *            P4PORT value.
 	 */
 	public void setPort(String port) {
-		 setenv("P4PORT", port);
+		setenv("P4PORT", port);
 	}
 
 	/**
@@ -527,29 +515,30 @@ public class Depot {
 	}
 
 	private void setenv(String key, String newValue) {
-           if (newValue != null) {
-               newValue = newValue.trim();
-               if (newValue.length() == 0)
-                   newValue = null;
-           }
+	    if (newValue != null) {
+	        newValue = newValue.trim();
+	        if (newValue.length() == 0)
+	            newValue = null;
+	    }
 
-           String currentValue = settings.get(key);
-           if (safeEquals(newValue, currentValue))
-               return;
+	    String currentValue = settings.get(key);
+	    if (safeEquals(newValue, currentValue))
+	        return;
 
-           if (newValue == null)
-               settings.remove(key);
-           else
-               settings.put(key, newValue);
-           validEnvp = false;
-           return;
-       }
+	    if (newValue == null)
+	        settings.remove(key);
+	    else
+	        settings.put(key, newValue);
+	    validEnvp = false;
+	    return;
+	}
 
-       private boolean safeEquals(String newValue, String currentValue) {
-	       if (newValue == null)
-		       return currentValue == null;
-	       else
-		       return newValue.equals(currentValue);
-       }
+    private boolean safeEquals(String newValue, String currentValue) {
+        if (newValue == null)
+            return currentValue == null;
+        else
+            return newValue.equals(currentValue);
+    }
 
+	
 }
