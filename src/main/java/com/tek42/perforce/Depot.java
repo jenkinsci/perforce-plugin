@@ -64,8 +64,7 @@ import com.tek42.perforce.process.ExecutorFactory;
  * @author Mike Wille
  */
 public class Depot {
-	private static Depot depot;
-	private final Logger logger = LoggerFactory.getLogger("perforce");
+	private transient final Logger logger = LoggerFactory.getLogger("perforce");
 	private HashMap<String, String> settings;
 	private String pathSep;
 	private String fileSep;
@@ -83,19 +82,6 @@ public class Depot {
 	private Status status;
 	private Groups groups;
 	private Counters counters;
-	/**
-	 * If not using this in a Dependancy Injection environment, use this method to get ahold of the depot.
-	 * 
-	 * @return
-	 */
-	public static Depot getInstance() {
-		if(depot == null) {
-			depot = new Depot();
-		}
-
-		return depot;
-	}
-
 	public Depot() {
 		this(new DefaultExecutorFactory());
 	}
@@ -533,7 +519,7 @@ public class Depot {
 	    return;
 	}
 
-    private boolean safeEquals(String newValue, String currentValue) {
+    public static boolean safeEquals(String newValue, String currentValue) {
         if (newValue == null)
             return currentValue == null;
         else

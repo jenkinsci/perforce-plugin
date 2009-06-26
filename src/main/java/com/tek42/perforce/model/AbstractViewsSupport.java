@@ -37,11 +37,30 @@ import java.util.ArrayList;
  */
 public abstract class AbstractViewsSupport implements java.io.Serializable {
 	protected List<String> views;
+	protected boolean dirty = false;
 
 	public AbstractViewsSupport() {
 		views = new ArrayList<String>();
 	}
 
+	/**
+	 * Has this object's fields been changed since it was created,
+	 * or since the last call to clearDirty()?
+	 * 
+	 * @return true if dirty
+	 */
+    public boolean isDirty() {
+        return dirty;
+    }
+    
+    public final void markDirty() {
+        dirty = true;
+    }
+    
+    public final void clearDirty() {
+        dirty = false;
+    }
+    
 	/**
 	 * @return the view
 	 */
@@ -67,13 +86,15 @@ public abstract class AbstractViewsSupport implements java.io.Serializable {
 	 *            the view to set
 	 */
 	public void addView(String view) {
-		this.views.add(view);
+		views.add(view);
+		markDirty();
 	}
 
 	/**
 	 * Removes all views from this client.
 	 */
 	public void clearViews() {
-		this.views.clear();
+		views.clear();
+        markDirty();
 	}
 }

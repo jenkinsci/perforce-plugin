@@ -27,6 +27,8 @@
 
 package com.tek42.perforce.model;
 
+import static com.tek42.perforce.Depot.safeEquals;
+
 /**
  * Represents a Perforce clientspec or workspace.
  * <p>
@@ -98,7 +100,10 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 	 *            the name to set
 	 */
 	public void setName(String name) {
+	    if (safeEquals(this.name, name))
+	        return;
 		this.name = name;
+		markDirty();
 	}
 
 	/**
@@ -113,7 +118,10 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 	 *            the owner to set
 	 */
 	public void setOwner(String owner) {
+        if (safeEquals(this.owner, owner))
+            return;
 		this.owner = owner;
+        markDirty();
 	}
 
 	/**
@@ -128,7 +136,10 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 	 *            the host to set
 	 */
 	public void setHost(String host) {
+        if (safeEquals(this.host, host))
+            return;
 		this.host = host;
+        markDirty();
 	}
 
 	/**
@@ -143,7 +154,10 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 	 *            the description to set
 	 */
 	public void setDescription(String description) {
+        if (safeEquals(this.description, description))
+            return;
 		this.description = description;
+        markDirty();
 	}
 
 	/**
@@ -158,7 +172,10 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 	 *            the root to set
 	 */
 	public void setRoot(String root) {
+        if (safeEquals(this.root, root))
+            return;
 		this.root = root;
+        markDirty();
 	}
 
 	/**
@@ -173,7 +190,10 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 	 *            the altRoots to set
 	 */
 	public void setAltRoots(String altRoots) {
+        if (safeEquals(this.altRoots, altRoots))
+            return;
 		this.altRoots = altRoots;
+        markDirty();
 	}
 
 	/**
@@ -188,7 +208,10 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 	 *            the options to set
 	 */
 	public void setOptions(String options) {
+        if (safeEquals(this.options, options))
+            return;
 		this.options = options;
+        markDirty();
 	}
 
 	/**
@@ -203,7 +226,10 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 	 *            the lineEnd to set
 	 */
 	public void setLineEnd(String lineEnd) {
+        if (safeEquals(this.lineEnd, lineEnd))
+            return;
 		this.lineEnd = lineEnd;
+        markDirty();
 	}
 
 	/**
@@ -218,7 +244,10 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 	 *            the submitOptions to set
 	 */
 	public void setSubmitOptions(String submitOptions) {
+        if (safeEquals(this.submitOptions, submitOptions))
+            return;
 		this.submitOptions = submitOptions;
+        markDirty();
 	}
 
 	/**
@@ -233,7 +262,10 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 	 *            the update to set
 	 */
 	public void setUpdate(String update) {
+        if (safeEquals(this.update, update))
+            return;
 		this.update = update;
+        markDirty();
 	}
 
 	/**
@@ -248,7 +280,18 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 	 *            the access to set
 	 */
 	public void setAccess(String access) {
+        if (safeEquals(this.access, access))
+            return;
 		this.access = access;
+        markDirty();
 	}
 
+	/**
+	 * Is this workspace new (i.e. never saved)?
+	 * 
+	 * @return
+	 */
+	public boolean isNew() {
+	    return access == null || access.length() == 0;
+	}
 }

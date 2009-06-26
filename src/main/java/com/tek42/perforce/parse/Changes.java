@@ -274,7 +274,7 @@ public class Changes extends AbstractPerforceTemplate {
 			for(String num : temp) {
 				if(new Integer(num) >= untilChange)
 				{
-					logger.warn("num is " + num + " until is " + untilChange);
+					getLogger().warn("num is " + num + " until is " + untilChange);
 					numbers.add(new Integer(num));
 				}
 				else
@@ -290,11 +290,11 @@ public class Changes extends AbstractPerforceTemplate {
 			}
 			catch (NumberFormatException nfe)
 			{
-				logger.warn("Unable to parse perforce message.  Expected a number but got " + lastChange);
-				logger.warn("From command " + response.toString());
+				getLogger().warn("Unable to parse perforce message.  Expected a number but got " + lastChange);
+				getLogger().warn("From command " + response.toString());
 			}
 			cmdList.clear();
-			logger.warn("running p4 changes for " + next + " until change is " + untilChange);
+			getLogger().warn("running p4 changes for " + next + " until change is " + untilChange);
 			addCommand(cmdList, "p4", "changes", "-m", "25");
 			addCommandWorkspace(cmdList, workspace);
 			addCommand(cmdList, path + "@" + next);

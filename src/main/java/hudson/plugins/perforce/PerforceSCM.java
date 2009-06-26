@@ -42,6 +42,7 @@ import java.io.StringWriter;
 import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -88,7 +89,7 @@ public class PerforceSCM extends SCM {
 	boolean updateView = true;	
 	
 	/**
-	 * If false we add the slave hostname to then end of the client name when 
+	 * If false we add the slave hostname to the end of the client name when
 	 * running on a slave.  Defaulting to true so as not to change the behavior
      * for existing users.
 	 */
@@ -114,13 +115,13 @@ public class PerforceSCM extends SCM {
 		Matcher m = Pattern.compile("(@\\S+)\\s*").matcher(projectPath);
 		if (m.find()) {
 			p4Label = m.group(1);					
-			projectPath = projectPath.substring(0,m.start(1)) 
+			projectPath = projectPath.substring(0,m.start(1))
 				+ projectPath.substring(m.end(1)); 			
 		}
 		
 		if (this.p4Label != null && p4Label != null) {
 			Logger.getLogger(PerforceSCM.class.getName()).warning(
-					"Label found in views and in label field.  Using:" 
+					"Label found in views and in label field.  Using: "
 					+ p4Label);
 		}
 		this.p4Label = Util.fixEmptyAndTrim(p4Label);		
@@ -210,7 +211,7 @@ public class PerforceSCM extends SCM {
 	}
 
 	/**
-	 * Override of SCM.buildEnvVars() in order to setup the last change we have 
+	 * Override of SCM.buildEnvVars() in order to setup the last change we have
 	 * sync'd to as a Hudson
 	 * environment variable: P4_CHANGELIST
 	 *
@@ -268,86 +269,39 @@ public class PerforceSCM extends SCM {
 		return uriString;
 	}
 	
-    
+
 	/* (non-Javadoc)
 	 * @see hudson.scm.SCM#checkout(hudson.model.AbstractBuild, hudson.Launcher, hudson.FilePath, hudson.model.BuildListener, java.io.File)
 	 */
 	@Override
-	public boolean checkout(AbstractBuild build, Launcher launcher, 
+	public boolean checkout(AbstractBuild build, Launcher launcher,
 			FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
-		
+
 		PrintStream log = listener.getLogger();
-		
+
 		//keep projectPath local so any modifications for slaves don't get saved
 		String projectPath = this.projectPath;
 		depot = getDepot(launcher,workspace);
-		
-		
+
 		//this is a work around for issue 2062
 		//https://hudson.dev.java.net/issues/show_bug.cgi?id=2062
-		//we don't why but sometimes the connection drops when communicating 
+		//we don't why but sometimes the connection drops when communicating
 		//with perforce retrying seems to work for now but this really needs
 		//to be fixed properly
 		int RETRY_COUNT = 6;
 		int WAIT_PERIOD = 10000;
 		for (int retryAttempt = 0; retryAttempt < RETRY_COUNT; retryAttempt++){		
 		try {
-			
+		    Workspace p4workspace = getPerforceWorkspace(depot, build.getBuiltOn(), launcher, workspace, listener);
 
-			boolean creatingNewWorkspace = false;
-
-			//make sure each slave has a unique client name by adding it's 
-			//hostname to the end of the client spec
-			String nodeSuffix = "";
-			if ( !dontRenameClient &&
-					build.getBuiltOnStr() != null && 
-					build.getBuiltOnStr() != "") {
-
-				//use the 1st part of the hostname as the node suffix
-				String host = workspace.act(new GetHostname());
-				if (host.contains(".")) {
-					nodeSuffix = "-" + host.subSequence(0, host.indexOf('.'));	
-				} else {
-					nodeSuffix = "-" + host;
-				}
-				
-				log.println("Changing client to " + p4Client + nodeSuffix);
-				depot.setClient(p4Client + nodeSuffix);
-				creatingNewWorkspace = true;
-			}			
-					
-			Workspace p4workspace = 
-				depot.getWorkspaces().getWorkspace(p4Client + nodeSuffix);
-			
-			//if the client doesn't exist set the name so it will be created
-			p4workspace.setName(p4Client + nodeSuffix);
-			assert p4workspace != null;
-			creatingNewWorkspace = p4workspace.getAccess() == null || p4workspace.getAccess().length() == 0;
-
-			// update the root to where hudson builds from
-            // TODO Only print message if actually changing root
-			String localPath = getLocalPathName(workspace,launcher.isUnix());
-			log.println("Changing P4 Client Root to: " + localPath);
-			p4workspace.setRoot(localPath);
-
-			//optionally rewrite the views field in the client spec
-			if(updateView || creatingNewWorkspace) {
-				projectPath = fixProjectPath(projectPath, nodeSuffix);
-				log.println("Changing P4 Client View to: " + projectPath);				
-				p4workspace.clearViews();				
-				for (String view : projectPath.split("\n")) {
-					p4workspace.addView(" " + view);
-				}				
-			} 	
-			
-			// If we use the same client on multiple hosts (e.g. master and slave),
-			// erase the host field so the client isn't tied to a single host.
-			if (dontRenameClient) {			 
-				p4workspace.setHost("");
-			}	
-			
-			//save the client for use when sync'ing in a few...
-			depot.getWorkspaces().saveWorkspace(p4workspace);
+		    if (p4workspace.isNew()) {
+		        log.println("Saving new client " + p4workspace.getName());
+		        depot.getWorkspaces().saveWorkspace(p4workspace);
+		    }
+		    else if (p4workspace.isDirty()) {
+                log.println("Saving modified client " + p4workspace.getName());
+                depot.getWorkspaces().saveWorkspace(p4workspace);
+            }
 
 			//Get the list of changes since the last time we looked...
 			String p4WorkspacePath = "//" + p4workspace.getName() + "/...";
@@ -374,6 +328,7 @@ public class PerforceSCM extends SCM {
                 // Save the changes we discovered.
 				PerforceChangeLogSet.saveToChangeLog(
 						new FileOutputStream(changelogFile), changes);
+				newestChange = changes.get(0).getChangeNumber();
 			}
 			else {
 			    // No new changes discovered (though the definition of the workspace or label may have changed).
@@ -431,12 +386,12 @@ public class PerforceSCM extends SCM {
             }
 
 			//save the one time use variables...
-			build.getParent().save();  
+			build.getParent().save();
 
 			return true;
 
 		} catch(PerforceException e) {
-			log.print("Caught Exception communicating with perforce. " + 
+			log.print("Caught Exception communicating with perforce. " +
 					e.getMessage());
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw, true);
@@ -450,7 +405,7 @@ public class PerforceSCM extends SCM {
 				catch (InterruptedException exception) {}
 			} else {			
 				throw new IOException(
-						"Unable to communicate with perforce. " + 
+						"Unable to communicate with perforce. " +
 						e.getMessage());
 			}
 		} catch (InterruptedException e) {
@@ -458,7 +413,7 @@ public class PerforceSCM extends SCM {
 			
 			throw new IOException(
 					"Unable to get hostname from slave. " + e.getMessage());
-		} 
+		}
 		}
 		return false;		
 	}
@@ -506,29 +461,56 @@ public class PerforceSCM extends SCM {
 
 	/* (non-Javadoc)
 	 * @see hudson.scm.SCM#pollChanges(hudson.model.AbstractProject, hudson.Launcher, hudson.FilePath, hudson.model.TaskListener)
-	 * 
+	 *
+	 * When *should* this method return true?
+	 *
+     * 1) When there is no previous build (might be the first, or all previous
+     *    builds might have been deleted).
+     *
+	 * 2) When the previous build did not use Perforce, in which case we can't
+	 *    be "sure" of the state of the files.
+	 *
+	 * 3) If the clientspec's views have changed since the last build; we don't currently
+	 *    save that info, but we should!  I (James Synge) am not sure how to save it;
+	 *    should it be:
+	 *         a) in the build.xml file, and if so, how do we save it there?
+	 *         b) in the change log file (which actually makes a fair amount of sense)?
+	 *         c) in a separate file in the build directory (not workspace),
+	 *            along side the change log file?
+	 *
+	 * 4) p4Label has changed since the last build (either from unset to set, or from
+	 *    one label to another).
+	 *
+	 * 5) p4Label is set AND unchanged AND the set of file-revisions selected
+	 *    by the label in the p4 workspace has changed.  Unfortunately, I don't
+	 *    know of a cheap way to do this.
+	 *
 	 * There may or may not have been a previous build.  That build may or may not
 	 * have been done using Perforce, and if with Perforce, may have been done
 	 * using a label or latest, and may or may not be for the same view as currently
 	 * defined.  If any change has occurred, we'll treat that as a reason to build.
-	 * 
+	 *
 	 * Note that the launcher and workspace may operate remotely (as of 2009-06-21,
 	 * they correspond to the node where the last build occurred, if any; if none,
 	 * then the master is used).
-	 * 
+	 *
 	 * Note also that this method won't be called while the workspace (not job)
 	 * is in use for building or some other polling thread.
 	 */
 	@Override
-	public boolean pollChanges(AbstractProject project, Launcher launcher, 
+	public boolean pollChanges(AbstractProject project, Launcher launcher,
 			FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
 
 		PrintStream logger = listener.getLogger();
-		Depot depot = getDepot(launcher,workspace);
-        try {
-            logger.println("Looking for changes...");
+        logger.println("Looking for changes...");
 
-            Boolean needToBuild = needToBuild(project, depot, logger);
+        Depot depot = getDepot(launcher,workspace);
+        try {
+            Workspace p4workspace = getPerforceWorkspace(depot, project.getLastBuiltOn(), launcher, workspace, listener);
+            if (p4workspace.isNew())
+                return true;
+            
+            Boolean needToBuild = needToBuild(p4workspace, project, depot, logger);
             if (needToBuild == null) {
                 needToBuild = wouldSyncChangeWorkspace(project, depot, logger);
             }
@@ -548,7 +530,7 @@ public class PerforceSCM extends SCM {
 		}
 	}
 
-	private Boolean needToBuild(AbstractProject project, Depot depot,
+	private Boolean needToBuild(Workspace p4workspace, AbstractProject project, Depot depot,
             PrintStream logger) throws IOException, InterruptedException, PerforceException {
 
         /*
@@ -556,10 +538,10 @@ public class PerforceSCM extends SCM {
          * Ideally this would be a policy exposed to the user, perhaps for all
          * jobs with all types of scm, not just those using Perforce.
          */
-        if (project.isBuilding() || project.isInQueue()) {
-            logger.println("Job is already building or in the queue; skipping polling.");
-            return Boolean.FALSE;
-        }
+//        if (project.isBuilding() || project.isInQueue()) {
+//            logger.println("Job is already building or in the queue; skipping polling.");
+//            return Boolean.FALSE;
+//        }
 
         Run lastBuild = project.getLastBuild();
         if (lastBuild == null) {
@@ -580,7 +562,7 @@ public class PerforceSCM extends SCM {
             logger.println("Previous build was based on label " + lastLabelName);
             // Last build was based on a label, so we want to know if:
             //      the definition of the label was changed;
-            //      or the view has been changed; 
+            //      or the view has been changed;
             //      or p4Label has been changed.
             if (p4Label == null) {
                 logger.println("Job configuration changed to build from head, not a label.");
@@ -588,7 +570,7 @@ public class PerforceSCM extends SCM {
             }
 
             if (!lastLabelName.equals(p4Label)) {
-                logger.println("Job configuration changed to build using label " + p4Label);
+                logger.println("Job configuration changed to build from label " + p4Label + ", not from head");
                 return Boolean.TRUE;
             }
 
@@ -605,17 +587,31 @@ public class PerforceSCM extends SCM {
                 return Boolean.TRUE;
             }
 
-            // Has any new change been created since then?
-            int latestChangeNumber = depot.getCounters().getCounter("change").getValue();
-            logger.println("Latest change in depot is " + latestChangeNumber);
-            if (lastChangeNumber >= latestChangeNumber) {
-                // Note, can't determine with currently saved info whether a change
-                // in the workspace definition has been performed.
+            // Has any new change been submitted since then (that is selected
+            // by this workspace).
+
+            String root = "//" + p4workspace.getName() + "/...";
+            List<Integer> changeNumbers = depot.getChanges().getChangeNumbers(root, -1, 1);
+            if (changeNumbers.isEmpty()) {
+                // Wierd, this shouldn't be!  I suppose it could happen if the
+                // view selects no files (e.g. //depot/non-existent-branch/...).
+                // Just in case, let's try to build.
+                return Boolean.TRUE;
+            }
+
+            int highestSelectedChangeNumber = changeNumbers.get(0);
+            logger.println("Latest submitted change selected by workspace is " + highestSelectedChangeNumber);
+            if (lastChangeNumber >= highestSelectedChangeNumber) {
+                // Note, can't determine with currently saved info
+                // whether the workspace definition has changed.
                 logger.println("Assuming that the workspace definition has not changed.");
                 return Boolean.FALSE;
             }
+            else {
+                return Boolean.TRUE;
+            }
         }
-        
+
         return null;
 	}
 
@@ -663,6 +659,101 @@ public class PerforceSCM extends SCM {
         return getMostRecentTagAction(build.getPreviousBuild());
 	}
 
+	private Workspace getPerforceWorkspace(
+	        Depot depot, Node buildNode,
+	        Launcher launcher, FilePath workspace, TaskListener listener) throws IOException, InterruptedException, PerforceException
+	{
+	    PrintStream log = listener.getLogger();
+
+	    // If we are building on a slave node, and each node is supposed to have
+	    // its own unique client, then adjust the client name accordingly.
+        // make sure each slave has a unique client name by adding it's
+        // hostname to the end of the client spec
+
+	    String nodeSuffix = "";
+        String p4Client = this.p4Client;
+        if (!nodeIsRemote(buildNode)) {
+            log.print("Using master perforce client: ");
+            log.println(p4Client);
+        }
+        else if (dontRenameClient) {
+            log.print("Using shared perforce client: ");
+            log.println(p4Client);
+        }
+        else {
+            //use the 1st part of the hostname as the node suffix
+            String host = workspace.act(new GetHostname());
+            if (host.contains(".")) {
+                nodeSuffix = "-" + host.subSequence(0, host.indexOf('.'));
+            } else {
+                nodeSuffix = "-" + host;
+            }
+            p4Client += nodeSuffix;
+
+            log.println("Using remote perforce client: " + p4Client);
+            depot.setClient(p4Client);
+        }
+
+        // Get the clientspec (workspace) from perforce
+
+        Workspace p4workspace = depot.getWorkspaces().getWorkspace(p4Client);
+        assert p4workspace != null;
+        boolean creatingNewWorkspace = p4workspace.isNew();
+
+        // Ensure that the clientspec (workspace) name is set correctly
+        // TODO Examine why this would be necessary.
+
+        p4workspace.setName(p4Client);
+
+        // Ensure that the root is appropriate (it might be wrong if the user
+        // created it, or if we previously built on another node).
+
+        String localPath = getLocalPathName(workspace,launcher.isUnix());
+        if (!localPath.equals(p4workspace.getRoot()))
+        {
+            log.println("Changing P4 Client Root to: " + localPath);
+            p4workspace.setRoot(localPath);
+        }
+
+        // If necessary, rewrite the views field in the clientspec;
+
+        // TODO If dontRenameClient==false, and updateView==false, user
+        // has a lot of work to do to maintain the clientspecs.  Seems like
+        // we could copy from a master clientspec to the slaves.
+
+        if (updateView || creatingNewWorkspace) {
+            projectPath = fixProjectPath(projectPath, nodeSuffix);
+            List<String> views = Arrays.asList(projectPath.split("\n"));
+
+            if (!views.equals(p4workspace.getViews())) {
+                log.println("Changing P4 Client View to: " + projectPath);
+                p4workspace.clearViews();
+                for (String view : views) {
+                    p4workspace.addView(" " + view);
+                }
+            }
+        }
+
+        // If we use the same client on multiple hosts (e.g. master and slave),
+        // erase the host field so the client isn't tied to a single host.
+        if (dontRenameClient) {
+            p4workspace.setHost("");
+        }
+
+        // NOTE: The workspace is not saved.
+        return p4workspace;
+	}
+
+    private boolean nodeIsRemote(Node buildNode)
+    {
+        if (buildNode == null)
+            return false;
+
+        String nodeName = buildNode.getNodeName();
+        return nodeName.length() != 0;
+    }
+	
+	
     @Extension
 	public static final class PerforceSCMDescriptor extends SCMDescriptor<PerforceSCM> {
         public PerforceSCMDescriptor() {
@@ -748,10 +839,10 @@ public class PerforceSCM extends SCM {
         		return FormValidation.error("You must enter a workspaces name");
         	}        	
         	try {
-        		Workspace p4Workspace = 
-        			depot.getWorkspaces().getWorkspace(workspace); 
+        		Workspace p4Workspace =
+        			depot.getWorkspaces().getWorkspace(workspace);
         		
-        		if (p4Workspace.getAccess() == null || 
+        		if (p4Workspace.getAccess() == null ||
         				p4Workspace.getAccess() == "")		
 					return FormValidation.warning("Workspace does not exist. " +
 							"If \"Let Hudson Manage Workspace View\" is check" +
@@ -759,7 +850,7 @@ public class PerforceSCM extends SCM {
 			} catch (PerforceException e) {
 				return FormValidation.error(
 						"Error accessing perforce while checking workspace");
-			} 
+			}
 			
 			return FormValidation.ok();
     	}
@@ -771,7 +862,7 @@ public class PerforceSCM extends SCM {
         	
         	String label = Util.fixEmptyAndTrim(req.getParameter("label"));
         	
-        	if (label == null) 
+        	if (label == null)
         		return FormValidation.ok();
         	
         	Depot depot = getDepotFromRequest(req);
@@ -830,18 +921,18 @@ public class PerforceSCM extends SCM {
         }
 
 	}
-    
+
 	private String fixProjectPath(String projectPath, String nodeSuffix) {	
 				
 		String newPath = "";
 		for (String line : projectPath.split("\n")) {
 
-			Matcher depotOnly = 
-				Pattern.compile("^\\s*\\/\\/\\S+(\\/\\S+)\\s*$").matcher(line); 
+			Matcher depotOnly =
+				Pattern.compile("^\\s*\\/\\/\\S+(\\/\\S+)\\s*$").matcher(line);
 			Matcher depotAndWorkspace =
 				Pattern.compile(
 						"\\s*(\\/\\/\\S+?\\/\\S+)\\s*\\/\\/\\S+?(\\/\\S+)"
-						).matcher(line); 
+						).matcher(line);
 
 			if (depotOnly.find()) {
 				
@@ -850,13 +941,13 @@ public class PerforceSCM extends SCM {
 				
 			} else if (depotAndWorkspace.find()) {
 				
-				line = depotAndWorkspace.group(1) + 
+				line = depotAndWorkspace.group(1) +
 					" //" + p4Client + nodeSuffix + depotAndWorkspace.group(2);
 			}
 			newPath = newPath + line + "\n";
 		}
 		return newPath;
-	}    
+	}
 
 	/**
 	 * @return the projectPath
@@ -1032,7 +1123,7 @@ public class PerforceSCM extends SCM {
 //	}	
 	
 	/**
-	 * @param dontRenameClient	False if the client will rename the client spec for each 
+	 * @param dontRenameClient	False if the client will rename the client spec for each
 	 * slave
 	 */
 	public void setDontRenameClient(boolean dontRenameClient) {
@@ -1069,26 +1160,26 @@ public class PerforceSCM extends SCM {
         }
         private static final long serialVersionUID = 1L;
     }	
-    
-    
+
+
     /**
      * With Perforce the server keeps track of files in the workspace.  We never
-     * want files deleted without the knowledge of the server so we disable the 
+     * want files deleted without the knowledge of the server so we disable the
      * cleanup process.
-     * 
+     *
      * @param project
-     *      The project that owns this {@link SCM}. This is always the same 
-     *      object for a particular instanceof {@link SCM}. Just passed in here 
+     *      The project that owns this {@link SCM}. This is always the same
+     *      object for a particular instanceof {@link SCM}. Just passed in here
      *      so that {@link SCM} itself doesn't have to remember the value.
      * @param workspace
-     *      The workspace which is about to be deleted. Never null. This can be 
+     *      The workspace which is about to be deleted. Never null. This can be
      *      a remote file path.
      * @param node
-     *      The node that hosts the workspace. SCM can use this information to 
+     *      The node that hosts the workspace. SCM can use this information to
      *      determine the course of action.
      *
      * @return
-     *      true if {@link SCM} is OK to let Hudson proceed with deleting the 
+     *      true if {@link SCM} is OK to let Hudson proceed with deleting the
      *      workspace.
      *      False to veto the workspace deletion.
      */
@@ -1097,6 +1188,6 @@ public class PerforceSCM extends SCM {
     	Logger.getLogger(PerforceSCM.class.getName()).info(
     			"Veto workspace cleanup");
         return false;
-    }    
+    }
 }
 

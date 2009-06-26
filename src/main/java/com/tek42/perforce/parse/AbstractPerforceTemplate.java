@@ -50,26 +50,34 @@ import com.tek42.perforce.process.Executor;
  * @author Mike Wille
  */
 public abstract class AbstractPerforceTemplate {
-	Depot depot;
-	Logger logger;
-    final String errors[] = new String[] {
-        "Connect to server failed; check $P4PORT",
-		"Perforce password (P4PASSWD) invalid or unset.",
-		"Password not allowed at this server security level, use 'p4 login'",
-		"Can't create a new user - over license quota.",
-		"Client '*' can only be used from host '*'",
-		"Access for user '",
-		"Your session has expired, please login again."
-	};
+    private static final String p4errors[] = new String[] {
+            "Connect to server failed; check $P4PORT",
+            "Perforce password (P4PASSWD) invalid or unset.",
+            "Password not allowed at this server security level, use 'p4 login'",
+            "Can't create a new user - over license quota.",
+            "Client '*' can only be used from host '*'",
+            "Access for user '",
+            "Your session has expired, please login again."
+        };
 
+    @SuppressWarnings("unused")
+    private transient Logger logger;   // Obsolete field, present just to keep demarshaller happy
+    @SuppressWarnings("unused")
+    private transient String errors[];   // Obsolete field, present just to keep demarshaller happy
+
+    private final Depot depot;
 	final String maxError = "Request too large";
 
 	public AbstractPerforceTemplate(Depot depot) {
 		this.depot = depot;
-		this.logger = depot.getLogger();
 	}
 
-	/**
+    public Logger getLogger()
+    {
+        return depot.getLogger();
+    }
+
+    /**
 	 * Parses lines of formatted text for a list of values. Tokenizes each line into columns and adds the column
 	 * specified by index to the list.
 	 * 
@@ -179,11 +187,11 @@ public abstract class AbstractPerforceTemplate {
 				int exitCode = 0;
 
 				while((line = reader.readLine()) != null) {
-					logger.debug("LineIn -> " + line);
+					getLogger().debug("LineIn -> " + line);
 
 					// Check for authentication errors...
-					for(i = 0; i < errors.length; i++) {
-						if(line.indexOf(errors[i]) != -1)
+					for(i = 0; i < p4errors.length; i++) {
+						if(line.indexOf(p4errors[i]) != -1)
 							mesgIndex = i;
 
 					}
@@ -224,8 +232,8 @@ public abstract class AbstractPerforceTemplate {
 					throw new PerforceException(info);
 				}
 
-				logger.debug("Wrote to " + debugCmd + ":\n" + log.toString());
-				logger.info(info);
+				getLogger().debug("Wrote to " + debugCmd + ":\n" + log.toString());
+				getLogger().info(info);
 
 			} catch(IOException e) {
 				throw new PerforceException("Failed to open connection to perforce", e);
@@ -275,8 +283,8 @@ public abstract class AbstractPerforceTemplate {
 				    lines.add(line);
 				    totalLength += line.length();
 					count++;
-					for(i = 0; i < errors.length; i++) {
-						if(line.indexOf(errors[i]) != -1)
+					for(i = 0; i < p4errors.length; i++) {
+						if(line.indexOf(p4errors[i]) != -1)
 							mesgIndex = i;
 					}
 				}
@@ -290,8 +298,8 @@ public abstract class AbstractPerforceTemplate {
 				ioe.printStackTrace(pw);
 				pw.flush();
 				sw.flush();
-				logger.warn("Perforce process terminated suddenly");
-				logger.warn(sw.toString());
+				getLogger().warn("Perforce process terminated suddenly");
+				getLogger().warn(sw.toString());
 			}
 			finally{
 				p4.close();
@@ -313,7 +321,7 @@ public abstract class AbstractPerforceTemplate {
 			if(mesgIndex == 4)
 				throw new PerforceException("Access for user '" + depot.getUser() + "' has not been enabled by 'p4 protect'");
 			if(mesgIndex != -1)
-				throw new PerforceException(errors[mesgIndex]);
+				throw new PerforceException(p4errors[mesgIndex]);
 			if(count == 0)
 				throw new PerforceException("No output for: " + debugCmd);
 		} while(loop);
@@ -380,8 +388,8 @@ public abstract class AbstractPerforceTemplate {
             ioe.printStackTrace(pw);
             pw.flush();
             sw.flush();
-            logger.warn("IOException reading from Perforce process (may just be EOF)");
-            logger.warn(sw.toString());
+            getLogger().warn("IOException reading from Perforce process (may just be EOF)");
+            getLogger().warn(sw.toString());
         }
         finally{
             p4.close();
@@ -453,7 +461,7 @@ public abstract class AbstractPerforceTemplate {
 			// if we obtained a ticket, save it for later use. Our environment setup by Depot can't usually
 			// see the .p4tickets file.
 			if(ticket != null) {
-				logger.warn("Using p4 issued ticket.");
+				getLogger().warn("Using p4 issued ticket.");
 				depot.setP4Ticket(ticket);
 			}
 
