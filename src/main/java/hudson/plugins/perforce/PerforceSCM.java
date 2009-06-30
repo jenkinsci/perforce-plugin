@@ -787,8 +787,16 @@ public class PerforceSCM extends SCM {
                 return null;
             }
             Depot depot = new Depot();
-            depot.setUser(user);
-			depot.setPassword(pass);
+                        depot.setUser(user);
+                        PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+                        if(encryptor.appearsToBeAnEncryptedPassword(pass))
+                        {
+                            depot.setPassword(encryptor.decryptString(pass));
+                        }
+                        else
+                        {
+                            depot.setPassword(pass);
+                        }
 			depot.setPort(port);
 			depot.setExecutable(exe);
 			try
