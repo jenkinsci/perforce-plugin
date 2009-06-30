@@ -232,6 +232,8 @@ public class PerforcePasswordEncryptor {
 
      private static String convertBytesToString( byte[] bytes )
      {
+         if(null == bytes)
+             return "";
           StringBuffer stringBuffer = new StringBuffer();
           for (int i = 0; i < bytes.length; i++)
           {
