@@ -13,24 +13,24 @@ import hudson.Extension;
  */
 @Extension
 public class PerforceMailResolver extends MailAddressResolver {
-	public String findMailAddressFor(User u) {
+    public String findMailAddressFor(User u) {
 
-		for(AbstractProject p : u.getProjects()) {
+        for (AbstractProject p : u.getProjects()) {
 
-			if(p.getScm() instanceof PerforceSCM) {
-				PerforceSCM pscm = (PerforceSCM) p.getScm();
-				try {
-					// couldn't resist the name pu...
-					com.tek42.perforce.model.User pu = pscm.getDepot().getUsers().getUser(u.getId());
-					if(pu.getEmail() != null && !pu.getEmail().equals(""))
-						return pu.getEmail();
+            if (p.getScm() instanceof PerforceSCM) {
+                PerforceSCM pscm = (PerforceSCM) p.getScm();
+                try {
+                    // couldn't resist the name pu...
+                    com.tek42.perforce.model.User pu = pscm.getDepot().getUsers().getUser(u.getId());
+                    if (pu.getEmail() != null && !pu.getEmail().equals(""))
+                        return pu.getEmail();
 
-				} catch(Exception e) {
-					// where are we supposed to log this errror?
-				}
-			}
-		}
-		return null;
-	}
+                } catch (Exception e) {
+                    // where are we supposed to log this errror?
+                }
+            }
+        }
+        return null;
+    }
 
 }

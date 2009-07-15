@@ -19,23 +19,23 @@ import java.util.regex.Pattern;
 
 /**
  * {@link Action} that lets people create tag for the given build.
- * 
+ *
  * @author Mike Wille
  */
 public class PerforceTagAction extends AbstractScmTagAction {
-	private final int changeNumber;
-	private Depot depot;
-	private String tag;
-	private String desc;
-	private String view;
-    
+    private final int changeNumber;
+    private Depot depot;
+    private String tag;
+    private String desc;
+    private String view;
+
     public PerforceTagAction(AbstractBuild build, Depot depot, int changeNumber, String views) {
         super(build);
         this.depot = depot;
         this.changeNumber = changeNumber;
         this.view = views;
     }
-    
+
     public PerforceTagAction(AbstractBuild build, Depot depot, String label, String views) {
         super(build);
         this.depot = depot;
@@ -45,102 +45,97 @@ public class PerforceTagAction extends AbstractScmTagAction {
     }
 
     public int getChangeNumber() {
-    	return changeNumber;
+        return changeNumber;
     }
-    
+
     public String getIconFileName() {
-        if(tag == null && !Hudson.isAdmin())
+        if (tag == null && !Hudson.isAdmin())
             return null;
         return "save.gif";
     }
 
     public String getDisplayName() {
-        if(isTagged())
-        	return "Perforce Label";
+        if (isTagged())
+            return "Perforce Label";
         else
             return "Label This Build";
     }
 
     public String getTag() {
-    	return tag;
+        return tag;
     }
-    
+
     public void setTag(String tag) {
-    	this.tag = tag;
+        this.tag = tag;
     }
-    
+
     public String getDescription() {
-    	return desc;
+        return desc;
     }
-    
+
     public void setDescription(String desc) {
-    	this.desc = desc;
+        this.desc = desc;
     }
-    
+
     /**
      * Returns true if this build has already been tagged at least once.
      */
     public boolean isTagged() {
-        if(tag == null)
-        	return false;
-        return true;
+        return tag != null;
     }
 
     /**
      * Checks to see if the user entered tag matches any Perforce restrictions.
      */
     public String isInvalidTag(String tag) {
-    	Pattern spaces = Pattern.compile("\\s{1,}");
-
-    	Matcher m = spaces.matcher(tag);
-    	if(m.find()) {
-    		return "Spaces are not allowed.";
-    	}
-    	
-    	return null;
+        Pattern spaces = Pattern.compile("\\s{1,}");
+        Matcher m = spaces.matcher(tag);
+        if (m.find()) {
+            return "Spaces are not allowed.";
+        }
+        return null;
     }
-    
+
     /**
      * Checks if the value is a valid Perforce tag (label) name.
      */
     public synchronized void doCheckTag(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        new FormFieldValidator(req,rsp,false) {
+        new FormFieldValidator(req, rsp, false) {
             protected void check() throws IOException, ServletException {
                 String tag = fixEmpty(request.getParameter("value")).trim();
-                if(tag == null) {// nothing entered yet
+                if (tag == null) {// nothing entered yet
                     ok();
                     return;
                 }
-
                 error(isInvalidTag(tag));
             }
         }.check();
     }
-    
+
     /**
      * Invoked to actually tag the workspace.
      */
     public synchronized void doSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        if(!Hudson.adminCheck(req,rsp))
+        if (!Hudson.adminCheck(req, rsp))
             return;
 
         tag = req.getParameter("name");
         desc = req.getParameter("desc");
-        
+
         Label label = new Label();
         label.setName(tag);
         label.setDescription(desc);
         label.setRevision(new Integer(changeNumber).toString());
         for (String eachView : view.split("\n")) {
-        	label.addView(eachView);
+            label.addView(eachView);
         }
         try {
-        	depot.getLabels().saveLabel(label);
+            depot.getLabels().saveLabel(label);
         } catch(PerforceException e) {
-        	tag = null;
-        	desc = null;
-        	e.printStackTrace();
-        	throw new IOException("Failed to issue perforce label." + e.getMessage());
+            tag = null;
+            desc = null;
+            e.printStackTrace();
+            throw new IOException("Failed to issue perforce label." + e.getMessage());
         }
         build.save();
         rsp.sendRedirect(".");

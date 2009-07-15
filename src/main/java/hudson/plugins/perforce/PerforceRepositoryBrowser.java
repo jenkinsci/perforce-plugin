@@ -24,7 +24,7 @@ public abstract class PerforceRepositoryBrowser extends RepositoryBrowser<Perfor
 
     /**
      * Determines the link to a single file under Perforce.
-     * This page should display all the past revisions of this file, etc. 
+     * This page should display all the past revisions of this file, etc.
      *
      * @return
      *      null if the browser doesn't have any suitable URL.
