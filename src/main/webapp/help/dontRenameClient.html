@@ -1,17 +1,14 @@
 <div>
   <p>
-    <b>Don't rename workspace for each slave</b>
+    Perforce tracks changes for each workspace specification on the server, and this
+    is how it knows which files to update during a p4 sync.  This means that
+    each physical workspace needs to have its own workspace specification to
+    track it's own files.  To ensure a unique workspaces for each project
+    across all the slaves we append the hostname of the slave to the end of the
+    workspace name given in the "Workspace (client)" field.
   </p>
   <p>
-  	Perforce tracks changes for each workspace specification on the server. This
-  	is how the server knows which files to update during a p4 sync.  This means 
-  	that each physical workspace needs to have its own workspace specification 
-  	to track it's own files.  To ensure a unique workspaces for each project 
-  	across all the slaves we add the hostname of the slave to the end of the 
-  	workspace name given in the "Workspace (client)" field.  
-  </p>
-  <p>
-	If you do not want the plugin to automatically rename clients for each slave
-	then check this box  	
+    If you do not want the plugin to automatically rename clients for each slave
+    then check this box.
   </p>
 </div>

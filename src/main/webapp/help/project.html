@@ -1,6 +1,42 @@
 <div>
-  <p><b>Views</b><br/>
-    This is the depot to client mapping in the same format as a standard perforce workspace spec
+  <p>
+    <b>Workspace (client)</b>: Workspace or Clientspec (oldskewl) of the project. If the workspace
+    specified does not exist, Hudson will create it. <br>
+  </p>
+  <p>
+    <b>Important Note</b>: Hudson will likely change the root of this workspace to fit Hudson's
+    installation.  That means Hudson also automatically creates a workspace for each slave on every
+    project.  The hostname of the slave is appended to the end of the given workspace name to ensure
+    that all workspaces are unique and don't collide across machines. <br>
+  </p>
+  <p>
+    <b>Important Note</b>: If two jobs retrieve the same file into their workspace, these jobs must
+    use a unique Perforce workspace. The reason is otherwise the p4 server will lose track of the actual
+    contents of the workspaces, leading to inaccurate workspace file versions.  For example, if job1
+    and job2 use the same Perforce workspace, and both include file1, when the file1 is changed, a
+    Perforce 'get latest' will only retrieve file1 into the first job (e.g. job1) that builds, it will
+    not be retrieved into job2 unless you do a 'One Time Force Sync'.<br>
+  </p>
+  <p>
+    <b>Important Note</b>: When Hudson creates a workspace, the workspace will contain only one
+    view.  This view maps the Depot Path to the root of the Hudson job's workspace directory.  If Hudson
+    uses an existing workspace that has only one view, it automatically changes the view in a similar
+    way.  This behavior can be disabled by the option, "Let Hudson Manage Workspace View.  This will
+    allow you to retrieve more than one depot into the workspace of a given job by providing your own
+    list of views.
+    </table>
+  </p>
+  <p>
+    <b>Let Hudson Manage Workspace View</b>: For most cases, leave this checked.  Hudson will update
+    the workspace's view to match the project's settings.  If you uncheck it, you must manage the
+    workspace's view yourself.  This is useful if, for this job, you need to checkout and build multiple
+    projects from Perforce at once.  (For those managing the workspace view themselves and looking for a
+    starting point, the typical hudson view is: '//depot/[PROJECTNAME]/... //[WORKSPACENAME]/...'
+    You'll notice this is slightly different from typical workspaces.  The [PROJECTNAME] is not normally
+    included.)
+  </p>
+  <p>
+    <b>Views</b>: This is the depot to client mapping in the same format as a standard perforce workspace spec
     If "Let Hudson Manage Workspace View" is checked the view entered here will overwrite anything
     in the existing client
   </p>
@@ -8,19 +44,18 @@
     Typical Example:<br>
     //depot/folder1/... //workspace-name/folder1/...<br>
     //depot/folder2/... //workspace-name/folder2/...<br>
-	  <br>
   </p>
   <p>
-  <b>One Time Force Sync</b> allows you to tell perforce to do a p4 sync -f //... which will make sure to
-  pull down ALL files to the workspace, regardless if they have been sync'd before.  Use this to get around
-  a problem where the Perforce workspace became out of sync with what hudson actually has a copy of.  For
-  most users, you should never need to worry about this.
+    <b>One Time Force Sync</b>: allows you to tell perforce to do a p4 sync -f //... which will make sure to
+    pull down ALL files to the workspace, regardless if they have been sync'd before.  Use this to get around
+    a problem where the Perforce workspace became out of sync with what hudson actually has a copy of.  For
+    most users, you should never need to worry about this.
   </p>
   <p>Note: this is reset after the next subsequent build.</p>
   <p>
-  <b>First Changelist to Track</b> allows you to specify the first changelist to start recording build
-  history from.  If you are adding an existing project, with lots of history, to Hudson, this will 
-  prevent out of memory errors and your first build from having thousands of change records.     
+    <b>First Changelist to Track</b>: allows you to specify the first changelist to start recording build
+    history from.  If you are adding an existing project, with lots of history, to Hudson, this will
+    prevent out of memory errors and your first build from having thousands of change records.
   </p>
   <p>Note: this is reset after the next subsequent build.</p>
 </div>
