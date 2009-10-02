@@ -3,12 +3,12 @@ package hudson.plugins.perforce;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Label;
-import static hudson.Util.fixEmpty;
+import static hudson.Util.fixNull;
 import hudson.model.AbstractBuild;
 import hudson.model.Action;
 import hudson.model.Hudson;
 import hudson.scm.AbstractScmTagAction;
-import hudson.util.FormFieldValidator;
+import hudson.util.FormValidation;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
@@ -16,6 +16,7 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.kohsuke.stapler.QueryParameter;
 
 /**
  * {@link Action} that lets people create tag for the given build.
@@ -49,7 +50,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
     }
 
     public String getIconFileName() {
-        if (tag == null && !Hudson.isAdmin())
+        if (tag == null && !Hudson.getInstance().hasPermission(Hudson.ADMINISTER))
             return null;
         return "save.gif";
     }
@@ -99,25 +100,18 @@ public class PerforceTagAction extends AbstractScmTagAction {
     /**
      * Checks if the value is a valid Perforce tag (label) name.
      */
-    public synchronized void doCheckTag(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        new FormFieldValidator(req, rsp, false) {
-            protected void check() throws IOException, ServletException {
-                String tag = fixEmpty(request.getParameter("value")).trim();
-                if (tag == null) {// nothing entered yet
-                    ok();
-                    return;
-                }
-                error(isInvalidTag(tag));
-            }
-        }.check();
+    public synchronized FormValidation doCheckTag(@QueryParameter String value) {
+        value = fixNull(value).trim();
+        String error = value.length() > 0 ? isInvalidTag(value) : null;
+        if (error != null) return FormValidation.error(error);
+        return FormValidation.ok();
     }
 
     /**
      * Invoked to actually tag the workspace.
      */
     public synchronized void doSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        if (!Hudson.adminCheck(req, rsp))
-            return;
+        Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
 
         tag = req.getParameter("name");
         desc = req.getParameter("desc");

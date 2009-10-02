@@ -4,7 +4,7 @@ import static hudson.Util.fixEmpty;
 import hudson.model.Descriptor;
 import hudson.plugins.perforce.*;
 import hudson.scm.RepositoryBrowser;
-import hudson.util.FormFieldValidator;
+import hudson.util.FormValidation;
 import hudson.Extension;
 
 import org.kohsuke.stapler.StaplerRequest;
@@ -17,6 +17,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import com.tek42.perforce.model.Changelist;
+import net.sf.json.JSONObject;
 
 /**
  * {@link RepositoryBrowser} for Perforce's P4Web.
@@ -81,23 +82,22 @@ public class P4Web extends PerforceRepositoryBrowser {
         /**
 		 * Performs on-the-fly validation of the URL.
 		 */
-        public void doCheck(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            new FormFieldValidator.URLCheck(req,rsp) {
-                protected void check() throws IOException, ServletException {
-                    String host = fixEmpty(request.getParameter("url"));
-                    String user = fixEmpty(request.getParameter("user"));
-                    String pass = fixEmpty(request.getParameter("pass"));
+        public FormValidation doCheck(final StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+            return new FormValidation.URLCheck() {
+                @Override
+                protected FormValidation check() throws IOException, ServletException {
+                    String host = fixEmpty(req.getParameter("url"));
+                    String user = fixEmpty(req.getParameter("user"));
+                    String pass = fixEmpty(req.getParameter("pass"));
                     if(host==null) {// nothing entered yet
-                        ok();
-                        return;
+                        return FormValidation.ok();
                     }
 
                     if(!host.endsWith("/")) 
                     	host += '/';
                     
                     if(!host.startsWith("http://")) {
-                        errorWithMarkup("The URL should contain <tt>http://</tt>");
-                        return;
+                        return FormValidation.errorWithMarkup("The URL should contain <tt>http://</tt>");
                     }
                     /**
                      * We need a base64 encoder in order to do authentication.
@@ -115,20 +115,20 @@ public class P4Web extends PerforceRepositoryBrowser {
             		con.setInstanceFollowRedirects(true);
                     
                     try {
-                        if(findText(open(con), "P4Web")) {
-                            ok();
-                        } else {
-                            error("This is a valid URL but it doesn't look like P4Web is running");
+                        if(!findText(open(con), "P4Web")) {
+                            return FormValidation.error("This is a valid URL but it doesn't look like P4Web is running");
                         }
                     } catch (IOException e) {
                         handleIOException(host, e);
                     }
                     */
+                    return FormValidation.ok();
                 }
-            }.process();
+            }.check();
         }
-  
-        public P4Web newInstance(StaplerRequest req) throws FormException {
+
+        @Override
+        public P4Web newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             return req.bindParameters(P4Web.class,"p4web.");
         }
     }

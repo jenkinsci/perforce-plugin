@@ -16,7 +16,6 @@ import static hudson.Util.fixNull;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
-import hudson.model.Messages;
 import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -24,7 +23,6 @@ import hudson.remoting.VirtualChannel;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
-import hudson.util.FormFieldValidator;
 import hudson.util.FormValidation;
 
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -215,6 +213,7 @@ public class PerforceSCM extends SCM {
      * @param build
      * @param env
      */
+    @Override
     public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
         super.buildEnvVars(build, env);
         PerforceTagAction pta = getMostRecentTagAction(build);
@@ -795,27 +794,22 @@ public class PerforceSCM extends SCM {
         /**
          * Checks if the perforce login credentials are good.
          */
-        public void doValidatePerforceLogin(StaplerRequest request, StaplerResponse rsp) throws IOException, ServletException {
-            new FormFieldValidator(request, rsp, false) {
-                protected void check() throws IOException, ServletException {
-                    Depot depot = getDepotFromRequest(request);
-                    if (depot != null) {
-                        try {
-                            depot.getStatus().isValid();
-                        } catch (PerforceException e) {
-                            error(e.getMessage());
-                        }
-                    }
-                    ok();
-                    return;
+        public FormValidation doValidatePerforceLogin(StaplerRequest req, StaplerResponse rsp) {
+            Depot depot = getDepotFromRequest(req);
+            if (depot != null) {
+                try {
+                    depot.getStatus().isValid();
+                } catch (PerforceException e) {
+                    return FormValidation.error(e.getMessage());
                 }
-            }.check();
+            }
+            return FormValidation.ok();
         }
 
         /**
          * Checks to see if the specified workspace is valid.
          */
-        public FormValidation doValidateP4Client(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+        public FormValidation doValidateP4Client(StaplerRequest req, StaplerResponse rsp) {
 
             String workspace = Util.fixEmptyAndTrim(req.getParameter("client"));
             Depot depot = getDepotFromRequest(req);
@@ -831,7 +825,7 @@ public class PerforceSCM extends SCM {
                     depot.getWorkspaces().getWorkspace(workspace);
 
                 if (p4Workspace.getAccess() == null ||
-                        p4Workspace.getAccess() == "")
+                        p4Workspace.getAccess().equals(""))
                     return FormValidation.warning("Workspace does not exist. " +
                             "If \"Let Hudson Manage Workspace View\" is check" +
                             " the workspace will be automatically created.");
@@ -856,7 +850,7 @@ public class PerforceSCM extends SCM {
             if (depot != null) {
                 try {
                     com.tek42.perforce.model.Label p4Label = depot.getLabels().getLabel(label);
-                    if (p4Label.getAccess() == null || p4Label.getAccess() == "")
+                    if (p4Label.getAccess() == null || p4Label.getAccess().equals(""))
                         return FormValidation.error("Label does not exist");
                 } catch (PerforceException e) {
                     return FormValidation.error(
@@ -881,30 +875,24 @@ public class PerforceSCM extends SCM {
         /**
          * Checks if the change list entered exists
          */
-        public void doCheckChangeList(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            new FormFieldValidator(req, rsp, false) {
-                protected void check() throws IOException, ServletException {
-                    Depot depot = getDepotFromRequest(request);
-                    String change = fixNull(request.getParameter("change")).trim();
+        public FormValidation doCheckChangeList(StaplerRequest req, StaplerResponse rsp) {
+            Depot depot = getDepotFromRequest(req);
+            String change = fixNull(req.getParameter("change")).trim();
 
-                    if (change.length() == 0) {// nothing entered yet
-                        ok();
-                        return;
-                    }
-                    if (depot != null) {
-                        try {
-                            int number = Integer.parseInt(change);
-                            Changelist changelist = depot.getChanges().getChangelist(number);
-                            if (changelist.getChangeNumber() != number)
-                                throw new PerforceException("broken");
-                        } catch (Exception e) {
-                            error("Changelist: " + change + " does not exist.");
-                        }
-                    }
-                    ok();
-                    return;
+            if (change.length() == 0) {// nothing entered yet
+                return FormValidation.ok();
+            }
+            if (depot != null) {
+                try {
+                    int number = Integer.parseInt(change);
+                    Changelist changelist = depot.getChanges().getChangelist(number);
+                    if (changelist.getChangeNumber() != number)
+                        throw new PerforceException("broken");
+                } catch (Exception e) {
+                    return FormValidation.error("Changelist: " + change + " does not exist.");
                 }
-            }.check();
+            }
+            return FormValidation.ok();
         }
     }
 

@@ -4,13 +4,14 @@ import hudson.Util;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.scm.*;
-import hudson.util.FormFieldValidator;
+import hudson.util.FormValidation;
 import java.io.IOException;
 import java.net.URL;
 import java.util.regex.Pattern;
 import javax.servlet.ServletException;
+import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.tek42.perforce.model.Changelist;
@@ -71,37 +72,34 @@ public final class FishEyePerforce extends PerforceRepositoryBrowser {
             return "FishEye";
         }
 
-        public void doCheck(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            new FormFieldValidator.URLCheck(req,rsp) {
+        public FormValidation doCheck(@QueryParameter final String value) throws IOException, ServletException {
+            return new FormValidation.URLCheck() {
                 @Override
-                protected void check() throws IOException, ServletException {
-                    String value = Util.fixEmpty(request.getParameter("value"));
-                    if (value == null) {
-                        ok();
-                        return;
+                protected FormValidation check() throws IOException, ServletException {
+                    String url = Util.fixEmpty(value);
+                    if (url == null) {
+                        return FormValidation.ok();
                     }
-                    if (!value.endsWith("/")) {
-                        value += '/';
+                    if (!url.endsWith("/")) {
+                        url += '/';
                     }
-                    if (!URL_PATTERN.matcher(value).matches()) {
-                        errorWithMarkup("The URL should end like <tt>.../browse/foobar/</tt>");
-                        return;
+                    if (!URL_PATTERN.matcher(url).matches()) {
+                        return FormValidation.errorWithMarkup("The URL should end like <tt>.../browse/foobar/</tt>");
                     }
                     try {
-                        if (findText(open(new URL(value)), "FishEye")) {
-                            ok();
-                        } else {
-                            error("This is a valid URL but it doesn't look like FishEye");
+                        if (!findText(open(new URL(url)), "FishEye")) {
+                            return FormValidation.error("This is a valid URL but it doesn't look like FishEye");
                         }
                     } catch (IOException e) {
-                        handleIOException(value, e);
+                        handleIOException(url, e);
                     }
+                    return FormValidation.ok();
                 }
-            }.process();
+            }.check();
         }
 
         @Override
-        public FishEyePerforce newInstance(StaplerRequest req) throws FormException {
+        public FishEyePerforce newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             return req.bindParameters(FishEyePerforce.class, "fisheye.perforce.");
         }
 
