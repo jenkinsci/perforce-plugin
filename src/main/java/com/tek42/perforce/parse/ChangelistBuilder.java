@@ -157,6 +157,7 @@ public class ChangelistBuilder implements Builder<Changelist> {
 						String filename = entry.substring(4, revStart);
 						String rev = entry.substring(revStart + 1, entry.indexOf(" ", revStart));
 						String action = entry.substring(entry.indexOf(" ", revStart) + 1);
+						action = action.replace('/', '_');
 						Changelist.FileEntry file = new Changelist.FileEntry();
 						file.setFilename(filename);
 						file.setRevision(rev);
