@@ -1,11 +1,11 @@
 package hudson.plugins.perforce;
 
-import hudson.FilePath;
 import hudson.model.FreeStyleProject;
 import hudson.plugins.perforce.browsers.P4Web;
-import org.jvnet.hudson.test.HudsonTestCase;
-import hudson.plugins.perforce.PerforcePasswordEncryptorTest;
+
 import java.net.URL;
+
+import org.jvnet.hudson.test.HudsonTestCase;
 
 
 /**
@@ -63,7 +63,6 @@ public class PerforceSCMTest extends HudsonTestCase {
         project.setScm(scm);
         
         assertEquals(password, ((PerforceSCM)project.getScm()).getDepot(null, null).getPassword());
-        assertEquals(password, ((PerforceSCM)project.getScm()).getDepot().getPassword());
 
     }
 

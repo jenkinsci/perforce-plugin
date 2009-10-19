@@ -13,6 +13,7 @@ import hudson.Util;
 import hudson.FilePath.FileCallable;
 import hudson.Launcher;
 import static hudson.Util.fixNull;
+import hudson.matrix.MatrixBuild;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -66,8 +67,6 @@ public class PerforceSCM extends SCM {
     String p4Exe = "C:\\Program Files\\Perforce\\p4.exe";
     String p4SysDrive = "C:";
     String p4SysRoot = "C:\\WINDOWS";
-
-    transient Depot depot;
 
     PerforceRepositoryBrowser browser;
 
@@ -156,7 +155,7 @@ public class PerforceSCM extends SCM {
 
         HudsonP4ExecutorFactory p4Factory = new HudsonP4ExecutorFactory(launcher,workspace);
 
-        depot = new Depot(p4Factory);
+        Depot depot = new Depot(p4Factory);
         depot.setUser(p4User);
 
         PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
@@ -170,39 +169,6 @@ public class PerforceSCM extends SCM {
         depot.setSystemRoot(p4SysRoot);
 
         return depot;
-    }
-
-    /**
-     * Used for MailResolver
-     */
-    protected Depot getDepot() {
-        return depot;
-    }
-
-    /**
-     * Depot is transient, so we need to create a new one on start up
-     * specifically for the getDepot() method.
-     */
-    private void readObject(ObjectInputStream is) {
-        try {
-            is.defaultReadObject();
-
-            depot = new Depot();
-            depot.setUser(p4User);
-            PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
-
-            depot.setPassword(encryptor.decryptString(p4Passwd));
-            depot.setPort(p4Port);
-            depot.setClient(p4Client);
-            depot.setExecutable(p4Exe);
-            depot.setSystemDrive(p4SysDrive);
-            depot.setSystemRoot(p4SysRoot);
-
-        } catch (IOException exception) {
-            // DO nothing
-        } catch (ClassNotFoundException exception) {
-            // DO nothing
-        }
     }
 
     /**
@@ -272,11 +238,16 @@ public class PerforceSCM extends SCM {
             FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
 
         PrintStream log = listener.getLogger();
-
+        
         //keep projectPath local so any modifications for slaves don't get saved
         String projectPath = this.projectPath;
-        depot = getDepot(launcher,workspace);
+        Depot depot = getDepot(launcher,workspace);
 
+        // If the 'master' MatrixBuild runs on the same node as any of the 'child' MatrixRuns,
+        // and it syncs to its own root, then the child's workspace won't get updated.
+        // http://bugs.sun.com/view_bug.do?bug_id=6548436  (bug 1022)
+        boolean dontChangeRoot = ((Object)build instanceof MatrixBuild);
+        
         //this is a work around for issue 2062
         //https://hudson.dev.java.net/issues/show_bug.cgi?id=2062
         //we don't why but sometimes the connection drops when communicating
@@ -286,7 +257,7 @@ public class PerforceSCM extends SCM {
         int WAIT_PERIOD = 10000;
         for (int retryAttempt = 0; retryAttempt < RETRY_COUNT; retryAttempt++){
         try {
-            Workspace p4workspace = getPerforceWorkspace(depot, build.getBuiltOn(), launcher, workspace, listener);
+            Workspace p4workspace = getPerforceWorkspace(depot, build.getBuiltOn(), launcher, workspace, listener, dontChangeRoot);
 
             if (p4workspace.isNew()) {
                 log.println("Saving new client " + p4workspace.getName());
@@ -436,17 +407,6 @@ public class PerforceSCM extends SCM {
         return new PerforceChangeLogParser();
     }
 
-    public int getLastDepotChange(Run build) {
-        Depot depot = getDepot();
-        try {
-            return depot.getChanges().getChangeNumbers("//...", -1, 1).get(0);
-        } catch (PerforceException pe) {
-            System.out.println("Problem: " + pe.getMessage());
-            pe.printStackTrace();
-            return -1;
-        }
-    }
-
     /*
      * @see hudson.scm.SCM#pollChanges(hudson.model.AbstractProject, hudson.Launcher, hudson.FilePath, hudson.model.TaskListener)
      *
@@ -493,8 +453,10 @@ public class PerforceSCM extends SCM {
         logger.println("Looking for changes...");
 
         Depot depot = getDepot(launcher,workspace);
+        
+       
         try {
-            Workspace p4workspace = getPerforceWorkspace(depot, project.getLastBuiltOn(), launcher, workspace, listener);
+            Workspace p4workspace = getPerforceWorkspace(depot, project.getLastBuiltOn(), launcher, workspace, listener, false);
             if (p4workspace.isNew())
                 return true;
 
@@ -649,10 +611,10 @@ public class PerforceSCM extends SCM {
 
     private Workspace getPerforceWorkspace(
             Depot depot, Node buildNode,
-            Launcher launcher, FilePath workspace, TaskListener listener) throws IOException, InterruptedException, PerforceException
+            Launcher launcher, FilePath workspace, TaskListener listener, boolean dontChangeRoot) throws IOException, InterruptedException, PerforceException
     {
         PrintStream log = listener.getLogger();
-
+        
         // If we are building on a slave node, and each node is supposed to have
         // its own unique client, then adjust the client name accordingly.
         // make sure each slave has a unique client name by adding it's
@@ -697,7 +659,7 @@ public class PerforceSCM extends SCM {
         // created it, or if we previously built on another node).
 
         String localPath = getLocalPathName(workspace, launcher.isUnix());
-        if (!localPath.equals(p4workspace.getRoot())) {
+        if (!localPath.equals(p4workspace.getRoot()) && !dontChangeRoot) {
             log.println("Changing P4 Client Root to: " + localPath);
             p4workspace.setRoot(localPath);
         }
