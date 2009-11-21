@@ -827,9 +827,11 @@ public class PerforceSCM extends SCM {
          */
         public FormValidation doCheckProjectPath(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
             String views = Util.fixEmptyAndTrim(req.getParameter("value"));
-            for (String view : views.split("\n")) {
-                if (Pattern.matches("\\/\\/\\S+ \\/\\/\\S+", view))
-                    return FormValidation.error("Invalid view:" + view);
+            if (views != null) {
+                for (String view : views.split("\n")) {
+                    if (Pattern.matches("\\/\\/\\S+ \\/\\/\\S+", view))
+                        return FormValidation.error("Invalid view:" + view);
+                }
             }
             return FormValidation.ok();
         }
