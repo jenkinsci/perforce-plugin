@@ -306,6 +306,8 @@ public final class Client extends Mapping {
 			p.println("Description: " + getDescription());
 			p.println("View:");
 			p.println(getView());
+                        p.println("Options:");
+			p.println(getOptions());
 			p.flush();
 			p.outClose();
 			while(null != (l = p.readLine())) {
@@ -367,7 +369,7 @@ public final class Client extends Mapping {
 							break;
 						addView(l);
 					}
-				}
+				} 
 			}
 			p.close();
 			inSync();

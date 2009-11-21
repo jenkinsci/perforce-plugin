@@ -24,7 +24,6 @@
     way.  This behavior can be disabled by the option, "Let Hudson Manage Workspace View.  This will
     allow you to retrieve more than one depot into the workspace of a given job by providing your own
     list of views.
-    </table>
   </p>
   <p>
     <b>Let Hudson Manage Workspace View</b>: For most cases, leave this checked.  Hudson will update
@@ -44,6 +43,13 @@
     Typical Example:<br>
     //depot/folder1/... //workspace-name/folder1/...<br>
     //depot/folder2/... //workspace-name/folder2/...<br>
+  </p>
+  <p><b>Options</b><br/>
+      Original setting is <i>noallwrite noclobber nocompress unlocked nomodtime normdir.</i><br>
+      Default is <i>noallwrite clobber compress unlocked nomodtime rmdir.</i><br>
+      The main differences between original setup: clobber files will owerride, empty directories will be remove, and
+      data transfer will be compressed.
+      <a href="http://www.perforce.com/perforce/doc.current/manuals/cmdref/client.html#1040665">See p4 guide.</a>
   </p>
   <p>
     <b>One Time Force Sync</b>: allows you to tell perforce to do a p4 sync -f //... which will make sure to

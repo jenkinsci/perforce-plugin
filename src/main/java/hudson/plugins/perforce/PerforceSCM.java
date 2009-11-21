@@ -65,6 +65,8 @@ public class PerforceSCM extends SCM {
     String p4Port;
     String p4Client;
     String projectPath;
+    /* This is better for build than original options noallwrite noclobber nocompress unlocked nomodtime normdir */
+    String projectOptions = "noallwrite clobber compress unlocked nomodtime rmdir";
     String p4Label;
 
     String p4Exe = "C:\\Program Files\\Perforce\\p4.exe";
@@ -102,7 +104,7 @@ public class PerforceSCM extends SCM {
     int firstChange = -1;
 
     @DataBoundConstructor
-    public PerforceSCM(String p4User, String p4Passwd, String p4Client, String p4Port, String projectPath,
+    public PerforceSCM(String p4User, String p4Passwd, String p4Client, String p4Port, String projectPath, String projectOptions,
                        String p4Exe, String p4SysRoot, String p4SysDrive, String p4Label, boolean forceSync,
                        boolean updateView, boolean dontRenameClient, int firstChange, PerforceRepositoryBrowser browser) {
 
@@ -110,6 +112,7 @@ public class PerforceSCM extends SCM {
         this.setP4Passwd(p4Passwd);
         this.p4Client = p4Client;
         this.p4Port = p4Port;
+        this.projectOptions = projectOptions;
 
         //make it backwards compatible with the old way of specifying a label
         Matcher m = Pattern.compile("(@\\S+)\\s*").matcher(projectPath);
@@ -688,6 +691,9 @@ public class PerforceSCM extends SCM {
 
         p4workspace.setName(p4Client);
 
+        // Set the workspace options according to the configuration
+        p4workspace.setOptions(getProjectOptions());
+
         // Ensure that the root is appropriate (it might be wrong if the user
         // created it, or if we previously built on another node).
 
@@ -1048,6 +1054,22 @@ public class PerforceSCM extends SCM {
      */
     public void setP4Label(String label) {
         p4Label = label;
+    }
+
+    /**
+     * The current perforce option set for the view.
+     * @return current perforce view options
+     */
+    public String getProjectOptions() {
+        return projectOptions;
+    }
+
+    /**
+     * Set the perforce options for view creation.
+     * @param projectOptions the effective perforce options.
+     */
+    public void setProjectOptions(String projectOptions) {
+        this.projectOptions = projectOptions;
     }
 
     /**

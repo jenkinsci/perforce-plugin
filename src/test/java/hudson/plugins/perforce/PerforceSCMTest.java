@@ -19,7 +19,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         FreeStyleProject project = createFreeStyleProject();
         P4Web browser = new P4Web(new URL("http://localhost/"));
         PerforceSCM scm = new PerforceSCM(
-        		"user", "pass", "client", "port", "path", "exe", "sysRoot", 
+        		"user", "pass", "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", true, true, true, 0, browser);
         project.setScm(scm);
 
@@ -36,7 +36,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         P4Web browser = new P4Web(new URL("http://localhost/"));
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
-        		"user", password, "client", "port", "path", "exe", "sysRoot",
+        		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", true, true, true, 0, browser);
         project.setScm(scm);
 
@@ -57,7 +57,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         P4Web browser = new P4Web(new URL("http://localhost/"));
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
-        		"user", password, "client", "port", "path", "exe", "sysRoot",
+        		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", true, true, true, 0, browser);
 
         project.setScm(scm);
@@ -71,7 +71,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         P4Web browser = new P4Web(new URL("http://localhost/"));
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
-        		"user", password, "client", "port", "path", "exe", "sysRoot",
+        		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", true, true, true, 0, browser);
         project.setScm(scm);
 
