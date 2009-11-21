@@ -7,6 +7,7 @@ import com.tek42.perforce.model.Counter;
 import com.tek42.perforce.model.Workspace;
 import com.tek42.perforce.parse.Workspaces;
 
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Util;
@@ -17,6 +18,8 @@ import hudson.matrix.MatrixBuild;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
+import hudson.model.Computer;
+import hudson.model.Hudson;
 import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -34,7 +37,6 @@ import javax.servlet.ServletException;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -44,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -69,6 +72,8 @@ public class PerforceSCM extends SCM {
     String p4SysRoot = "C:\\WINDOWS";
 
     PerforceRepositoryBrowser browser;
+
+    private static final Logger LOGGER = Logger.getLogger(PerforceSCM.class.getName());
 
     /**
      * This is being removed, including it as transient to fix exceptions on startup.
@@ -131,6 +136,34 @@ public class PerforceSCM extends SCM {
 
         if (p4SysDrive != null && p4SysDrive.length() != 0)
             this.p4SysDrive = p4SysDrive;
+
+        // Get systemDrive,systemRoot computer environment variables from
+        // the current machine.
+        String systemDrive = null;
+        String systemRoot = null;
+        if (Hudson.isWindows()) {
+            try {
+                EnvVars envVars = Computer.currentComputer().getEnvironment();
+                systemDrive = envVars.get("SystemDrive");
+                systemRoot = envVars.get("SystemRoot");
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, ex.getMessage(), ex);
+            }
+        }
+        if (p4SysRoot != null && p4SysRoot.length() != 0) {
+            this.p4SysRoot = p4SysRoot;
+        } else {
+            if (systemRoot != null && !systemRoot.trim().equals("")) {
+                this.p4SysRoot = systemRoot;
+            }
+        }
+        if (p4SysDrive != null && p4SysDrive.length() != 0) {
+            this.p4SysDrive = p4SysDrive;
+        } else {
+            if (systemDrive != null && !systemDrive.trim().equals("")) {
+                this.p4SysDrive = systemDrive;
+            }
+        }
 
         this.forceSync = forceSync;
         this.browser = browser;
