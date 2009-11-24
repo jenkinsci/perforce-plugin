@@ -34,11 +34,6 @@
       <artifactId>slf4j-simple</artifactId>
       <version>1.4.3</version>
     </dependency>
-    <dependency>
-      <groupId>com.perforce</groupId>
-      <artifactId>p4java</artifactId>
-      <version>2009.1.207127</version>
-    </dependency>
   </dependencies>
 
   <repositories>

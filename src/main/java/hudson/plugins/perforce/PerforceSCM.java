@@ -7,6 +7,7 @@ import com.tek42.perforce.model.Counter;
 import com.tek42.perforce.model.Workspace;
 import com.tek42.perforce.parse.Workspaces;
 
+import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -43,7 +44,7 @@ import java.io.StringWriter;
 import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -65,8 +66,8 @@ public class PerforceSCM extends SCM {
     String p4Port;
     String p4Client;
     String projectPath;
-    /* This is better for build than original options noallwrite noclobber nocompress unlocked nomodtime normdir */
-    String projectOptions = "noallwrite clobber compress unlocked nomodtime rmdir";
+    /* This is better for build than original options: noallwrite noclobber nocompress unlocked nomodtime normdir */
+    String projectOptions = "noallwrite clobber nocompress unlocked nomodtime rmdir";
     String p4Label;
 
     String p4Exe = "C:\\Program Files\\Perforce\\p4.exe";
@@ -218,6 +219,9 @@ public class PerforceSCM extends SCM {
     @Override
     public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
         super.buildEnvVars(build, env);
+        env.put("P4PORT", p4Port);
+        env.put("P4USER", p4User);
+        env.put("PCLIENT", p4Client);
         PerforceTagAction pta = getMostRecentTagAction(build);
         if (pta != null) {
             if (pta.getChangeNumber() > 0) {
@@ -265,7 +269,6 @@ public class PerforceSCM extends SCM {
         return uriString;
     }
 
-
     /*
      * @see hudson.scm.SCM#checkout(hudson.model.AbstractBuild, hudson.Launcher, hudson.FilePath, hudson.model.BuildListener, java.io.File)
      */
@@ -274,7 +277,7 @@ public class PerforceSCM extends SCM {
             FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
 
         PrintStream log = listener.getLogger();
-        
+
         //keep projectPath local so any modifications for slaves don't get saved
         String projectPath = this.projectPath;
         Depot depot = getDepot(launcher,workspace);
@@ -283,15 +286,7 @@ public class PerforceSCM extends SCM {
         // and it syncs to its own root, then the child's workspace won't get updated.
         // http://bugs.sun.com/view_bug.do?bug_id=6548436  (bug 1022)
         boolean dontChangeRoot = ((Object)build instanceof MatrixBuild);
-        
-        //this is a work around for issue 2062
-        //https://hudson.dev.java.net/issues/show_bug.cgi?id=2062
-        //we don't why but sometimes the connection drops when communicating
-        //with perforce retrying seems to work for now but this really needs
-        //to be fixed properly
-        int RETRY_COUNT = 6;
-        int WAIT_PERIOD = 10000;
-        for (int retryAttempt = 0; retryAttempt < RETRY_COUNT; retryAttempt++){
+
         try {
             Workspace p4workspace = getPerforceWorkspace(depot, build.getBuiltOn(), launcher, workspace, listener, dontChangeRoot);
 
@@ -367,7 +362,7 @@ public class PerforceSCM extends SCM {
             long endTime = System.currentTimeMillis();
             long duration = endTime - startTime;
 
-            listener.getLogger().println("Sync complete, took " + duration + " ms");
+            log.println("Sync complete, took " + duration + " ms");
 
             // reset one time use variables...
             forceSync = false;
@@ -392,31 +387,19 @@ public class PerforceSCM extends SCM {
             return true;
 
         } catch (PerforceException e) {
-            log.print("Caught Exception communicating with perforce. " +
-                    e.getMessage());
+            log.print("Caught exception communicating with perforce. " + e.getMessage());
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw, true);
             e.printStackTrace(pw);
             pw.flush();
-            sw.flush();
             log.print(sw.toString());
+            throw new AbortException(
+                    "Unable to communicate with perforce. " + e.getMessage());
 
-            if (retryAttempt < RETRY_COUNT){
-                try { Thread.sleep(WAIT_PERIOD); }
-                catch (InterruptedException exception) {}
-            } else {
-                throw new IOException(
-                        "Unable to communicate with perforce. " +
-                        e.getMessage());
-            }
         } catch (InterruptedException e) {
-            retryAttempt = RETRY_COUNT;
-
             throw new IOException(
                     "Unable to get hostname from slave. " + e.getMessage());
         }
-        }
-        return false;
     }
 
     /**
@@ -489,8 +472,7 @@ public class PerforceSCM extends SCM {
         logger.println("Looking for changes...");
 
         Depot depot = getDepot(launcher,workspace);
-        
-       
+
         try {
             Workspace p4workspace = getPerforceWorkspace(depot, project.getLastBuiltOn(), launcher, workspace, listener, false);
             if (p4workspace.isNew())
@@ -647,10 +629,11 @@ public class PerforceSCM extends SCM {
 
     private Workspace getPerforceWorkspace(
             Depot depot, Node buildNode,
-            Launcher launcher, FilePath workspace, TaskListener listener, boolean dontChangeRoot) throws IOException, InterruptedException, PerforceException
+            Launcher launcher, FilePath workspace, TaskListener listener, boolean dontChangeRoot)
+        throws IOException, InterruptedException, PerforceException
     {
         PrintStream log = listener.getLogger();
-        
+
         // If we are building on a slave node, and each node is supposed to have
         // its own unique client, then adjust the client name accordingly.
         // make sure each slave has a unique client name by adding it's
@@ -710,14 +693,16 @@ public class PerforceSCM extends SCM {
         // we could copy from a master clientspec to the slaves.
 
         if (updateView || creatingNewWorkspace) {
-            projectPath = fixProjectPath(projectPath, nodeSuffix);
-            List<String> views = Arrays.asList(projectPath.split("\n"));
-
-            if (!views.equals(p4workspace.getViews())) {
-                log.println("Changing P4 Client View to: " + projectPath);
+            List<String> mappingPairs = parseProjectPath(projectPath, p4Client);
+            if (!equalsProjectPath(mappingPairs, p4workspace.getViews())) {
+                log.println("Changing P4 Client View from:\n" + p4workspace.getViewsAsString());
+                log.println("Changing P4 Client View to: ");
                 p4workspace.clearViews();
-                for (String view : views) {
-                    p4workspace.addView(" " + view);
+                for (int i = 0; i < mappingPairs.size(); ) {
+                    String depotPath = mappingPairs.get(i++);
+                    String clientPath = mappingPairs.get(i++);
+                    p4workspace.addView(" " + depotPath + " " + clientPath);
+                    log.println("  " + depotPath + " " + clientPath);
                 }
             }
         }
@@ -733,11 +718,8 @@ public class PerforceSCM extends SCM {
     }
 
     private boolean nodeIsRemote(Node buildNode) {
-        if (buildNode == null)
-            return false;
-        return buildNode.getNodeName().length() != 0;
+        return buildNode != null && buildNode.getNodeName().length() != 0;
     }
-
 
     @Extension
     public static final class PerforceSCMDescriptor extends SCMDescriptor<PerforceSCM> {
@@ -811,13 +793,12 @@ public class PerforceSCM extends SCM {
          * Checks to see if the specified workspace is valid.
          */
         public FormValidation doValidateP4Client(StaplerRequest req, StaplerResponse rsp) {
-
-            String workspace = Util.fixEmptyAndTrim(req.getParameter("client"));
             Depot depot = getDepotFromRequest(req);
             if (depot == null) {
                 return FormValidation.error(
                         "Unable to check workspace against depot");
             }
+            String workspace = Util.fixEmptyAndTrim(req.getParameter("client"));
             if (workspace == null) {
                 return FormValidation.error("You must enter a workspaces name");
             }
@@ -842,7 +823,6 @@ public class PerforceSCM extends SCM {
          * Performs syntactical check on the P4Label
           */
         public FormValidation doValidateP4Label(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-
             String label = Util.fixEmptyAndTrim(req.getParameter("label"));
             if (label == null)
                 return FormValidation.ok();
@@ -865,11 +845,11 @@ public class PerforceSCM extends SCM {
          * Checks if the value is a valid Perforce project path.
          */
         public FormValidation doCheckProjectPath(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            String views = Util.fixEmptyAndTrim(req.getParameter("value"));
-            if (views != null) {
-                for (String view : views.split("\n")) {
-                    if (Pattern.matches("\\/\\/\\S+ \\/\\/\\S+", view))
-                        return FormValidation.error("Invalid view:" + view);
+            String view = Util.fixEmptyAndTrim(req.getParameter("value"));
+            if (view != null) {
+                for (String mapping : view.split("\n")) {
+                    if (!DEPOT_ONLY.matcher(mapping).matches() && !DEPOT_AND_WORKSPACE.matcher(mapping).matches())
+                        return FormValidation.error("Invalid mapping:" + mapping);
                 }
             }
             return FormValidation.ok();
@@ -882,7 +862,7 @@ public class PerforceSCM extends SCM {
             Depot depot = getDepotFromRequest(req);
             String change = fixNull(req.getParameter("change")).trim();
 
-            if (change.length() == 0) {// nothing entered yet
+            if (change.length() == 0) { // nothing entered yet
                 return FormValidation.ok();
             }
             if (depot != null) {
@@ -899,31 +879,49 @@ public class PerforceSCM extends SCM {
         }
     }
 
-    private String fixProjectPath(String projectPath, String nodeSuffix) {
+    private static final Pattern DEPOT_ONLY = Pattern.compile("^\\s*//\\S+?(/\\S+)\\s*$");
+    private static final Pattern DEPOT_AND_WORKSPACE =
+            Pattern.compile("^\\s*(//\\S+?/\\S+)\\s*//\\S+?(/\\S+)\\s*$");
 
-        String newPath = "";
-        for (String line : projectPath.split("\n")) {
-
-            Matcher depotOnly =
-                Pattern.compile("^\\s*\\/\\/\\S+(\\/\\S+)\\s*$").matcher(line);
-            Matcher depotAndWorkspace =
-                Pattern.compile(
-                        "\\s*(\\/\\/\\S+?\\/\\S+)\\s*\\/\\/\\S+?(\\/\\S+)"
-                        ).matcher(line);
-
-            if (depotOnly.find()) {
-
-                //add a default workspace path
-                line = line + " //" + p4Client + nodeSuffix + "/...\n";
-
-            } else if (depotAndWorkspace.find()) {
-
-                line = depotAndWorkspace.group(1) +
-                    " //" + p4Client + nodeSuffix + depotAndWorkspace.group(2);
-            }
-            newPath = newPath + line + "\n";
+    /**
+     * Compares a parsed project path pair list against a list of view
+     * mapping lines from a client spec.
+     */
+    private static boolean equalsProjectPath(List<String> pairs, List<String> lines) {
+        Iterator<String> pi = pairs.iterator();
+        for (String line : lines) {
+            if (!pi.hasNext())
+                return false;
+            String p1 = pi.next();
+            String p2 = pi.next();  // assuming an even number of pair items
+            if (!line.equals(" " + p1 + " " + p2))
+                return false;
         }
-        return newPath;
+        return !pi.hasNext(); // equals iff there are no more pairs
+    }
+
+    /**
+     * Parses the projectPath into a list of pairs of strings representing the depot and client
+     * paths. Even items are depot and odd items are client.
+     */
+    static List<String> parseProjectPath(String projectPath, String p4Client) {
+        List<String> parsed = new ArrayList<String>();
+        for (String line : projectPath.split("\n")) {
+            Matcher depotOnly = DEPOT_ONLY.matcher(line);
+            if (depotOnly.find()) {
+                // add the trimmed depot path, plus a manufactured client path
+                parsed.add(line.trim());
+                parsed.add("//" + p4Client + depotOnly.group(1));
+            } else {
+                Matcher depotAndWorkspace = DEPOT_AND_WORKSPACE.matcher(line);
+                if (depotAndWorkspace.find()) {
+                    // add the found depot path and the clientname-tweaked client path
+                    parsed.add(depotAndWorkspace.group(1));
+                    parsed.add("//" + p4Client + depotAndWorkspace.group(2));
+                }
+            }
+        }
+        return parsed;
     }
 
     /**
@@ -1145,7 +1143,6 @@ public class PerforceSCM extends SCM {
         }
         private static final long serialVersionUID = 1L;
     }
-
 
     /**
      * With Perforce the server keeps track of files in the workspace.  We never
