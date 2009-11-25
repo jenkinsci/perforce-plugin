@@ -67,7 +67,7 @@ public class PerforceSCM extends SCM {
     String p4Client;
     String projectPath;
     /* This is better for build than original options: noallwrite noclobber nocompress unlocked nomodtime normdir */
-    String projectOptions = "noallwrite clobber nocompress unlocked nomodtime rmdir";
+    String projectOptions;
     String p4Label;
 
     String p4Exe = "C:\\Program Files\\Perforce\\p4.exe";
@@ -113,9 +113,11 @@ public class PerforceSCM extends SCM {
         this.setP4Passwd(p4Passwd);
         this.p4Client = p4Client;
         this.p4Port = p4Port;
-        this.projectOptions = projectOptions;
+        this.projectOptions = (projectOptions != null)
+                ? projectOptions
+                : "noallwrite clobber nocompress unlocked nomodtime rmdir";
 
-        //make it backwards compatible with the old way of specifying a label
+        // Make it backwards compatible with the old way of specifying a label
         Matcher m = Pattern.compile("(@\\S+)\\s*").matcher(projectPath);
         if (m.find()) {
             p4Label = m.group(1);
@@ -675,7 +677,8 @@ public class PerforceSCM extends SCM {
         p4workspace.setName(p4Client);
 
         // Set the workspace options according to the configuration
-        p4workspace.setOptions(getProjectOptions());
+        if (projectOptions != null)
+            p4workspace.setOptions(projectOptions);
 
         // Ensure that the root is appropriate (it might be wrong if the user
         // created it, or if we previously built on another node).
@@ -848,7 +851,8 @@ public class PerforceSCM extends SCM {
             String view = Util.fixEmptyAndTrim(req.getParameter("value"));
             if (view != null) {
                 for (String mapping : view.split("\n")) {
-                    if (!DEPOT_ONLY.matcher(mapping).matches() && !DEPOT_AND_WORKSPACE.matcher(mapping).matches())
+                    if (!DEPOT_ONLY.matcher(mapping).matches() && !DEPOT_AND_WORKSPACE.matcher(mapping).matches() &&
+                        !COMMENT.matcher(mapping).matches())
                         return FormValidation.error("Invalid mapping:" + mapping);
                 }
             }
@@ -879,6 +883,7 @@ public class PerforceSCM extends SCM {
         }
     }
 
+    private static final Pattern COMMENT = Pattern.compile("^$|^#.*$");
     private static final Pattern DEPOT_ONLY = Pattern.compile("^\\s*//\\S+?(/\\S+)\\s*$");
     private static final Pattern DEPOT_AND_WORKSPACE =
             Pattern.compile("^\\s*(//\\S+?/\\S+)\\s*//\\S+?(/\\S+)\\s*$");
@@ -894,7 +899,7 @@ public class PerforceSCM extends SCM {
                 return false;
             String p1 = pi.next();
             String p2 = pi.next();  // assuming an even number of pair items
-            if (!line.equals(" " + p1 + " " + p2))
+            if (!line.trim().equals(p1 + " " + p2))
                 return false;
         }
         return !pi.hasNext(); // equals iff there are no more pairs
@@ -919,6 +924,7 @@ public class PerforceSCM extends SCM {
                     parsed.add(depotAndWorkspace.group(1));
                     parsed.add("//" + p4Client + depotAndWorkspace.group(2));
                 }
+                // Assume anything else is a comment and ignore it
             }
         }
         return parsed;

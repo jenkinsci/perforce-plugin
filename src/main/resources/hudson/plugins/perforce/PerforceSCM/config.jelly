@@ -41,10 +41,10 @@
       </f:entry>
 
       <f:entry title="Options">
-        <f:textbox field="projectOptions" default="noallwrite clobber compress unlocked nomodtime rmdir"
+        <f:textbox field="projectOptions" default="noallwrite clobber nocompress unlocked nomodtime rmdir"
              value="${instance.projectOptions}" />
       </f:entry>
-      
+
       <f:entry title="One Time Force Sync">
         <f:checkbox field="forceSync" value="True"/>
       </f:entry>
