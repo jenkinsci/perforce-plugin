@@ -851,7 +851,10 @@ public class PerforceSCM extends SCM {
             String view = Util.fixEmptyAndTrim(req.getParameter("value"));
             if (view != null) {
                 for (String mapping : view.split("\n")) {
-                    if (!DEPOT_ONLY.matcher(mapping).matches() && !DEPOT_AND_WORKSPACE.matcher(mapping).matches() &&
+                    if (!DEPOT_ONLY.matcher(mapping).matches() && 
+                        !DEPOT_AND_WORKSPACE.matcher(mapping).matches() &&
+                        !DEPOT_ONLY_QUOTED.matcher(mapping).matches() &&
+                        !DEPOT_AND_WORKSPACE_QUOTED.matcher(mapping).matches() &&
                         !COMMENT.matcher(mapping).matches())
                         return FormValidation.error("Invalid mapping:" + mapping);
                 }
@@ -883,31 +886,22 @@ public class PerforceSCM extends SCM {
         }
     }
 
-    private static final Pattern COMMENT = Pattern.compile("^$|^#.*$");
-    private static final Pattern DEPOT_ONLY = Pattern.compile("^\\s*//\\S+?(/\\S+)\\s*$");
-    private static final Pattern DEPOT_AND_WORKSPACE =
-            Pattern.compile("^\\s*(//\\S+?/\\S+)\\s*//\\S+?(/\\S+)\\s*$");
-
-    /**
-     * Compares a parsed project path pair list against a list of view
-     * mapping lines from a client spec.
+    /* Regular expressions for parsing view mappings.
      */
-    private static boolean equalsProjectPath(List<String> pairs, List<String> lines) {
-        Iterator<String> pi = pairs.iterator();
-        for (String line : lines) {
-            if (!pi.hasNext())
-                return false;
-            String p1 = pi.next();
-            String p2 = pi.next();  // assuming an even number of pair items
-            if (!line.trim().equals(p1 + " " + p2))
-                return false;
-        }
-        return !pi.hasNext(); // equals iff there are no more pairs
-    }
+    private static final Pattern COMMENT = Pattern.compile("^$|^#.*$");
+    private static final Pattern DEPOT_ONLY = Pattern.compile("^[+-]?//\\S+?(/\\S+)$");
+    private static final Pattern DEPOT_ONLY_QUOTED = Pattern.compile("^\"[+-]?//\\S+?(/[^\"]+)\"$");
+    private static final Pattern DEPOT_AND_WORKSPACE =
+            Pattern.compile("^([+-]?//\\S+?/\\S+)\\s+//\\S+?(/\\S+)$");
+    private static final Pattern DEPOT_AND_WORKSPACE_QUOTED =
+            Pattern.compile("^\"([+-]?//\\S+?/[^\"]+)\"\\s+\"//\\S+?(/[^\"]+)\"$");
 
     /**
      * Parses the projectPath into a list of pairs of strings representing the depot and client
      * paths. Even items are depot and odd items are client.
+     * <p>
+     * This parser can handle quoted or non-quoted mappings, normal two-part mappings, or one-part
+     * mappings with an implied right part. It can also deal with +// or -// mapping forms.
      */
     static List<String> parseProjectPath(String projectPath, String p4Client) {
         List<String> parsed = new ArrayList<String>();
@@ -918,16 +912,47 @@ public class PerforceSCM extends SCM {
                 parsed.add(line.trim());
                 parsed.add("//" + p4Client + depotOnly.group(1));
             } else {
-                Matcher depotAndWorkspace = DEPOT_AND_WORKSPACE.matcher(line);
-                if (depotAndWorkspace.find()) {
-                    // add the found depot path and the clientname-tweaked client path
-                    parsed.add(depotAndWorkspace.group(1));
-                    parsed.add("//" + p4Client + depotAndWorkspace.group(2));
+                Matcher depotOnlyQuoted = DEPOT_ONLY_QUOTED.matcher(line);
+                if (depotOnlyQuoted.find()) {
+                    // add the trimmed quoted depot path, plus a manufactured quoted client path
+                    parsed.add(line.trim());
+                    parsed.add("\"//" + p4Client + depotOnlyQuoted.group(1) + "\"");
+                } else {
+                    Matcher depotAndWorkspace = DEPOT_AND_WORKSPACE.matcher(line);
+                    if (depotAndWorkspace.find()) {
+                        // add the found depot path and the clientname-tweaked client path
+                        parsed.add(depotAndWorkspace.group(1));
+                        parsed.add("//" + p4Client + depotAndWorkspace.group(2));
+                    } else {
+                        Matcher depotAndWorkspaceQuoted = DEPOT_AND_WORKSPACE_QUOTED.matcher(line);
+                        if (depotAndWorkspaceQuoted.find()) {
+                           // add the found depot path and the clientname-tweaked client path
+                            parsed.add("\"" + depotAndWorkspaceQuoted.group(1) + "\"");
+                            parsed.add("\"//" + p4Client + depotAndWorkspaceQuoted.group(2) + "\"");
+                        }
+                        // Assume anything else is a comment and ignore it
+                    }
                 }
-                // Assume anything else is a comment and ignore it
             }
         }
         return parsed;
+    }
+
+    /**
+     * Compares a parsed project path pair list against a list of view
+     * mapping lines from a client spec.
+     */
+     static boolean equalsProjectPath(List<String> pairs, List<String> lines) {
+        Iterator<String> pi = pairs.iterator();
+        for (String line : lines) {
+            if (!pi.hasNext())
+                return false;
+            String p1 = pi.next();
+            String p2 = pi.next();  // assuming an even number of pair items
+            if (!line.trim().equals(p1 + " " + p2))
+                return false;
+        }
+        return !pi.hasNext(); // equals iff there are no more pairs
     }
 
     /**

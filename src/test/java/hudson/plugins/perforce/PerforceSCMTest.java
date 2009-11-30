@@ -4,9 +4,10 @@ import hudson.model.FreeStyleProject;
 import hudson.plugins.perforce.browsers.P4Web;
 
 import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
 
 import org.jvnet.hudson.test.HudsonTestCase;
-
 
 /**
  * @author Kohsuke Kawaguchi
@@ -27,7 +28,8 @@ public class PerforceSCMTest extends HudsonTestCase {
         submit(new WebClient().getPage(project,"configure").getFormByName("config"));
 
         // verify that the data is intact
-        assertEqualBeans(scm,project.getScm(),"p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,dontRenameClient,updateView,firstChange");
+        assertEqualBeans(scm, project.getScm(),
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,dontRenameClient,updateView,firstChange");
         //assertEqualBeans(scm.getBrowser(),p.getScm().getBrowser(),"URL");
     }
 
@@ -44,15 +46,15 @@ public class PerforceSCMTest extends HudsonTestCase {
         submit(new WebClient().getPage(project,"configure").getFormByName("config"));
 
         // verify that the data is intact
-        assertEqualBeans(scm,project.getScm(),"p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,dontRenameClient,updateView,firstChange");
+        assertEqualBeans(scm, project.getScm(),
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,dontRenameClient,updateView,firstChange");
 
         PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
         String encryptedPassword = encryptor.encryptString(password);
         assertEquals(encryptedPassword, ((PerforceSCM)project.getScm()).getP4Passwd());
-
     }
 
-      public void testDepotContainsUnencryptedPassword() throws Exception {
+    public void testDepotContainsUnencryptedPassword() throws Exception {
         FreeStyleProject project = createFreeStyleProject();
         P4Web browser = new P4Web(new URL("http://localhost/"));
         String password = "pass";
@@ -63,11 +65,10 @@ public class PerforceSCMTest extends HudsonTestCase {
         project.setScm(scm);
         
         assertEquals(password, ((PerforceSCM)project.getScm()).getDepot(null, null).getPassword());
-
     }
 
-      public void testConfigSaveReloadAndSaveDoesNotDoubleEncryptThePassword() throws Exception {
-          FreeStyleProject project = createFreeStyleProject();
+    public void testConfigSaveReloadAndSaveDoesNotDoubleEncryptThePassword() throws Exception {
+        FreeStyleProject project = createFreeStyleProject();
         P4Web browser = new P4Web(new URL("http://localhost/"));
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
@@ -80,12 +81,64 @@ public class PerforceSCMTest extends HudsonTestCase {
         submit(new WebClient().getPage(project,"configure").getFormByName("config"));
         
         // verify that the data is intact
-        assertEqualBeans(scm,project.getScm(),"p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,dontRenameClient,updateView,firstChange");
+        assertEqualBeans(scm, project.getScm(),
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,dontRenameClient,updateView,firstChange");
 
         PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
         String encryptedPassword = encryptor.encryptString(password);
         assertEquals(encryptedPassword, ((PerforceSCM)project.getScm()).getP4Passwd());
-      }
+    }
 
+    static void assertViewParsesTo(String view, String toView) throws Exception {
+        List<String> parsedPath = PerforceSCM.parseProjectPath(view, "client");
+        assertTrue(PerforceSCM.equalsProjectPath(
+                parsedPath,
+                Arrays.asList(toView.split("\n"))));
+    }
+
+    static void assertViewParsesSame(String view) throws Exception {
+        assertViewParsesTo(view, view);
+    }
+
+    static void assertViewParsesEmpty(String view) throws Exception {
+        List<String> parsedPath = PerforceSCM.parseProjectPath(view, "client");
+        assertTrue(parsedPath.isEmpty());
+    }
+
+    public void testViewParsingEmpties() throws Exception {
+        assertViewParsesEmpty("");
+        assertViewParsesEmpty("#comment");
+        assertViewParsesEmpty("bad mapping");
+        assertViewParsesEmpty("\"bad\" mapping");
+    }
+
+    public void testViewParsingSingles() throws Exception {
+        assertViewParsesTo("//depot/path/...", "//depot/path/... //client/path/...");
+        assertViewParsesTo("\"//depot/path/...\"", "\"//depot/path/...\" \"//client/path/...\"");
+        assertViewParsesTo("-//depot/path/sub/...", "-//depot/path/sub/... //client/path/sub/...");
+        assertViewParsesTo("+//depot/path/sub/...", "+//depot/path/sub/... //client/path/sub/...");
+    }
+
+    public void testViewParsingPairs() throws Exception {
+        assertViewParsesSame("//depot/path/... //client/path/...");
+        assertViewParsesSame("//depot/path/a/b/c/... //client/path/a/b/c/...");
+        assertViewParsesSame("\"//depot/quotedpath/...\" \"//client/quotedpath/...\"");
+        assertViewParsesSame("\"//depot/path with space/...\" \"//client/path with space/...\"");
+        assertViewParsesSame("-//depot/path/sub/... //client/path/sub/...");
+    }
+
+    public void testViewParsingPairsAdjusted() throws Exception {
+        assertViewParsesTo("//depot/path/... //xxx/path/...", "//depot/path/... //client/path/...");
+        assertViewParsesTo(
+                "\"//depot/path with space/...\" \"//xxx/path with space/...\"",
+                "\"//depot/path with space/...\" \"//client/path with space/...\"");
+    }
+
+    public void testViewParsingMultiline() throws Exception {
+        assertViewParsesTo(
+                "//depot/path/...\n-//depot/path/sub/...\n\"//depot/path with space/...\"\n",
+                "//depot/path/... //client/path/...\n" +
+                    "-//depot/path/sub/... //client/path/sub/...\n" +
+                    "\"//depot/path with space/...\" \"//client/path with space/...\"");
+    }
 }
-
