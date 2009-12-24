@@ -31,8 +31,8 @@ import hudson.scm.SCMDescriptor;
 import hudson.util.FormValidation;
 
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
 
 import javax.servlet.ServletException;
 import java.io.File;
@@ -306,7 +306,7 @@ public class PerforceSCM extends SCM {
             final int lastChange = getLastChange((Run)build.getPreviousBuild());
             log.println("Last sync'd change: " + lastChange);
 
-            List<Changelist> changes = null;
+            List<Changelist> changes;
             int newestChange = lastChange;
             if (p4Label != null) {
                 changes = new ArrayList<Changelist>(0);
@@ -780,7 +780,7 @@ public class PerforceSCM extends SCM {
         /**
          * Checks if the perforce login credentials are good.
          */
-        public FormValidation doValidatePerforceLogin(StaplerRequest req, StaplerResponse rsp) {
+        public FormValidation doValidatePerforceLogin(StaplerRequest req) {
             Depot depot = getDepotFromRequest(req);
             if (depot != null) {
                 try {
@@ -795,7 +795,7 @@ public class PerforceSCM extends SCM {
         /**
          * Checks to see if the specified workspace is valid.
          */
-        public FormValidation doValidateP4Client(StaplerRequest req, StaplerResponse rsp) {
+        public FormValidation doValidateP4Client(StaplerRequest req) {
             Depot depot = getDepotFromRequest(req);
             if (depot == null) {
                 return FormValidation.error(
@@ -825,8 +825,8 @@ public class PerforceSCM extends SCM {
         /**
          * Performs syntactical check on the P4Label
           */
-        public FormValidation doValidateP4Label(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            String label = Util.fixEmptyAndTrim(req.getParameter("label"));
+        public FormValidation doValidateP4Label(StaplerRequest req, @QueryParameter String label) throws IOException, ServletException {
+            label = Util.fixEmptyAndTrim(label);
             if (label == null)
                 return FormValidation.ok();
 
@@ -847,8 +847,8 @@ public class PerforceSCM extends SCM {
         /**
          * Checks if the value is a valid Perforce project path.
          */
-        public FormValidation doCheckProjectPath(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-            String view = Util.fixEmptyAndTrim(req.getParameter("value"));
+        public FormValidation doCheckProjectPath(@QueryParameter String value) throws IOException, ServletException {
+            String view = Util.fixEmptyAndTrim(value);
             if (view != null) {
                 for (String mapping : view.split("\n")) {
                     if (!DEPOT_ONLY.matcher(mapping).matches() && 
@@ -865,7 +865,7 @@ public class PerforceSCM extends SCM {
         /**
          * Checks if the change list entered exists
          */
-        public FormValidation doCheckChangeList(StaplerRequest req, StaplerResponse rsp) {
+        public FormValidation doCheckChangeList(StaplerRequest req) {
             Depot depot = getDepotFromRequest(req);
             String change = fixNull(req.getParameter("change")).trim();
 
