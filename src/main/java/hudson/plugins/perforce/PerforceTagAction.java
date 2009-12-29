@@ -121,7 +121,16 @@ public class PerforceTagAction extends AbstractScmTagAction {
         label.setDescription(desc);
         label.setRevision(new Integer(changeNumber).toString());
         for (String eachView : view.split("\n")) {
-            label.addView(eachView);
+            //Only take the first part of the view, since the label
+            //spec only has one element per line (the depot paths)
+            String newView = "";
+            for(String eachPart : eachView.split(" ")){
+               newView = newView + eachPart;
+               if (!eachPart.endsWith("\\")){
+                   break;
+               }
+            }
+            label.addView(newView);
         }
         try {
             depot.getLabels().saveLabel(label);

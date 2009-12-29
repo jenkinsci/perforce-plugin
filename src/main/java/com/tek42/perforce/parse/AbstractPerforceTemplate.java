@@ -187,7 +187,6 @@ public abstract class AbstractPerforceTemplate {
 				int exitCode = 0;
 
 				while((line = reader.readLine()) != null) {
-					getLogger().debug("LineIn -> " + line);
 
 					// Check for authentication errors...
 					for(i = 0; i < p4errors.length; i++) {
@@ -231,9 +230,6 @@ public abstract class AbstractPerforceTemplate {
 						throw new PerforceException(error + "\nFor Command: " + debugCmd + "\nWith Data:\n===================\n" + log.toString() + "===================\n");
 					throw new PerforceException(info);
 				}
-
-				getLogger().debug("Wrote to " + debugCmd + ":\n" + log.toString());
-				getLogger().info(info);
 
 			} catch(IOException e) {
 				throw new PerforceException("Failed to open connection to perforce", e);
