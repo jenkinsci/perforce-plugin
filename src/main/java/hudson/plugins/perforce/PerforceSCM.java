@@ -561,7 +561,7 @@ public class PerforceSCM extends SCM {
             // by this workspace).
 
             String root = "//" + p4workspace.getName() + "/...";
-            List<Integer> changeNumbers = depot.getChanges().getChangeNumbers(root, -1, 1);
+            List<Integer> changeNumbers = depot.getChanges().getChangeNumbers(root, -1, 2);
             if (changeNumbers.isEmpty()) {
                 // Wierd, this shouldn't be!  I suppose it could happen if the
                 // view selects no files (e.g. //depot/non-existent-branch/...).
