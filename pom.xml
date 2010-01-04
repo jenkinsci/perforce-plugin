@@ -11,7 +11,7 @@
   <artifactId>perforce</artifactId>
   <name>Perforce Plugin</name>
   <packaging>hpi</packaging>
-  <version>1.0.16</version>
+  <version>1.0.17-SNAPSHOT</version>
   <url>http://wiki.hudson-ci.org/display/HUDSON/Perforce+Plugin</url>
 
   <licenses>
@@ -49,10 +49,4 @@
       </snapshots>
     </repository>
   </repositories>
-
-  <scm>
-    <connection>scm:svn:https://guest@svn.dev.java.net/svn/hudson/tags/perforce-1.0.16</connection>
-    <developerConnection>scm:svn:https://svn.dev.java.net/svn/hudson/tags/perforce-1.0.16</developerConnection>
-    <url>https://hudson.dev.java.net/source/browse/hudson/hudson/plugins/perforce/tags/perforce-1.0.16</url>
-  </scm>
 </project>
