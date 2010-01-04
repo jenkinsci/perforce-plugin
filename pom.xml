@@ -4,15 +4,23 @@
   <parent>
     <groupId>org.jvnet.hudson.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.318</version>
+    <version>1.339</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>perforce</artifactId>
   <name>Perforce Plugin</name>
   <packaging>hpi</packaging>
-  <version>1.0.17-SNAPSHOT</version>
+  <version>1.0.16-SNAPSHOT</version>
   <url>http://wiki.hudson-ci.org/display/HUDSON/Perforce+Plugin</url>
+
+  <developers>
+    <developer>
+      <id>javadude</id>
+      <name>Carl Quinn</name>
+      <email>carl.quinn@gmail.com</email>
+    </developer>
+  </developers>
 
   <licenses>
     <license>
