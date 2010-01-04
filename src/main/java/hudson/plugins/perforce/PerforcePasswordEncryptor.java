@@ -13,8 +13,8 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.DESKeySpec;
-import sun.misc.BASE64Decoder;
-import sun.misc.BASE64Encoder;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.StringUtils;
 
 /**
  * @author stimmslocal
@@ -22,126 +22,47 @@ import sun.misc.BASE64Encoder;
 public class PerforcePasswordEncryptor {
 
     private static final String keyString = "405kqo0gc20f9985142rj17779v4922568on29pwj92toqt884";
-    private static final String ENCRYPTION_PREFFACE = "0f0kqlwa";
+    private static final String ENCRYPTION_PREFIX = "0f0kqlwa";
 
     public PerforcePasswordEncryptor() {
     }
 
     public boolean appearsToBeAnEncryptedPassword(String toCheck) {
-        return toCheck.startsWith(ENCRYPTION_PREFFACE);
+        return toCheck.startsWith(ENCRYPTION_PREFIX);
     }
 
     public String encryptString(String toEncrypt) {
         if (toEncrypt == null || toEncrypt.trim().length() == 0)
             return "";
 
-        byte[] keyBytes = null;
-        try {
-            keyBytes = keyString.getBytes("UTF8");
-        } catch (UnsupportedEncodingException uee) {
-            System.err.println(uee);
-        }
-        KeySpec keySpec = null;
-        try {
-            keySpec = new DESKeySpec(keyBytes);
-        } catch (InvalidKeyException ike) {
-            System.err.println("Unable to create DES keyspec " + ike);
-        }
+        SecretKey key = desKeyFromString(keyString);
+        Cipher cipher = desCipherForModeWithKey(Cipher.ENCRYPT_MODE, key);
 
-        SecretKeyFactory factory = null;
-        try {
-            factory = SecretKeyFactory.getInstance("DES");
-        } catch (NoSuchAlgorithmException nsal) {
-            System.err.println(nsal);
-        }
-        SecretKey key = null;
-        try {
-            key = factory.generateSecret(keySpec);
-        } catch (InvalidKeySpecException ikse) {
-            System.err.print("Unable to generate secret key: " + ikse);
-        }
-
-        Cipher cipher = null;
-        try {
-            cipher = Cipher.getInstance("DES");
-        } catch (NoSuchAlgorithmException nsal) {
-            System.err.println(nsal);
-        } catch (NoSuchPaddingException nspe) {
-            System.err.println(nspe);
-        }
-        try {
-            cipher.init(Cipher.ENCRYPT_MODE, key);
-        } catch (InvalidKeyException ike) {
-            System.err.print("Unable to init cipher: " + ike);
-        }
-        byte[] cleartext = toEncrypt.getBytes();
         byte[] encryptedtext = null;
         try {
-            encryptedtext = cipher.doFinal(cleartext);
+            encryptedtext = cipher.doFinal(toEncrypt.getBytes());
         } catch (IllegalBlockSizeException ibse) {
             System.err.println(ibse);
         } catch (BadPaddingException bpe) {
             System.err.println(bpe);
         }
+        String encodedString =
+            StringUtils.newStringUtf8(Base64.encodeBase64(encryptedtext, false, false));
 
-        BASE64Encoder encoder = new BASE64Encoder();
-        return ENCRYPTION_PREFFACE + encoder.encode(encryptedtext);
+        return ENCRYPTION_PREFIX + encodedString;
     }
 
     public String decryptString(String toDecrypt) {
         if (toDecrypt == null || toDecrypt.length() == 0)
             return "";
 
-        byte[] keyBytes = null;
-        try {
-           keyBytes = keyString.getBytes("UTF8");
-        } catch (UnsupportedEncodingException uee) {
-            System.err.println(uee);
-        }
-        KeySpec keySpec = null;
-        try {
-            keySpec = new DESKeySpec(keyBytes);
-        } catch (InvalidKeyException ike) {
-            System.err.println("Unable to create DES keyspec " + ike);
-        }
+        SecretKey key = desKeyFromString(keyString);
+        Cipher cipher = desCipherForModeWithKey(Cipher.DECRYPT_MODE, key);
 
-        SecretKeyFactory factory = null;
-        try {
-            factory = SecretKeyFactory.getInstance("DES");
-        } catch (NoSuchAlgorithmException nsal) {
-            System.err.println(nsal);
-        }
-        SecretKey key = null;
-        try {
-            key = factory.generateSecret(keySpec);
-        } catch (InvalidKeySpecException ikse) {
-            System.err.print("Unable to generate secret key: " + ikse);
-        }
-
-        Cipher cipher = null;
-        try {
-            cipher = Cipher.getInstance("DES");
-        } catch (NoSuchAlgorithmException nsal) {
-            System.err.println(nsal);
-        } catch (NoSuchPaddingException nspe) {
-            System.err.println(nspe);
-        }
-        try {
-            cipher.init(Cipher.DECRYPT_MODE, key);
-        }
-        catch (InvalidKeyException ike) {
-            System.err.print("Unable to init cipher: " + ike);
-        }
-        BASE64Decoder decoder = new BASE64Decoder();
-        byte[] encryptedtext = null;
-        try {
-            String processedToDecrypt = toDecrypt.replaceFirst(ENCRYPTION_PREFFACE, "");
-            encryptedtext = decoder.decodeBuffer(processedToDecrypt);
-        } catch (IOException ioe) {
-            System.err.println("Unable to decode buffer " + toDecrypt);
-        }
         byte[] cleartext = null;
         try {
+            String processedToDecrypt = toDecrypt.replaceFirst(ENCRYPTION_PREFIX, "");
+            byte[] encryptedtext = Base64.decodeBase64(processedToDecrypt);
             cleartext = cipher.doFinal(encryptedtext);
         } catch (IllegalBlockSizeException ibse) {
             System.err.println(ibse);
@@ -152,10 +73,43 @@ public class PerforcePasswordEncryptor {
         return convertBytesToString(cleartext);
     }
 
+    private static SecretKey desKeyFromString(String keystr) {
+        try {
+            byte[] keyBytes = keystr.getBytes("UTF8");
+            KeySpec keySpec = new DESKeySpec(keyBytes);
+            SecretKeyFactory factory = SecretKeyFactory.getInstance("DES");
+            return factory.generateSecret(keySpec);
+        } catch (UnsupportedEncodingException uee) {
+            System.err.println(uee);
+        } catch (InvalidKeyException ike) {
+            System.err.println("Unable to create DES keyspec " + ike);
+        } catch (NoSuchAlgorithmException nsal) {
+            System.err.println(nsal);
+        } catch (InvalidKeySpecException ikse) {
+            System.err.print("Unable to generate secret key: " + ikse);
+        }
+        return null;
+    }
+
+    private static Cipher desCipherForModeWithKey(int mode, SecretKey key) {
+        try {
+            Cipher cipher = Cipher.getInstance("DES");
+            cipher.init(mode, key);
+            return cipher;
+        } catch (NoSuchAlgorithmException nsal) {
+            System.err.println(nsal);
+        } catch (NoSuchPaddingException nspe) {
+            System.err.println(nspe);
+        } catch (InvalidKeyException ike) {
+            System.err.print("Unable to init cipher: " + ike);
+        }
+        return null;
+    }
+
     private static String convertBytesToString(byte[] bytes) {
         if (bytes == null)
             return "";
-        StringBuffer stringBuffer = new StringBuffer();
+        StringBuffer stringBuffer = new StringBuffer(bytes.length);
         for (int i = 0; i < bytes.length; i++) {
             stringBuffer.append((char) bytes[i]);
         }
