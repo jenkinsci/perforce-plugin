@@ -115,9 +115,19 @@ public class ChangelistBuilder implements Builder<Changelist> {
 							job.setJob(details.nextToken());
 							details.nextToken(); // on
 							details.nextToken(); // date
-							details.nextToken(); // by
+							
+							String possibleUser = details.nextToken(); // by
+							String status = "";
+							if ("by".equals(possibleUser))
+							{
 							details.nextToken(); // user
-							job.setStatus(details.nextToken());
+							  status = details.nextToken(); // status
+							}
+							else
+							{
+							  status = possibleUser;
+							}
+							job.setStatus(status);
 							description = "";
 							getDesc = true;
 						} else {
