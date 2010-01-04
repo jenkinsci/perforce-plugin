@@ -1,0 +1,55 @@
+<!--
+  This view is used to render the project change list like /job/<jobname>/changes
+  
+  The 'builds' variable contains the collection of AbstractBuild objects
+  for which the change should be displayed.
+  
+  This is shown when clicking on Recent Changes for a project.
+-->
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
+<j:choose>
+	<j:when test="${empty(builds)}">
+		No builds.
+	</j:when>
+	<j:otherwise>
+		<j:set var="hadChanges" value="${false}"/>
+		<j:forEach var="b" items="${builds}">
+			<j:if test="${b.changeSet.iterator().hasNext()}">
+				<j:set var="hadChanges" value="${true}"/>
+				<h2><a href="${b.number}/changes">${b.displayName}
+					(<i:formatDate value="${b.timestamp.time}" type="both" dateStyle="medium" timeStyle="medium"/>)</a></h2>
+				<b>Summary of Changes</b>
+				
+				<j:forEach var="c" items="${b.changeSet.iterator()}" varStatus="loop">
+					<div class="changeset-message" style="width: 650px; margin-bottom: 4px;">
+					<table>
+					<tr>
+						<td nowrap="true" rowspan="2" width="50">
+						<a href="${b.number}/changes#detail${loop.index}"><img src="${rootURL}/plugin/perforce/icons/changelist.gif" style="vertical-align: middle;"/> ${c.change.changeNumber}</a> 
+						</td>
+					
+						<td nowrap="nowrap" width="200">
+						by <a href="${rootURL}/${c.author.url}/">${c.author}@${c.change.workspace}</a>
+						</td>
+					
+						<td width="400">
+						on <i:formatDate value="${c.change.date}" type="both" dateStyle="medium" timeStyle="medium"/>
+						</td>
+					</tr>
+					<tr>
+						<td colspan="2">
+						${c.msgAnnotated}
+						<br/>
+						</td>
+					</tr>
+					</table>
+					</div>
+				</j:forEach>
+			</j:if>
+		</j:forEach>
+		<j:if test="${!hadChanges}">
+		No changes in any of the builds.
+		</j:if>
+	</j:otherwise>
+</j:choose>
+</j:jelly>
