@@ -2,6 +2,8 @@ package hudson.plugins.perforce;
 
 import java.util.*;
 
+import org.kohsuke.stapler.export.Exported;
+
 import hudson.scm.*;
 import hudson.model.User;
 
@@ -24,11 +26,13 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
     }
     
     @Override
+    @Exported
     public User getAuthor() {
         return User.get(change.getUser());
     }
 
     @Override
+    @Exported
     public Collection<String> getAffectedPaths() {
         List<String> paths = new ArrayList<String>(change.getFiles().size());
         for (Changelist.FileEntry entry : change.getFiles()) {
@@ -38,6 +42,7 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
     }
 
     @Override
+    @Exported
     public String getMsg() {
         return change.getDescription();
     }
