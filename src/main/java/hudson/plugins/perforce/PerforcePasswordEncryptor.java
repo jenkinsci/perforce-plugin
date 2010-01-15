@@ -47,7 +47,7 @@ public class PerforcePasswordEncryptor {
             System.err.println(bpe);
         }
         String encodedString =
-            StringUtils.newStringUtf8(Base64.encodeBase64(encryptedtext, false, false));
+            StringUtils.newStringUtf8(Base64.encodeBase64(encryptedtext, false));
 
         return ENCRYPTION_PREFIX + encodedString;
     }
@@ -62,7 +62,7 @@ public class PerforcePasswordEncryptor {
         byte[] cleartext = null;
         try {
             String processedToDecrypt = toDecrypt.replaceFirst(ENCRYPTION_PREFIX, "");
-            byte[] encryptedtext = Base64.decodeBase64(processedToDecrypt);
+            byte[] encryptedtext = Base64.decodeBase64(processedToDecrypt.getBytes());
             cleartext = cipher.doFinal(encryptedtext);
         } catch (IllegalBlockSizeException ibse) {
             System.err.println(ibse);
