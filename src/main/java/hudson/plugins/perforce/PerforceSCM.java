@@ -223,7 +223,7 @@ public class PerforceSCM extends SCM {
         super.buildEnvVars(build, env);
         env.put("P4PORT", p4Port);
         env.put("P4USER", p4User);
-        env.put("PCLIENT", p4Client);
+        env.put("P4CLIENT", p4Client);
         PerforceTagAction pta = getMostRecentTagAction(build);
         if (pta != null) {
             if (pta.getChangeNumber() > 0) {
