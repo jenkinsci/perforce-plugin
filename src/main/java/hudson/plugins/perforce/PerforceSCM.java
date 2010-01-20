@@ -223,7 +223,7 @@ public class PerforceSCM extends SCM {
         super.buildEnvVars(build, env);
         env.put("P4PORT", p4Port);
         env.put("P4USER", p4User);
-        env.put("P4CLIENT", p4Client);
+        env.put("P4CLIENT", getEffectiveClientName(build));
         PerforceTagAction pta = getMostRecentTagAction(build);
         if (pta != null) {
             if (pta.getChangeNumber() > 0) {
@@ -641,8 +641,9 @@ public class PerforceSCM extends SCM {
         // make sure each slave has a unique client name by adding it's
         // hostname to the end of the client spec
 
-        String nodeSuffix = "";
         String p4Client = this.p4Client;
+        p4Client = getEffectiveClientName(buildNode, workspace);
+
         if (!nodeIsRemote(buildNode)) {
             log.print("Using master perforce client: ");
             log.println(p4Client);
@@ -652,18 +653,11 @@ public class PerforceSCM extends SCM {
             log.println(p4Client);
         }
         else {
-            //use the 1st part of the hostname as the node suffix
-            String host = workspace.act(new GetHostname());
-            if (host.contains(".")) {
-                nodeSuffix = "-" + host.subSequence(0, host.indexOf('.'));
-            } else {
-                nodeSuffix = "-" + host;
-            }
-            p4Client += nodeSuffix;
-
             log.println("Using remote perforce client: " + p4Client);
-            depot.setClient(p4Client);
         }
+
+
+        depot.setClient(p4Client);
 
         // Get the clientspec (workspace) from perforce
 
@@ -719,6 +713,39 @@ public class PerforceSCM extends SCM {
         // NOTE: The workspace is not saved.
         return p4workspace;
     }
+
+    private String getEffectiveClientName(AbstractBuild build) {
+        Node buildNode = build.getBuiltOn();
+        FilePath workspace = build.getWorkspace();
+        String p4Client = this.p4Client;
+        try {
+            p4Client = getEffectiveClientName(buildNode, workspace);
+        } catch (Exception e){
+
+        } finally {
+            return p4Client;
+        }
+    }
+
+    private String getEffectiveClientName(Node buildNode, FilePath workspace)
+            throws IOException, InterruptedException {
+        
+        String nodeSuffix = "";
+        String p4Client = this.p4Client;
+
+        if (nodeIsRemote(buildNode) && !dontRenameClient) {
+            //use the 1st part of the hostname as the node suffix
+            String host = workspace.act(new GetHostname());
+            if (host.contains(".")) {
+                nodeSuffix = "-" + host.subSequence(0, host.indexOf('.'));
+            } else {
+                nodeSuffix = "-" + host;
+            }
+            p4Client += nodeSuffix;
+        }
+        return p4Client;
+    }
+
 
     private boolean nodeIsRemote(Node buildNode) {
         return buildNode != null && buildNode.getNodeName().length() != 0;
