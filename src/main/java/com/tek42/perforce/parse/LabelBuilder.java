@@ -91,7 +91,7 @@ public class LabelBuilder extends AbstractFormBuilder<Label> {
 			writer.write("Label: " + label.getName() + "\n");
 			writer.write("Owner: " + label.getOwner() + "\n");
 			writer.write("Description:\n\t" + label.getDescription() + "\n");
-			writer.write("Revision: " + label.getRevision() + "\n");
+			writer.write("Revision: @" + label.getRevision() + "\n");
 			writer.write("Options: " + label.getOptions() + "\n");
 			writer.write("View:\n");
 			for(String view : label.getViews()) {
