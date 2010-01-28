@@ -20,6 +20,11 @@
       <name>Carl Quinn</name>
       <email>carl.quinn@gmail.com</email>
     </developer>
+    <developer>
+      <id>rpetti</id>
+      <name>Rob Petti</name>
+      <email>rob.petti@gmail.com</email>
+    </developer>
   </developers>
 
   <licenses>
