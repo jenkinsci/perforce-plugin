@@ -1,0 +1,17 @@
+<div>
+  <p>
+    <b>Expose P4PASSWD in environment</b>
+  </p>
+  <p>
+    When this box is checked hudson will add the P4PASSWD
+    environment value to the process environment. This can
+    help scripts that need to perform Perforce command operations
+    succeed. If tickets are used the value will be replaced by the
+    value of the ticket used during the plugin execution.
+  </p>
+  <p>
+    <b>NOTE:</b>&nbsp;This is a serious security risk if environment values
+    are printed in log files and you should consider alternative ways for
+    providing the credentials to command line tools that need them.
+  </p>
+</div>

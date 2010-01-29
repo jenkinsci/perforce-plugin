@@ -4,7 +4,9 @@ import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Changelist;
 import com.tek42.perforce.model.Counter;
+import com.tek42.perforce.model.Label;
 import com.tek42.perforce.model.Workspace;
+import com.tek42.perforce.parse.Counters;
 import com.tek42.perforce.parse.Workspaces;
 
 import hudson.AbortException;
@@ -69,6 +71,7 @@ public class PerforceSCM extends SCM {
     /* This is better for build than original options: noallwrite noclobber nocompress unlocked nomodtime normdir */
     String projectOptions;
     String p4Label;
+    String p4Counter;
 
     String p4Exe = "C:\\Program Files\\Perforce\\p4.exe";
     String p4SysDrive = "C:";
@@ -98,19 +101,36 @@ public class PerforceSCM extends SCM {
      * for existing users.
      */
     boolean dontRenameClient = true;
+    /**
+     * If true we update the named counter to the last changelist value after the sync operation.
+     * If false the counter will be used as the changelist value to sync to.
+     * Defaulting to false since the counter name is not set to begin with.
+     */
+    boolean updateCounterValue = false;
+    /**
+     * If true the environment value P4PASSWD will be set to the value of p4Passwd.
+     */
+    boolean exposeP4Passwd = false;
 
     /**
      * If > 0, then will override the changelist we sync to for the first build.
      */
     int firstChange = -1;
 
+    /**
+     * If a ticket was issued we can use it instead of the password in the environment.
+     */
+    private String p4Ticket = null;
+
     @DataBoundConstructor
     public PerforceSCM(String p4User, String p4Passwd, String p4Client, String p4Port, String projectPath, String projectOptions,
-                       String p4Exe, String p4SysRoot, String p4SysDrive, String p4Label, boolean forceSync,
-                       boolean updateView, boolean dontRenameClient, int firstChange, PerforceRepositoryBrowser browser) {
+                       String p4Exe, String p4SysRoot, String p4SysDrive, String p4Label, String p4Counter, boolean updateCounterValue,
+                       boolean forceSync, boolean updateView, boolean dontRenameClient, boolean exposeP4Passwd,
+                       int firstChange, PerforceRepositoryBrowser browser) {
 
         this.p4User = p4User;
         this.setP4Passwd(p4Passwd);
+        this.exposeP4Passwd = exposeP4Passwd;
         this.p4Client = p4Client;
         this.p4Port = p4Port;
         this.projectOptions = (projectOptions != null)
@@ -131,6 +151,9 @@ public class PerforceSCM extends SCM {
                     + p4Label);
         }
         this.p4Label = Util.fixEmptyAndTrim(p4Label);
+
+        this.p4Counter = Util.fixEmptyAndTrim(p4Counter);
+        this.updateCounterValue = updateCounterValue;
 
         this.projectPath = projectPath;
 
@@ -223,6 +246,19 @@ public class PerforceSCM extends SCM {
         super.buildEnvVars(build, env);
         env.put("P4PORT", p4Port);
         env.put("P4USER", p4User);
+
+        // if we want to allow p4 commands in script steps this helps
+        if (exposeP4Passwd) {
+            // this may help when tickets are used since we are
+            // not storing the ticket on the client during login
+            if (p4Ticket != null) {
+                env.put("P4PASSWD", p4Ticket);
+            } else {
+                PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+                env.put("P4PASSWD", encryptor.decryptString(p4Passwd));
+            }
+        }
+
         env.put("P4CLIENT", getEffectiveClientName(build));
         PerforceTagAction pta = getMostRecentTagAction(build);
         if (pta != null) {
@@ -311,10 +347,16 @@ public class PerforceSCM extends SCM {
             if (p4Label != null) {
                 changes = new ArrayList<Changelist>(0);
             } else {
-                Counter counter = depot.getCounters().getCounter("change");
+                String counterName;
+                if (p4Counter != null && !updateCounterValue)
+                    counterName = p4Counter;
+                else
+                    counterName = "change";
+
+                Counter counter = depot.getCounters().getCounter(counterName);
                 newestChange = counter.getValue();
 
-                if (lastChange <= 0 || lastChange >= newestChange) {
+                if (lastChange >= newestChange) {
                     changes = new ArrayList<Changelist>(0);
                 } else {
                     List<Integer> changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange);
@@ -331,6 +373,10 @@ public class PerforceSCM extends SCM {
             else {
                 // No new changes discovered (though the definition of the workspace or label may have changed).
                 createEmptyChangeLog(changelogFile, listener, "changelog");
+                // keep the newestChange to the same value except when changing
+                // definitions from label builds to counter builds
+                if (lastChange != -1)
+                    newestChange = lastChange;
             }
 
             // Now we can actually do the sync process...
@@ -383,8 +429,20 @@ public class PerforceSCM extends SCM {
                         build, depot, newestChange, projectPath));
             }
 
+            if (p4Counter != null && updateCounterValue) {
+                // Set or create a counter to mark this change
+                Counter counter = new Counter();
+                counter.setName(p4Counter);
+                counter.setValue(newestChange);
+                log.println("Updating counter " + p4Counter + " to " + newestChange);
+                depot.getCounters().saveCounter(counter);
+            }
+
             //save the one time use variables...
             build.getParent().save();
+
+            // remember the p4Ticket if we were issued one
+            p4Ticket = depot.getP4Ticket();
 
             return true;
 
@@ -729,7 +787,7 @@ public class PerforceSCM extends SCM {
 
     private String getEffectiveClientName(Node buildNode, FilePath workspace)
             throws IOException, InterruptedException {
-        
+
         String nodeSuffix = "";
         String p4Client = this.p4Client;
 
@@ -860,12 +918,35 @@ public class PerforceSCM extends SCM {
             Depot depot = getDepotFromRequest(req);
             if (depot != null) {
                 try {
-                    com.tek42.perforce.model.Label p4Label = depot.getLabels().getLabel(label);
+                    Label p4Label = depot.getLabels().getLabel(label);
                     if (p4Label.getAccess() == null || p4Label.getAccess().equals(""))
                         return FormValidation.error("Label does not exist");
                 } catch (PerforceException e) {
                     return FormValidation.error(
                             "Error accessing perforce while checking label");
+                }
+            }
+            return FormValidation.ok();
+        }
+
+        /**
+         * Performs syntactical and permissions check on the P4Counter
+          */
+        public FormValidation doValidateP4Counter(StaplerRequest req, @QueryParameter String counter) throws IOException, ServletException {
+            counter= Util.fixEmptyAndTrim(counter);
+            if (counter == null)
+                return FormValidation.ok();
+
+            Depot depot = getDepotFromRequest(req);
+            if (depot != null) {
+                try {
+                    Counters counters = depot.getCounters();
+                    Counter p4Counter = counters.getCounter(counter);
+                    // try setting the counter back to the same value to verify permissions
+                    counters.saveCounter(p4Counter);
+                } catch (PerforceException e) {
+                    return FormValidation.error(
+                            "Error accessing perforce while checking counter: " + e.getLocalizedMessage());
                 }
             }
             return FormValidation.ok();
@@ -878,7 +959,7 @@ public class PerforceSCM extends SCM {
             String view = Util.fixEmptyAndTrim(value);
             if (view != null) {
                 for (String mapping : view.split("\n")) {
-                    if (!DEPOT_ONLY.matcher(mapping).matches() && 
+                    if (!DEPOT_ONLY.matcher(mapping).matches() &&
                         !DEPOT_AND_WORKSPACE.matcher(mapping).matches() &&
                         !DEPOT_ONLY_QUOTED.matcher(mapping).matches() &&
                         !DEPOT_AND_WORKSPACE_QUOTED.matcher(mapping).matches() &&
@@ -1106,10 +1187,52 @@ public class PerforceSCM extends SCM {
     }
 
     /**
-     * @param exe the p4Label to set
+     * @param label the p4Label to set
      */
     public void setP4Label(String label) {
         p4Label = label;
+    }
+
+    /**
+     * @return the p4Counter
+     */
+    public String getP4Counter() {
+        return p4Counter;
+    }
+
+    /**
+     * @param counter the p4Counter to set
+     */
+    public void setP4Counter(String counter) {
+        p4Counter = counter;
+    }
+
+    /**
+     * @return True if the plugin should update the counter to the last change
+     */
+    public boolean isUpdateCounterValue() {
+        return updateCounterValue;
+    }
+
+    /**
+     * @param updateCounterValue True if the plugin should update the counter to the last change
+     */
+    public void setUpdateCounterValue(boolean updateCounterValue) {
+        this.updateCounterValue = updateCounterValue;
+    }
+
+    /**
+     * @return True if the P4PASSWD value must be set in the environment
+     */
+    public boolean isExposeP4Passwd() {
+        return exposeP4Passwd;
+    }
+
+    /**
+     * @param exposeP4Passwd True if the P4PASSWD value must be set in the environment
+     */
+    public void setExposeP4Passwd(boolean exposeP4Passwd) {
+        this.exposeP4Passwd = exposeP4Passwd;
     }
 
     /**

@@ -61,7 +61,8 @@ public class PerforcePasswordEncryptor {
 
         byte[] cleartext = null;
         try {
-            String processedToDecrypt = toDecrypt.replaceFirst(ENCRYPTION_PREFIX, "");
+            // workaround bug with passwords which have a "+" in their BASE64 encoded form
+            String processedToDecrypt = toDecrypt.replaceFirst(ENCRYPTION_PREFIX, "").replaceAll(" ", "+");
             byte[] encryptedtext = Base64.decodeBase64(processedToDecrypt.getBytes());
             cleartext = cipher.doFinal(encryptedtext);
         } catch (IllegalBlockSizeException ibse) {

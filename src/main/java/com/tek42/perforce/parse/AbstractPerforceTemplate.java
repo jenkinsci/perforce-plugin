@@ -57,7 +57,9 @@ public abstract class AbstractPerforceTemplate {
             "Can't create a new user - over license quota.",
             "Client '*' can only be used from host '*'",
             "Access for user '",
-            "Your session has expired, please login again."
+            "Your session has expired, please login again.",
+            "You don't have permission for this operation.",
+            "Password invalid."
         };
 
     @SuppressWarnings("unused")
@@ -124,13 +126,15 @@ public abstract class AbstractPerforceTemplate {
 		if(ticket != null) {
 			// Insert the ticket for the password if tickets are being used...
 			String newCmds[] = new String[cmd.length + 2];
-			newCmds[0] = "p4";
+			newCmds[0] = getP4Exe();
 			newCmds[1] = "-P";
 			newCmds[2] = ticket;
 			for(int i = 3; (i - 2) < cmd.length; i++) {
 				newCmds[i] = cmd[i - 2];
 			}
 			cmd = newCmds;
+		} else {
+		    cmd[0] = getP4Exe();
 		}
 		return cmd;
 	}
@@ -149,7 +153,7 @@ public abstract class AbstractPerforceTemplate {
 
 		//StringBuilder response = new StringBuilder();
 		do {
-			int mesgIndex = -1, i;//, count = 0;
+			int mesgIndex = -1;//, count = 0;
 			Executor p4 = depot.getExecFactory().newExecutor();
 			String debugCmd = "";
 			try {
@@ -182,22 +186,22 @@ public abstract class AbstractPerforceTemplate {
 				}
 
 				String line;
-				String error = "";
-				String info = "";
+                StringBuilder error = new StringBuilder();
+                StringBuilder info = new StringBuilder();
 				int exitCode = 0;
 
 				while((line = reader.readLine()) != null) {
 
 					// Check for authentication errors...
-					for(i = 0; i < p4errors.length; i++) {
-						if(line.indexOf(p4errors[i]) != -1)
-							mesgIndex = i;
+				    if (mesgIndex == -1)
+				        mesgIndex = checkAuthnErrors(line);
 
-					}
+				    if (mesgIndex != -1) {
+				        error.append(line);
 
-					if(line.startsWith("error")) {
+				    } else if(line.startsWith("error")) {
 						if(!line.trim().equals("") && (line.indexOf("up-to-date") < 0) && (line.indexOf("no file(s) to resolve") < 0)) {
-							error += line.substring(6);
+							error.append(line.substring(6));
 						}
 
 					} else if(line.startsWith("exit")) {
@@ -205,30 +209,40 @@ public abstract class AbstractPerforceTemplate {
 
 					} else {
 						if(line.indexOf(":") > -1)
-							info += line.substring(line.indexOf(":"));
+							info.append(line.substring(line.indexOf(":")));
 						else
-							info += line;
+							info.append(line);
 					}
 				}
 				reader.close();
 
 				loop = false;
 				// If we failed to execute because of an authentication issue, try a p4 login.
-				if(attemptLogin && (mesgIndex == 1 || mesgIndex == 2 || mesgIndex == 6)) {
-					// password is unset means that perforce isn't using the environment var P4PASSWD
-					// Instead it is using tickets. We must attempt to login via p4 login, then
-					// retry this cmd.
-					p4.close();
-					login();
-					loop = true;
-					attemptLogin = false;
-					continue;
+				if(mesgIndex == 1 || mesgIndex == 2 || mesgIndex == 6) {
+				    if (attemptLogin) {
+	                    // password is unset means that perforce isn't using the environment var P4PASSWD
+	                    // Instead it is using tickets. We must attempt to login via p4 login, then
+	                    // retry this cmd.
+	                    p4.close();
+	                    login();
+	                    loop = true;
+	                    attemptLogin = false;
+	                    mesgIndex = -1; // cancel this error for now
+	                    continue;
+				    }
 				}
 				
-				if(exitCode != 0) {
-					if(!error.equals(""))
-						throw new PerforceException(error + "\nFor Command: " + debugCmd + "\nWith Data:\n===================\n" + log.toString() + "===================\n");
-					throw new PerforceException(info);
+				if(mesgIndex != -1 || exitCode != 0) {
+					if(error.length() != 0) {
+					    error.append("\nFor Command: ").append(debugCmd);
+					    if (log.length() > 0) {
+					        error.append("\nWith Data:\n===================\n");
+					        error.append(log);
+                            error.append("\n===================\n");
+					    }
+                        throw new PerforceException(error.toString());
+					}
+					throw new PerforceException(info.toString());
 				}
 
 			} catch(IOException e) {
@@ -239,7 +253,7 @@ public abstract class AbstractPerforceTemplate {
 		} while(loop);
 	}
 
-	/**
+    /**
 	 * Executes a perforce command and returns the output as a StringBuilder.
 	 * 
 	 * @param cmd	The perforce commands to execute.  Each command and argument is it's own array element
@@ -255,7 +269,7 @@ public abstract class AbstractPerforceTemplate {
 		int totalLength = 0;
 
 		do {
-			int mesgIndex = -1, i, count = 0;
+			int mesgIndex = -1, count = 0;
 			Executor p4 = depot.getExecFactory().newExecutor();
 			String debugCmd = "";
 			// get entire cmd to execute
@@ -279,10 +293,10 @@ public abstract class AbstractPerforceTemplate {
 				    lines.add(line);
 				    totalLength += line.length();
 					count++;
-					for(i = 0; i < p4errors.length; i++) {
-						if(line.indexOf(p4errors[i]) != -1)
-							mesgIndex = i;
-					}
+					
+					// only check for errors if we have not found one already
+					if (mesgIndex == -1)
+					    mesgIndex = checkAuthnErrors(line);
 				}
 			}
 			catch(IOException ioe)
@@ -403,65 +417,95 @@ public abstract class AbstractPerforceTemplate {
 	 * @throws PerforceException	If perforce throws any errors
 	 */
 	protected void login() throws PerforceException {
-		// Unfortunately, the simple way of doing this: echo password | p4 login
-		// Doesn't work on windows! So we have to try and write directly, but
-		// that doesn't seem to work either. The code is left here, but probably is
-		// not going to work. If you are facing this problem, use depot.setTicket() with a ticket
-		// that has an expiration significantly far ahead in time to work as a permanent login.
-		String sep = System.getProperty("file.separator");
-		if(sep.equals("\\")) {
-			Executor login = depot.getExecFactory().newExecutor();
-			login.exec(new String[] { "p4", "login" });
-			try {
-				Thread.sleep(250);
-			} catch(InterruptedException e) {
-				// nothing to do
-			}
-			try {
-				login.getWriter().write(depot.getPassword() + "\n");
-			} catch(IOException e) {
-				throw new PerforceException("Failed to communicate with p4 when logging in to server.");
-			}
-			login.close();
-		} else { // for everything not windows...
-			Executor login = depot.getExecFactory().newExecutor();
-			// The -p parameter outputs the ticket to stdout.
-			login.exec(new String[] { "/bin/sh", "-c", "echo \"" + depot.getPassword() + "\" | p4 login -p" });
-			BufferedReader reader = login.getReader();
-			String line;
-			String ticket = null;
-			try {
-				// The last line output from p4 login will be the ticket
-				while((line = reader.readLine()) != null) {
-					ticket = line;
-				}
-				
-				// Strange error under hudson's execution of unit tests.  It appears
-				// that the environment is not setup correctly from within hudson.  The sh shell
-				// cannot find the p4 executable.  So we'll try again with a hard coded path.
-				// Though, I don't believe this problem exists outside of the build environment, 
-				// and wouldn't normally worry, I still want to be able to test security level 3
-				// from the automated build...
-				if(ticket != null && ticket.equals("/bin/sh: p4: command not found")) {
-					login.close();
-					login.exec(new String[] { "/bin/sh", "-c", "echo \"" + depot.getPassword() + "\" | /usr/bin/p4 login -p" });
-					reader = login.getReader();
-					while((line = reader.readLine()) != null) {
-						ticket = line;
-					}
-				}
 
-			} catch(IOException e) {
-				throw new PerforceException("Unable to login via p4 login due to IOException: " + e.getMessage());
-			}
-			// if we obtained a ticket, save it for later use. Our environment setup by Depot can't usually
-			// see the .p4tickets file.
-			if(ticket != null) {
-				getLogger().warn("Using p4 issued ticket.");
-				depot.setP4Ticket(ticket);
-			}
+		try {
+		    // try the default location for p4 executable
+            String ticket = null;
+            try {
+                ticket = p4Login(getP4Exe());
+            } catch (PerforceException e) {
+                // Strange error under hudson's execution of unit tests.  It appears
+                // that the environment is not setup correctly from within hudson.  The sh shell
+                // cannot find the p4 executable.  So we'll try again with a hard coded path.
+                // Though, I don't believe this problem exists outside of the build environment, 
+                // and wouldn't normally worry, I still want to be able to test security level 3
+                // from the automated build...
+                try {
+                    ticket = p4Login("/usr/bin/p4");
+                } catch (PerforceException e1) {
+                    // throw the original exception and not the one caused by the workaround
+                    getLogger().warn("Attempt to workaround p4 executable location failed", e1);
+                    throw e;
+                }
+            }
 
-			login.close();
+	        // if we obtained a ticket, save it for later use. Our environment setup by Depot can't usually
+	        // see the .p4tickets file.
+	        if (ticket != null) {
+	            getLogger().warn("Using p4 issued ticket.");
+	            depot.setP4Ticket(ticket);
+	        }
+
+		} catch(IOException e) {
+			throw new PerforceException("Unable to login via p4 login due to IOException: " + e.getMessage());
 		}
 	}
+
+    /**
+     * Read the last line of output which should be the ticket.
+     * 
+     * @param p4Exe the perforce executable with or without full path information
+     * @return the p4 ticket
+     * @throws IOException if an I/O error prevents this from working
+     * @throws PerforceException if the execution of the p4Exe fails
+     */
+    private String p4Login(String p4Exe) throws IOException, PerforceException {
+        Executor login = depot.getExecFactory().newExecutor();
+        login.exec(new String[] { p4Exe, "login", "-p" });
+
+        try {
+            // "echo" the password for the p4 process to read
+            BufferedWriter writer = login.getWriter();
+            try {
+                writer.write(depot.getPassword() + "\n");
+            } finally {
+                // help the writer move the data
+                writer.flush();
+            }
+            // read the ticket from the output
+            String ticket = null;
+            BufferedReader reader = login.getReader();
+            String line;
+            // The last line output from p4 login will be the ticket
+            while ((line = reader.readLine()) != null) {
+                int error = checkAuthnErrors(line);
+                if (error != -1)
+                    throw new PerforceException("Login attempt failed: " + line);
+                ticket = line;
+            }
+            
+            return ticket;
+        } finally {
+            login.close();
+        }
+    }
+    
+    /**
+     * Check for authentication errors.
+     * 
+     * @param line the perforce response line
+     * @return the index in the p4errors array or -1
+     */
+    private int checkAuthnErrors(String line) {
+        for (int i = 0; i < p4errors.length; i++) {
+        	if (line.indexOf(p4errors[i]) != -1)
+        		return i;
+    
+        }
+        return -1;
+    }
+
+    private String getP4Exe() {
+        return depot.getExecutable();
+    }
 }
