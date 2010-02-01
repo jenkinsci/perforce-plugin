@@ -228,7 +228,7 @@ public class Depot {
 	 */
 	public String info() throws Exception {
 		Executor p4 = getExecFactory().newExecutor();
-		String cmd[] = { "p4", "info" };
+		String cmd[] = { getExecutable(), "info" };
 		p4.exec(cmd);
 		StringBuilder sb = new StringBuilder();
 		String line;
