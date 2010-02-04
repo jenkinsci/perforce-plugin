@@ -62,8 +62,8 @@ public class UserBuilder extends AbstractFormBuilder<User> {
 	 * 
 	 * @see com.tek42.perforce.parse.Builder#getBuildCmd(java.lang.String)
 	 */
-	public String[] getBuildCmd(String id) {
-		return new String[] { "p4", "user", "-o", id };
+	public String[] getBuildCmd(String p4exe, String id) {
+		return new String[] { p4exe, "user", "-o", id };
 	}
 
 	/*
@@ -71,7 +71,7 @@ public class UserBuilder extends AbstractFormBuilder<User> {
 	 * 
 	 * @see com.tek42.perforce.parse.Builder#getSaveCmd()
 	 */
-	public String[] getSaveCmd(User obj) {
+	public String[] getSaveCmd(String p4exe, User obj) {
 		// TODO Auto-generated method stub
 		return null;
 	}

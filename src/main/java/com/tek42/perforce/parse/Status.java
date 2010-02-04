@@ -48,7 +48,7 @@ public class Status extends AbstractPerforceTemplate {
 	 * <code>PerforceException</code> with a message regarding the failure.
 	 */
 	public boolean isValid() throws PerforceException {
-		getPerforceResponse(new String[] { "p4", "user", "-o" });
+		getPerforceResponse(new String[] { getP4Exe(), "user", "-o" });
 		return true;
 	}
 
@@ -66,7 +66,7 @@ public class Status extends AbstractPerforceTemplate {
 	 * @throws PerforceException
 	 */
 	public boolean exists(String path) throws PerforceException {
-		StringBuilder sb = getPerforceResponse(new String[] { "p4", "fstat", "-m", "1", path });
+		StringBuilder sb = getPerforceResponse(new String[] { getP4Exe(), "fstat", "-m", "1", path });
 		if(sb.indexOf("no such file(s).") > 0)
 			return false;
 		return true;

@@ -157,7 +157,7 @@ public abstract class AbstractPerforceTemplate {
 			Executor p4 = depot.getExecFactory().newExecutor();
 			String debugCmd = "";
 			try {
-				String cmds[] = getExtraParams(builder.getSaveCmd(object));
+				String cmds[] = getExtraParams(builder.getSaveCmd(getP4Exe(), object));
 
 				// for exception reporting...
 				for(String cm : cmds) {
@@ -505,7 +505,7 @@ public abstract class AbstractPerforceTemplate {
         return -1;
     }
 
-    private String getP4Exe() {
+    protected String getP4Exe() {
         return depot.getExecutable();
     }
 }

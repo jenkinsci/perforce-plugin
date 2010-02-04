@@ -58,12 +58,12 @@ public class GroupBuilder extends AbstractFormBuilder<Group> {
 		return group;
 	}
 
-	public String[] getBuildCmd(String id) {
-		return new String[] { "p4", "group", "-o", id };
+	public String[] getBuildCmd(String p4exe, String id) {
+		return new String[] { p4exe, "group", "-o", id };
 	}
 
-	public String[] getSaveCmd(Group obj) {
-		return new String[] { "p4", "-s", "group", "-i" };
+	public String[] getSaveCmd(String p4exe, Group obj) {
+		return new String[] { p4exe, "-s", "group", "-i" };
 	}
 
 	public void save(Group group, Writer out) throws PerforceException {

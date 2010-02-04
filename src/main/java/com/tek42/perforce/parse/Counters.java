@@ -34,7 +34,7 @@ public class Counters extends AbstractPerforceTemplate {
 	 * @throws PerforceException
 	 */
 	public List<Counter> getCounters() throws PerforceException {
-		final String cmd[] = new String[] { "p4", "counters" };
+		final String cmd[] = new String[] { getP4Exe(), "counters" };
 		final List<Counter> counters = new ArrayList<Counter>();
 
 		final StringBuilder response = getPerforceResponse(cmd);
@@ -57,7 +57,7 @@ public class Counters extends AbstractPerforceTemplate {
 	 */
 	public Counter getCounter(String name) throws PerforceException {
 		final CounterBuilder builder = new CounterBuilder();
-		final Counter counter = builder.build(getPerforceResponse(builder.getBuildCmd(name)));
+		final Counter counter = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), name)));
 		counter.setName(name);
 		return counter;
 	}

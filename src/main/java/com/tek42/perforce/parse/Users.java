@@ -49,7 +49,7 @@ public class Users extends AbstractPerforceTemplate {
 	 */
 	public User getUser(String name) throws Exception {
 		UserBuilder builder = new UserBuilder();
-		User user = builder.build(getPerforceResponse(builder.getBuildCmd(name)));
+		User user = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), name)));
 		return user;
 	}
 }

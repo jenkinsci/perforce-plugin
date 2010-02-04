@@ -49,8 +49,8 @@ import com.tek42.perforce.model.Changelist;
 public class ChangelistBuilder implements Builder<Changelist> {
 	private final Logger logger = LoggerFactory.getLogger("perforce");
 
-	public String[] getBuildCmd(String id) {
-		return new String[] { "p4", "describe", "-s", id };
+	public String[] getBuildCmd(String p4exe, String id) {
+		return new String[] { p4exe, "describe", "-s", id };
 	}
 
 	/*
@@ -186,8 +186,8 @@ public class ChangelistBuilder implements Builder<Changelist> {
 		return change;
 	}
 
-	public String[] getSaveCmd(Changelist obj) {
-		return new String[] { "p4", "change", "-i" };
+	public String[] getSaveCmd(String p4exe, Changelist obj) {
+		return new String[] { p4exe, "change", "-i" };
 	}
 
 	public boolean requiresStandardInput() {

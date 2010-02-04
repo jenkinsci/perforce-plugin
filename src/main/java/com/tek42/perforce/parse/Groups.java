@@ -56,7 +56,7 @@ public class Groups extends AbstractPerforceTemplate {
 	 */
 	public Group getGroup(String name) throws PerforceException {
 		GroupBuilder builder = new GroupBuilder();
-		Group group = builder.build(getPerforceResponse(builder.getBuildCmd(name)));
+		Group group = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), name)));
 		if(group == null)
 			throw new PerforceException("Failed to retrieve group: " + name);
 
@@ -81,7 +81,7 @@ public class Groups extends AbstractPerforceTemplate {
 	 * @throws PerforceException when there is a problem.
 	 */
 	public List<Group> getGroups() throws PerforceException {
-		String cmd[] = new String[] { "p4", "groups" };
+		String cmd[] = new String[] { getP4Exe(), "groups" };
 		StringBuilder response = getPerforceResponse(cmd);
 		List<String> names = parseList(response, 0);
 

@@ -18,16 +18,16 @@ public class CounterBuilder implements Builder<Counter> {
 	 * (non-Javadoc)
 	 * @see com.tek42.perforce.parse.Builder#getBuildCmd(java.lang.String)
 	 */
-	public String[] getBuildCmd(String id) {
-		return new String[] { "p4", "counter", id };
+	public String[] getBuildCmd(String p4exe, String id) {
+		return new String[] { p4exe, "counter", id };
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see com.tek42.perforce.parse.Builder#getSaveCmd()
 	 */
-	public String[] getSaveCmd(Counter obj) {
-		return new String[] { "p4", "counter", obj.getName(), String.valueOf(obj.getValue()) };
+	public String[] getSaveCmd(String p4exe, Counter obj) {
+		return new String[] { p4exe, "counter", obj.getName(), String.valueOf(obj.getValue()) };
 	}
 
 	/*

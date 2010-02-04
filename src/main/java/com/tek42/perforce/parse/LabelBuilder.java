@@ -68,8 +68,8 @@ public class LabelBuilder extends AbstractFormBuilder<Label> {
 	 * 
 	 * @see com.tek42.perforce.parse.Builder#getBuildCmd(java.lang.String)
 	 */
-	public String[] getBuildCmd(String id) {
-		return new String[] { "p4", "label", "-o", id };
+	public String[] getBuildCmd(String p4exe, String id) {
+		return new String[] { p4exe, "label", "-o", id };
 	}
 
 	/*
@@ -77,8 +77,8 @@ public class LabelBuilder extends AbstractFormBuilder<Label> {
 	 * 
 	 * @see com.tek42.perforce.parse.Builder#getSaveCmd()
 	 */
-	public String[] getSaveCmd(Label obj) {
-		return new String[] { "p4", "-s", "label", "-i" };
+	public String[] getSaveCmd(String p4exe, Label obj) {
+		return new String[] { p4exe, "-s", "label", "-i" };
 	}
 
 	/*

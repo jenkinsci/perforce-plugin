@@ -68,9 +68,9 @@ public class Labels extends AbstractPerforceTemplate {
 		String cmd[];
 
 		if(path != null && !path.equals(""))
-			cmd = new String[] { "p4", "labels", path };
+			cmd = new String[] { getP4Exe(), "labels", path };
 		else
-			cmd = new String[] { "p4", "labels" };
+			cmd = new String[] { getP4Exe(), "labels" };
 
 		List<Label> labels = new ArrayList<Label>();
 
@@ -93,7 +93,7 @@ public class Labels extends AbstractPerforceTemplate {
 	 */
 	public Label getLabel(String name) throws PerforceException {
 		LabelBuilder builder = new LabelBuilder();
-		Label label = builder.build(getPerforceResponse(builder.getBuildCmd(name)));
+		Label label = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), name)));
 		return label;
 	}
 }

@@ -50,7 +50,7 @@ public class Workspaces extends AbstractPerforceTemplate {
 	 */
 	public Workspace getWorkspace(String name) throws PerforceException {
 		WorkspaceBuilder builder = new WorkspaceBuilder();
-		Workspace workspace = builder.build(getPerforceResponse(builder.getBuildCmd(name)));
+		Workspace workspace = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), name)));
 		if(workspace == null)
 			throw new PerforceException("Failed to retrieve workspace: " + name);
 
@@ -114,9 +114,9 @@ public class Workspaces extends AbstractPerforceTemplate {
 	 */
 	public StringBuilder syncTo(String path, boolean forceSync) throws PerforceException {
 		if(forceSync)
-			return getPerforceResponse(new String[] { "p4", "sync", "-f", path });
+			return getPerforceResponse(new String[] { getP4Exe(), "sync", "-f", path });
 		else
-			return getPerforceResponse(new String[] { "p4", "sync", path });
+			return getPerforceResponse(new String[] { getP4Exe(), "sync", path });
 	}
 
 	/**
@@ -127,7 +127,7 @@ public class Workspaces extends AbstractPerforceTemplate {
      * @throws PerforceException
      */
     public StringBuilder syncDryRun() throws PerforceException {
-        StringBuilder result = getPerforceResponse(new String[] { "p4", "sync", "-n" });
+        StringBuilder result = getPerforceResponse(new String[] { getP4Exe(), "sync", "-n" });
         return result;
     }
 }
