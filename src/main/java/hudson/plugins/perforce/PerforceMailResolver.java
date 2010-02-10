@@ -6,6 +6,7 @@ import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
+import hudson.model.Project;
 import hudson.model.TaskListener;
 import hudson.model.User;
 import hudson.tasks.MailAddressResolver;
@@ -29,9 +30,11 @@ public class PerforceMailResolver extends MailAddressResolver {
                 PerforceSCM pscm = (PerforceSCM) p.getScm();
                 TaskListener listener = new StreamTaskListener(System.out);
                 try {
+                    // TODO: replace this with p.getLastBuild().getWorkspace()
+                    // which is the way it should be, but doesn't work with this version of hudson.
+                    FilePath workspace = p.getLastBuiltOn().createPath(p.getLastBuiltOn().getRootPath().getRemote());
                     // I'm not sure if this is the standard way to create an ad-hoc Launcher, I just
                     // copied it from HudsonP4Executor.exec
-                    FilePath workspace = p.getLastBuiltOn().createPath(p.getLastBuiltOn().getRootPath().getRemote());
                     Launcher launcher = Hudson.getInstance().createLauncher(listener);
                     com.tek42.perforce.model.User pu = pscm.getDepot(launcher, workspace).getUsers().getUser(u.getId());
                     if (pu.getEmail() != null && !pu.getEmail().equals(""))
