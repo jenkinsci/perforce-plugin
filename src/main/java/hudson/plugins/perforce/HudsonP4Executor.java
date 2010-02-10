@@ -77,7 +77,7 @@ public class HudsonP4Executor implements Executor {
             hudsonOut.closeOnProcess(process);
 
         } catch(IOException e) {
-            // Do nothing
+            throw new PerforceException("Could not run perforce command.", e);
         }
     }
 
