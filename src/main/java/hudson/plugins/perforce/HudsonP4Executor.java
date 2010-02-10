@@ -77,6 +77,9 @@ public class HudsonP4Executor implements Executor {
             hudsonOut.closeOnProcess(process);
 
         } catch(IOException e) {
+            //try to close all the pipes before throwing an exception
+            closeBuffers();
+            
             throw new PerforceException("Could not run perforce command.", e);
         }
     }
@@ -109,6 +112,15 @@ public class HudsonP4Executor implements Executor {
 
     public BufferedWriter getWriter() {
         return writer;
+    }
+
+    private void closeBuffers(){
+        try {
+            reader.close();
+        } catch(IOException ignoredException) {};
+        try {
+            writer.close();
+        } catch(IOException ignoredException) {};
     }
 
 }
