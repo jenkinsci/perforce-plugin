@@ -32,6 +32,7 @@ import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import hudson.util.FormValidation;
 
+import hudson.util.StreamTaskListener;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -779,7 +780,8 @@ public class PerforceSCM extends SCM {
         try {
             p4Client = getEffectiveClientName(buildNode, workspace);
         } catch (Exception e){
-
+            new StreamTaskListener(System.out).getLogger().println(
+                    "Could not get effective client name: " + e.getMessage());
         } finally {
             return p4Client;
         }
