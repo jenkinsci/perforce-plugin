@@ -6,6 +6,7 @@ import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
+import hudson.model.Node;
 import hudson.model.Project;
 import hudson.model.TaskListener;
 import hudson.model.User;
@@ -23,16 +24,21 @@ import java.io.File;
 public class PerforceMailResolver extends MailAddressResolver {
 	
     @SuppressWarnings("unchecked")
-	public String findMailAddressFor(User u) {
+    public String findMailAddressFor(User u) {
     	
-        for (AbstractProject p : Hudson.getInstance().getProjects()) {
+        for (AbstractProject p : u.getProjects()) {
+            if (p.isDisabled()) continue;
             if (p.getScm() instanceof PerforceSCM) {
                 PerforceSCM pscm = (PerforceSCM) p.getScm();
                 TaskListener listener = new StreamTaskListener(System.out);
                 try {
+                    Node node = p.getLastBuiltOn();
+                    // If the node is offline, skip the project.
+                    // The node needs to be online for us to execute commands.
+                    if (node.getChannel() == null) continue;
                     // TODO: replace this with p.getLastBuild().getWorkspace()
                     // which is the way it should be, but doesn't work with this version of hudson.
-                    FilePath workspace = p.getLastBuiltOn().createPath(p.getLastBuiltOn().getRootPath().getRemote());
+                    FilePath workspace = node.createPath(p.getLastBuiltOn().getRootPath().getRemote());
                     // I'm not sure if this is the standard way to create an ad-hoc Launcher, I just
                     // copied it from HudsonP4Executor.exec
                     Launcher launcher = Hudson.getInstance().createLauncher(listener);
