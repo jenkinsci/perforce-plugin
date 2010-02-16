@@ -1355,10 +1355,8 @@ public class PerforceSCM extends SCM {
         return false;
     }
 
-    /* Polling doesn't update the client workspace, so there shouldn't be any
-     * problem in polling while other perforce operations are running. */
     @Override public boolean requiresWorkspaceForPolling() {
-        return false;
+        return true;
     }
 
 }
