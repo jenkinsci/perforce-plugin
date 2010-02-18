@@ -39,9 +39,7 @@ public class PerforceMailResolver extends MailAddressResolver {
                     // TODO: replace this with p.getLastBuild().getWorkspace()
                     // which is the way it should be, but doesn't work with this version of hudson.
                     FilePath workspace = p.getLastBuiltOn().getRootPath();
-                    // I'm not sure if this is the standard way to create an ad-hoc Launcher, I just
-                    // copied it from HudsonP4Executor.exec
-                    Launcher launcher = Hudson.getInstance().createLauncher(listener);
+                    Launcher launcher = p.getLastBuiltOn().createLauncher(listener);
                     com.tek42.perforce.model.User pu = pscm.getDepot(launcher, workspace).getUsers().getUser(u.getId());
                     if (pu.getEmail() != null && !pu.getEmail().equals(""))
                         return pu.getEmail();
