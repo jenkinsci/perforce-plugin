@@ -38,7 +38,7 @@ public class PerforceMailResolver extends MailAddressResolver {
                     if (node.getChannel() == null) continue;
                     // TODO: replace this with p.getLastBuild().getWorkspace()
                     // which is the way it should be, but doesn't work with this version of hudson.
-                    FilePath workspace = node.createPath(p.getLastBuiltOn().getRootPath().getRemote());
+                    FilePath workspace = p.getLastBuiltOn().getRootPath();
                     // I'm not sure if this is the standard way to create an ad-hoc Launcher, I just
                     // copied it from HudsonP4Executor.exec
                     Launcher launcher = Hudson.getInstance().createLauncher(listener);
