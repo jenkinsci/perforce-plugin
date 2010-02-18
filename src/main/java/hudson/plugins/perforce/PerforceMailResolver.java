@@ -48,6 +48,7 @@ public class PerforceMailResolver extends MailAddressResolver {
 
                 } catch (Exception e) {
                     listener.getLogger().println("Could not get email address from Perforce: "+e.getMessage());
+                    e.printStackTrace(listener.getLogger());
                 }
             }
         }
