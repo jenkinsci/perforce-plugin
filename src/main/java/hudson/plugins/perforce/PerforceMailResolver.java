@@ -1,5 +1,6 @@
 package hudson.plugins.perforce;
 
+import com.tek42.perforce.PerforceException;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -31,22 +32,35 @@ public class PerforceMailResolver extends MailAddressResolver {
             if (p.getScm() instanceof PerforceSCM) {
                 PerforceSCM pscm = (PerforceSCM) p.getScm();
                 TaskListener listener = new StreamTaskListener(System.out);
-                try {
-                    Node node = p.getLastBuiltOn();
-                    // If the node is offline, skip the project.
-                    // The node needs to be online for us to execute commands.
-                    if (node.getChannel() == null) continue;
-                    // TODO: replace this with p.getLastBuild().getWorkspace()
-                    // which is the way it should be, but doesn't work with this version of hudson.
+                Node node = p.getLastBuiltOn();
+                // If the node is offline, skip the project.
+                // The node needs to be online for us to execute commands.
+                if (node.getChannel() == null) {
+                    continue;
+                }
+                // TODO: replace this with p.getLastBuild().getWorkspace()
+                // which is the way it should be, but doesn't work with this version of hudson.
+                for (int tries = 0; tries < 5; tries++) {
                     FilePath workspace = p.getLastBuiltOn().getRootPath();
                     Launcher launcher = p.getLastBuiltOn().createLauncher(listener);
-                    com.tek42.perforce.model.User pu = pscm.getDepot(launcher, workspace).getUsers().getUser(u.getId());
-                    if (pu.getEmail() != null && !pu.getEmail().equals(""))
+                    com.tek42.perforce.model.User pu = null;
+                    try {
+                        listener.getLogger().println("Trying to get email address from perforce for " + u.getId());
+                        pu = pscm.getDepot(launcher, workspace).getUsers().getUser(u.getId());
+                    } catch (Exception e) {
+                        listener.getLogger().println("Could not get email address from Perforce: " + e.getMessage());
+                        e.printStackTrace(listener.getLogger());
+                    }
+                    if (pu != null && pu.getEmail() != null && !pu.getEmail().equals("")) {
+                        listener.getLogger().println("Got email (" + pu.getEmail() + ") from perforce for " + u.getId());
                         return pu.getEmail();
-
-                } catch (Exception e) {
-                    listener.getLogger().println("Could not get email address from Perforce: "+e.getMessage());
-                    e.printStackTrace(listener.getLogger());
+                    }
+                    try {
+                        //gradually increase sleep time
+                        Thread.sleep(tries*300);
+                    } catch (InterruptedException e){
+                        return null;
+                    }
                 }
             }
         }
