@@ -616,20 +616,33 @@ public class PerforceSCM extends SCM {
                 return Boolean.TRUE;
             }
 
-            // Has any new change been submitted since then (that is selected
-            // by this workspace).
+            int highestSelectedChangeNumber;
 
-            String root = "//" + p4workspace.getName() + "/...";
-            List<Integer> changeNumbers = depot.getChanges().getChangeNumbers(root, -1, 2);
-            if (changeNumbers.isEmpty()) {
-                // Wierd, this shouldn't be!  I suppose it could happen if the
-                // view selects no files (e.g. //depot/non-existent-branch/...).
-                // Just in case, let's try to build.
-                return Boolean.TRUE;
+            if (p4Counter != null && !updateCounterValue) {
+
+                // If this is a downstream build that triggers by polling the set counter
+                // use the counter as the value for the newest change instead of the workspace view
+
+                Counter counter = depot.getCounters().getCounter(p4Counter);
+                highestSelectedChangeNumber = counter.getValue();
+                logger.println("Latest submitted change selected by named counter is " + highestSelectedChangeNumber);
+            } else {
+
+                // Has any new change been submitted since then (that is selected
+                // by this workspace).
+
+                String root = "//" + p4workspace.getName() + "/...";
+                List<Integer> changeNumbers = depot.getChanges().getChangeNumbers(root, -1, 2);
+                if (changeNumbers.isEmpty()) {
+                    // Wierd, this shouldn't be!  I suppose it could happen if the
+                    // view selects no files (e.g. //depot/non-existent-branch/...).
+                    // Just in case, let's try to build.
+                    return Boolean.TRUE;
+                }
+                highestSelectedChangeNumber = changeNumbers.get(0).intValue();
+                logger.println("Latest submitted change selected by workspace is " + highestSelectedChangeNumber);
             }
 
-            int highestSelectedChangeNumber = changeNumbers.get(0);
-            logger.println("Latest submitted change selected by workspace is " + highestSelectedChangeNumber);
             if (lastChangeNumber >= highestSelectedChangeNumber) {
                 // Note, can't determine with currently saved info
                 // whether the workspace definition has changed.
