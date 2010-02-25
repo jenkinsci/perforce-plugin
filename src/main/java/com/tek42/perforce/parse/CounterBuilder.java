@@ -35,13 +35,15 @@ public class CounterBuilder implements Builder<Counter> {
 	 * @see com.tek42.perforce.parse.Builder#build(java.lang.StringBuilder)
 	 */
 	public Counter build(StringBuilder sb) throws PerforceException {
-		final Pattern p = Pattern.compile("^([0-9])*", Pattern.DOTALL | Pattern.MULTILINE);
+		final Pattern p = Pattern.compile("^([0-9]+)", Pattern.DOTALL | Pattern.MULTILINE);
 		final Matcher m = p.matcher(sb.toString());
 		final Counter counter = new Counter();
 		counter.setName("");
 		if(m.find()) {
-			counter.setValue(Integer.parseInt(m.group(0).trim()));
-		}
+                    counter.setValue(Integer.parseInt(m.group(0).trim()));
+		} else {
+                    throw new PerforceException("Could not get value of counter!");
+                }
 		return counter;
 	}
 
