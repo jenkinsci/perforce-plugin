@@ -974,9 +974,7 @@ public class PerforceSCM extends SCM {
             String view = Util.fixEmptyAndTrim(value);
             if (view != null) {
                 for (String mapping : view.split("\n")) {
-                    if (!DEPOT_ONLY.matcher(mapping).matches() &&
-                        !DEPOT_AND_WORKSPACE.matcher(mapping).matches() &&
-                        !DEPOT_ONLY_QUOTED.matcher(mapping).matches() &&
+                    if (!DEPOT_AND_WORKSPACE.matcher(mapping).matches() &&
                         !DEPOT_AND_WORKSPACE_QUOTED.matcher(mapping).matches() &&
                         !COMMENT.matcher(mapping).matches())
                         return FormValidation.error("Invalid mapping:" + mapping);
