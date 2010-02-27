@@ -135,6 +135,9 @@ public class Changes extends AbstractPerforceTemplate {
 			cmd = new String[] { getP4Exe(), "changes", path };
 
 		StringBuilder response = getPerforceResponse(cmd);
+                if(hitMax(response)){
+                    throw new PerforceException("Hit perforce server limit while pulling changes: " + response);
+                }
 		List<String> ids = parseList(response, 1);
 		List<Integer> numbers = new ArrayList<Integer>(ids.size());
 		for(String id : ids) {

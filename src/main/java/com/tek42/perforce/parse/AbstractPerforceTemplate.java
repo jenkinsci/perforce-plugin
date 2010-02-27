@@ -60,7 +60,6 @@ public abstract class AbstractPerforceTemplate {
             "Your session has expired, please login again.",
             "You don't have permission for this operation.",
             "Password invalid.",
-            "Request too large"
         };
 
     @SuppressWarnings("unused")

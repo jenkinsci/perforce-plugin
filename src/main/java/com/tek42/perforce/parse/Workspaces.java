@@ -113,10 +113,20 @@ public class Workspaces extends AbstractPerforceTemplate {
 	 * @throws PerforceException
 	 */
 	public StringBuilder syncTo(String path, boolean forceSync) throws PerforceException {
-		if(forceSync)
-			return getPerforceResponse(new String[] { getP4Exe(), "sync", "-f", path });
-		else
-			return getPerforceResponse(new String[] { getP4Exe(), "sync", path });
+		if(forceSync){
+                    StringBuilder response = getPerforceResponse(new String[] { getP4Exe(), "sync", "-f", path });
+                    if(hitMax(response)){
+                        throw new PerforceException("Hit perforce server limit while force syncing: " + response);
+                    }
+                    return response;
+                }
+		else {
+                    StringBuilder response = getPerforceResponse(new String[] { getP4Exe(), "sync", path });
+                    if(hitMax(response)){
+                        throw new PerforceException("Hit perforce server limit while syncing: " + response);
+                    }
+                    return response;
+                }
 	}
 
 	/**
