@@ -398,6 +398,10 @@ public class PerforceSCM extends SCM {
             else {
                 sbMessage.append("changelist ");
                 sbMessage.append(newestChange);
+                if(!forceSync && !alwaysForceSync){
+                    sbSyncPath.append(lastChange);
+                    sbSyncPath.append(",@");
+                }
                 sbSyncPath.append(newestChange);
             }
 
