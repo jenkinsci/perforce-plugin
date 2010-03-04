@@ -323,7 +323,9 @@ public class PerforceSCM extends SCM {
         PrintStream log = listener.getLogger();
 
         //keep projectPath local so any modifications for slaves don't get saved
+
         String projectPath = this.projectPath;
+
         Depot depot = getDepot(launcher,workspace);
 
         // If the 'master' MatrixBuild runs on the same node as any of the 'child' MatrixRuns,
@@ -398,10 +400,6 @@ public class PerforceSCM extends SCM {
             else {
                 sbMessage.append("changelist ");
                 sbMessage.append(newestChange);
-                if(!forceSync && !alwaysForceSync){
-                    sbSyncPath.append(lastChange);
-                    sbSyncPath.append(",@");
-                }
                 sbSyncPath.append(newestChange);
             }
 
