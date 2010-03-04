@@ -53,6 +53,10 @@
         <f:checkbox field="forceSync" value="True"/>
       </f:entry>
 
+      <f:entry title="Always Force Sync">
+        <f:checkbox field="alwaysForceSync" value="True"/>
+      </f:entry>
+
       <f:entry title="First Changelist to Track">
         <f:textbox field="firstChange"
                 checkUrl="'${rootURL}/scm/PerforceSCM/checkChangeList?port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)+'&amp;change='+escape(this.value)"/>

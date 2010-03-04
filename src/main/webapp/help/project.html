@@ -69,6 +69,12 @@
   </p>
   <p>Note: this is reset after it has been applied once.</p>
   <p>
+    <b>Always Force Sync</b>: allows you to tell this plugin to do a 'p4 sync -f //...' which
+    will make sure to pull down ALL files to the workspace, regardless if they have been sync'd
+    before.  Use this to get around problems where the Perforce workspace has become out of sync with
+    the Perforce server.  For most users, you should never need to worry about this.
+  </p>
+  <p>
     <b>First Changelist to Track</b>: allows you to specify the first changelist to start recording build
     history from.  If you are adding an existing project, with lots of history, to Hudson, this will
     prevent out of memory errors and your first build from having thousands of change records.

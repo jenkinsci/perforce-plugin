@@ -92,6 +92,10 @@ public class PerforceSCM extends SCM {
      */
     boolean forceSync = false;
     /**
+     * Always force sync the workspace when running a build
+     */
+    boolean alwaysForceSync = false;
+    /**
      * If true, we will manage the workspace view within the plugin.  If false, we will leave the
      * view alone.
      */
@@ -126,7 +130,7 @@ public class PerforceSCM extends SCM {
     @DataBoundConstructor
     public PerforceSCM(String p4User, String p4Passwd, String p4Client, String p4Port, String projectPath, String projectOptions,
                        String p4Exe, String p4SysRoot, String p4SysDrive, String p4Label, String p4Counter, boolean updateCounterValue,
-                       boolean forceSync, boolean updateView, boolean dontRenameClient, boolean exposeP4Passwd,
+                       boolean forceSync, boolean alwaysForceSync, boolean updateView, boolean dontRenameClient, boolean exposeP4Passwd,
                        int firstChange, PerforceRepositoryBrowser browser) {
 
         this.p4User = p4User;
@@ -196,6 +200,7 @@ public class PerforceSCM extends SCM {
         }
 
         this.forceSync = forceSync;
+        this.alwaysForceSync = alwaysForceSync;
         this.browser = browser;
         this.updateView = updateView;
         this.dontRenameClient = dontRenameClient;
@@ -393,12 +398,10 @@ public class PerforceSCM extends SCM {
             else {
                 sbMessage.append("changelist ");
                 sbMessage.append(newestChange);
-                sbSyncPath.append(lastChange);
-                sbSyncPath.append(",@");
                 sbSyncPath.append(newestChange);
             }
 
-            if (forceSync)
+            if (forceSync || alwaysForceSync)
                 sbMessage.append(" (forcing sync of unchanged files).");
             else
                 sbMessage.append(".");
@@ -408,7 +411,7 @@ public class PerforceSCM extends SCM {
 
             long startTime = System.currentTimeMillis();
 
-            depot.getWorkspaces().syncTo(syncPath, forceSync);
+            depot.getWorkspaces().syncTo(syncPath, forceSync || alwaysForceSync);
 
             long endTime = System.currentTimeMillis();
             long duration = endTime - startTime;
@@ -1290,10 +1293,24 @@ public class PerforceSCM extends SCM {
     }
 
     /**
+     * @return  True if we are performing a one-time force sync
+     */
+    public boolean isAlwaysForceSync() {
+        return alwaysForceSync;
+    }
+
+    /**
      * @param force True to perform a one time force sync, false to perform normal sync
      */
     public void setForceSync(boolean force) {
         this.forceSync = force;
+    }
+
+    /**
+     * @param force True to perform a one time force sync, false to perform normal sync
+     */
+    public void setAlwaysForceSync(boolean force) {
+        this.alwaysForceSync = force;
     }
 
     /**
@@ -1366,8 +1383,9 @@ public class PerforceSCM extends SCM {
     @Override
     public boolean processWorkspaceBeforeDeletion(AbstractProject<?,?> project, FilePath workspace, Node node) {
         Logger.getLogger(PerforceSCM.class.getName()).info(
-                "Veto workspace cleanup");
-        return false;
+            "Workspace is being deleted; enabling one-time force sync.");
+        forceSync = true;
+        return true;
     }
 
     @Override public boolean requiresWorkspaceForPolling() {
