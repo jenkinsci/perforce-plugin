@@ -72,7 +72,7 @@ public class HudsonP4Executor implements Executor {
             writer = new BufferedWriter(new OutputStreamWriter(p4out));
 
             Proc process = hudsonLauncher.launch().cmds(cmd).envs(env).stdin(hudsonIn).stdout(hudsonOut).pwd(filePath).start();
-
+            
             // Required to close hudsonOut stream
             hudsonOut.closeOnProcess(process);
 

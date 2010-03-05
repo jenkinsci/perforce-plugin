@@ -23,6 +23,7 @@ import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Hudson;
+import hudson.model.JobProperty;
 import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -47,6 +48,7 @@ import java.io.StringWriter;
 import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -323,9 +325,8 @@ public class PerforceSCM extends SCM {
         PrintStream log = listener.getLogger();
 
         //keep projectPath local so any modifications for slaves don't get saved
-
-        String projectPath = this.projectPath;
-
+        String projectPath = substituteParameters(this.projectPath, build.getBuildVariables());
+        String p4Label = substituteParameters(this.p4Label, build.getBuildVariables());
         Depot depot = getDepot(launcher,workspace);
 
         // If the 'master' MatrixBuild runs on the same node as any of the 'child' MatrixRuns,
@@ -334,7 +335,7 @@ public class PerforceSCM extends SCM {
         boolean dontChangeRoot = ((Object)build instanceof MatrixBuild);
 
         try {
-            Workspace p4workspace = getPerforceWorkspace(depot, build.getBuiltOn(), launcher, workspace, listener, dontChangeRoot);
+            Workspace p4workspace = getPerforceWorkspace(projectPath, depot, build.getBuiltOn(), launcher, workspace, listener, dontChangeRoot);
 
             if (p4workspace.isNew()) {
                 log.println("Saving new client " + p4workspace.getName());
@@ -540,9 +541,13 @@ public class PerforceSCM extends SCM {
         logger.println("Looking for changes...");
 
         Depot depot = getDepot(launcher,workspace);
-
+        //Currently we are unable to poll for changes if there are parameters in the view
+        if(projectPath.contains("${")){
+            logger.println("Cannot poll for changes on a view that contains parameter substitutions. Aborting.");
+            return false;
+        }
         try {
-            Workspace p4workspace = getPerforceWorkspace(depot, project.getLastBuiltOn(), launcher, workspace, listener, false);
+            Workspace p4workspace = getPerforceWorkspace(projectPath, depot, project.getLastBuiltOn(), launcher, workspace, listener, false);
             if (p4workspace.isNew())
                 return true;
 
@@ -708,7 +713,7 @@ public class PerforceSCM extends SCM {
         return getMostRecentTagAction(build.getPreviousBuild());
     }
 
-    private Workspace getPerforceWorkspace(
+    private Workspace getPerforceWorkspace(String projectPath,
             Depot depot, Node buildNode,
             Launcher launcher, FilePath workspace, TaskListener listener, boolean dontChangeRoot)
         throws IOException, InterruptedException, PerforceException
@@ -1066,6 +1071,15 @@ public class PerforceSCM extends SCM {
             }
         }
         return parsed;
+    }
+
+    static String substituteParameters(String string, Map<String,String> subst) {
+        if(string == null) return null;
+        String newString = new String(string);
+        for (Map.Entry<String,String> entry : subst.entrySet()){
+            newString = newString.replace("${" + entry.getKey() + "}", entry.getValue());
+        }
+        return newString;
     }
 
     /**
