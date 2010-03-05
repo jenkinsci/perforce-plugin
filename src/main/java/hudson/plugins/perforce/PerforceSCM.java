@@ -980,7 +980,7 @@ public class PerforceSCM extends SCM {
         public FormValidation doCheckProjectPath(@QueryParameter String value) throws IOException, ServletException {
             String view = Util.fixEmptyAndTrim(value);
             if (view != null) {
-                for (String mapping : view.split("\n")) {
+                for (String mapping : view.replace("\r","").split("\n")) {
                     if (!DEPOT_ONLY.matcher(mapping).matches() &&
                         !DEPOT_AND_WORKSPACE.matcher(mapping).matches() &&
                         !DEPOT_ONLY_QUOTED.matcher(mapping).matches() &&
