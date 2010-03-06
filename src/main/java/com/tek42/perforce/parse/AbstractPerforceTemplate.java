@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.process.Executor;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides default functionality for interacting with Perforce using the template design pattern.
@@ -76,7 +77,11 @@ public abstract class AbstractPerforceTemplate {
 
     public Logger getLogger()
     {
-        return depot.getLogger();
+        if(depot.getLogger() != null){
+            return depot.getLogger();
+        } else {
+            return LoggerFactory.getLogger(this.getClass());
+        }
     }
 
     /**

@@ -16,6 +16,7 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.List;
 import org.kohsuke.stapler.QueryParameter;
 
 /**
@@ -120,17 +121,12 @@ public class PerforceTagAction extends AbstractScmTagAction {
         label.setName(tag);
         label.setDescription(desc);
         label.setRevision(new Integer(changeNumber).toString());
-        for (String eachView : view.split("\n")) {
-            //Only take the first part of the view, since the label
-            //spec only has one element per line (the depot paths)
-            String newView = "";
-            for(String eachPart : eachView.split(" ")){
-               newView = newView + eachPart;
-               if (!eachPart.endsWith("\\")){
-                   break;
-               }
-            }
-            label.addView(newView);
+
+        //Only take the depot paths and add them to the view.
+        List<String> viewPairs = PerforceSCM.parseProjectPath(view, "workspace");
+        for (int i=0; i < viewPairs.size(); i+=2){    
+            String depotPath = viewPairs.get(i);
+            label.addView(depotPath);
         }
         try {
             depot.getLabels().saveLabel(label);
