@@ -120,6 +120,11 @@ public class PerforceSCM extends SCM {
     boolean exposeP4Passwd = false;
 
     /**
+     * If true, the workspace will be deleted before the checkout commences.
+     */
+    boolean wipeBeforeBuild = false;
+
+    /**
      * If > 0, then will override the changelist we sync to for the first build.
      */
     int firstChange = -1;
@@ -132,7 +137,7 @@ public class PerforceSCM extends SCM {
     @DataBoundConstructor
     public PerforceSCM(String p4User, String p4Passwd, String p4Client, String p4Port, String projectPath, String projectOptions,
                        String p4Exe, String p4SysRoot, String p4SysDrive, String p4Label, String p4Counter, boolean updateCounterValue,
-                       boolean forceSync, boolean alwaysForceSync, boolean updateView, boolean dontRenameClient, boolean exposeP4Passwd,
+                       boolean forceSync, boolean alwaysForceSync, boolean updateView, boolean wipeBeforeBuild, boolean dontRenameClient, boolean exposeP4Passwd,
                        int firstChange, PerforceRepositoryBrowser browser) {
 
         this.p4User = p4User;
@@ -204,6 +209,7 @@ public class PerforceSCM extends SCM {
         this.forceSync = forceSync;
         this.alwaysForceSync = alwaysForceSync;
         this.browser = browser;
+        this.wipeBeforeBuild = wipeBeforeBuild;
         this.updateView = updateView;
         this.dontRenameClient = dontRenameClient;
         this.firstChange = firstChange;
@@ -323,6 +329,16 @@ public class PerforceSCM extends SCM {
             FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
 
         PrintStream log = listener.getLogger();
+
+        if(wipeBeforeBuild){
+            log.println("Clearing workspace...");
+            if(processWorkspaceBeforeDeletion(build.getProject(), workspace, build.getBuiltOn())){
+                workspace.deleteContents();
+                log.println("Cleared workspace.");
+            } else {
+                log.println("Could not clear workspace. See hudson.perforce.PerforceSCM logger for details.");
+            }
+        }
 
         //keep projectPath local so any modifications for slaves don't get saved
         String projectPath = substituteParameters(this.projectPath, build.getBuildVariables());
@@ -1349,6 +1365,20 @@ public class PerforceSCM extends SCM {
      */
     public boolean isDontRenameClient() {
         return dontRenameClient;
+    }
+
+    /**
+     * @return True if the plugin is to delete the workpsace files before building.
+     */
+    public boolean isWipeBeforeBuild() {
+        return wipeBeforeBuild;
+    }
+
+    /**
+     * @param wipeBeforeBuild True if the client is to delete the workspace files before building.
+     */
+    public void setWipeBeforeBuild(boolean wipeBeforeBuild) {
+        this.wipeBeforeBuild = wipeBeforeBuild;
     }
 
     /**

@@ -40,6 +40,10 @@
         <f:checkbox field="updateView" default="true" value="True"/>
       </f:entry>
 
+      <f:entry title="Clean Workspace Before Each Build" help="/plugin/perforce/help/wipeBeforeBuild.html">
+        <f:checkbox field="wipeBeforeBuild" default="false" value="False"/>
+      </f:entry>
+
       <f:entry title="View" help="/plugin/perforce/help/projectPath.html">
         <f:textarea field="projectPath"/>
       </f:entry>
