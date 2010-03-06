@@ -1,0 +1,18 @@
+<div>
+  <p>
+    <b>Views</b>: This is the depot to client mapping in the same depot-client pair format as a
+    standard Perforce workspace spec, with a couple of handy shortcuts added: the workspace name
+    provided in the second of each pair is not actually used--the actual workspace name is always
+    substituted. And, the second member of any pair may be ommitted which will result in an
+    identity mapping being used. ie, //depot/test/subdir/... will map to //workspace/test/subdir/...<br/>
+    If "Let Hudson Manage Workspace View" is checked the view entered here will overwrite the view
+    in the existing client.
+  </p>
+  <p>
+    Typical examples that have the same meaning:<br>
+    //depot/folder/... //workspace-name/folder/...<br>
+    //depot/folder/... //anyplaceholder/folder/...<br>
+    //depot/folder/...<br>
+  </p>
+  <p><b>Note:</b>Parameter substitution of the form ${parametername} can be used anywhere in the view spec to substitute job parameters. However, polling will be disabled if you use these parameters in any part of the view spec.</p>
+</div>

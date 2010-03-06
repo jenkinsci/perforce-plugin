@@ -29,35 +29,35 @@
     </table>
   </f:entry>
 
-  <f:entry title="Project Details" help="/plugin/perforce/help/project.html">
+  <f:entry title="Project Details">
     <table width="100%">
-      <f:entry title="Workspace (client)">
+      <f:entry title="Workspace (client)" help="/plugin/perforce/help/p4Client.html">
         <f:textbox field="p4Client" id="p4Client"
                 checkUrl="'${rootURL}/scm/PerforceSCM/validateP4Client?port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)+'&amp;client='+escape(document.forms[1].p4Client.value)"/>
       </f:entry>
 
-      <f:entry title="Let Hudson Manage Workspace View">
+      <f:entry title="Let Hudson Manage Workspace View" help="/plugin/perforce/help/updateView.html">
         <f:checkbox field="updateView" default="true" value="True"/>
       </f:entry>
 
-      <f:entry title="View">
+      <f:entry title="View" help="/plugin/perforce/help/projectPath.html">
         <f:textarea field="projectPath"/>
       </f:entry>
 
-      <f:entry title="Options">
+      <f:entry title="Options" help="/plugin/perforce/help/projectOptions.html">
         <f:textbox field="projectOptions" default="noallwrite clobber nocompress unlocked nomodtime rmdir"
              value="${instance.projectOptions}" />
       </f:entry>
 
-      <f:entry title="One Time Force Sync">
+      <f:entry title="One Time Force Sync" help="/plugin/perforce/help/forceSync.html">
         <f:checkbox field="forceSync" value="True"/>
       </f:entry>
 
-      <f:entry title="Always Force Sync">
+      <f:entry title="Always Force Sync" help="/plugin/perforce/help/alwaysForceSync.html">
         <f:checkbox field="alwaysForceSync" value="True"/>
       </f:entry>
 
-      <f:entry title="First Changelist to Track">
+      <f:entry title="First Changelist to Track" help="/plugin/perforce/help/firstChange.html">
         <f:textbox field="firstChange"
                 checkUrl="'${rootURL}/scm/PerforceSCM/checkChangeList?port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)+'&amp;change='+escape(this.value)"/>
       </f:entry>
