@@ -18,6 +18,7 @@ import hudson.FilePath.FileCallable;
 import hudson.Launcher;
 import static hudson.Util.fixNull;
 import hudson.matrix.MatrixBuild;
+import hudson.matrix.MatrixRun;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -345,13 +346,15 @@ public class PerforceSCM extends SCM {
         String p4Label = substituteParameters(this.p4Label, build.getBuildVariables());
         Depot depot = getDepot(launcher,workspace);
 
-        // If the 'master' MatrixBuild runs on the same node as any of the 'child' MatrixRuns,
-        // and it syncs to its own root, then the child's workspace won't get updated.
-        // http://bugs.sun.com/view_bug.do?bug_id=6548436  (bug 1022)
-        boolean dontChangeRoot = ((Object)build instanceof MatrixBuild);
+        //always force sync when doing a Matrix Build so we don't have to create
+        //a workspace for every combination. (which would result in hundreds of workspaces.)
+        if((Object)build instanceof MatrixBuild || (Object)build instanceof MatrixRun){
+            log.println("This is a matrix build; Using force sync.");
+            forceSync = true;
+        }
 
         try {
-            Workspace p4workspace = getPerforceWorkspace(projectPath, depot, build.getBuiltOn(), launcher, workspace, listener, dontChangeRoot);
+            Workspace p4workspace = getPerforceWorkspace(projectPath, depot, build.getBuiltOn(), launcher, workspace, listener, false);
 
             if (p4workspace.isNew()) {
                 log.println("Saving new client " + p4workspace.getName());
