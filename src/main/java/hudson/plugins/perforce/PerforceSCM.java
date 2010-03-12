@@ -835,13 +835,8 @@ public class PerforceSCM extends SCM {
         String p4Client = this.p4Client;
 
         if (nodeIsRemote(buildNode) && !dontRenameClient) {
-            //use the 1st part of the hostname as the node suffix
-            String host = workspace.act(new GetHostname());
-            if (host.contains(".")) {
-                nodeSuffix = "-" + host.subSequence(0, host.indexOf('.'));
-            } else {
-                nodeSuffix = "-" + host;
-            }
+            //use hashcode of the nodename to get a unique, slave-specific client name
+            nodeSuffix = "-" + String.valueOf(buildNode.getNodeName().hashCode());
             p4Client += nodeSuffix;
         }
         return p4Client;
