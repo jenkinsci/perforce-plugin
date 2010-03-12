@@ -356,14 +356,9 @@ public class PerforceSCM extends SCM {
         try {
             Workspace p4workspace = getPerforceWorkspace(projectPath, depot, build.getBuiltOn(), launcher, workspace, listener, false);
 
-            if (p4workspace.isNew()) {
-                log.println("Saving new client " + p4workspace.getName());
-                depot.getWorkspaces().saveWorkspace(p4workspace);
-            }
-            else if (p4workspace.isDirty()) {
-                log.println("Saving modified client " + p4workspace.getName());
-                depot.getWorkspaces().saveWorkspace(p4workspace);
-            }
+            
+
+            saveWorkspaceIfDirty(depot, p4workspace, log);
 
             //Get the list of changes since the last time we looked...
             String p4WorkspacePath = "//" + p4workspace.getName() + "/...";
@@ -570,6 +565,8 @@ public class PerforceSCM extends SCM {
             if (p4workspace.isNew())
                 return true;
 
+            saveWorkspaceIfDirty(depot, p4workspace, logger);
+            
             Boolean needToBuild = needToBuild(p4workspace, project, depot, logger);
             if (needToBuild == null) {
                 needToBuild = wouldSyncChangeWorkspace(project, depot, logger);
@@ -853,6 +850,16 @@ public class PerforceSCM extends SCM {
 
     private boolean nodeIsRemote(Node buildNode) {
         return buildNode != null && buildNode.getNodeName().length() != 0;
+    }
+
+    private void saveWorkspaceIfDirty(Depot depot, Workspace p4workspace, PrintStream log) throws PerforceException {
+        if (p4workspace.isNew()) {
+            log.println("Saving new client " + p4workspace.getName());
+            depot.getWorkspaces().saveWorkspace(p4workspace);
+        } else if (p4workspace.isDirty()) {
+            log.println("Saving modified client " + p4workspace.getName());
+            depot.getWorkspaces().saveWorkspace(p4workspace);
+        }
     }
 
     @Extension
