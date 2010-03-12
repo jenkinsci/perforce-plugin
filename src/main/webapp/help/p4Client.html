@@ -4,18 +4,18 @@
     specified does not exist, Hudson will create it. <br>
   </p>
   <p>
-    <b>Important Note</b>: Hudson will likely change the root of this workspace to fit Hudson's
+    <b>Important Note</b>: Hudson will likely change the root and host of this workspace to fit Hudson's
     installation.  That means Hudson also automatically creates a workspace for each slave on every
     project.  The hostname of the slave is appended to the end of the given workspace name to ensure
     that all workspaces are unique and don't collide across machines. <br>
   </p>
   <p>
-    <b>Important Note</b>: If two jobs retrieve the same file into their workspace, these jobs must
-    use a unique Perforce workspace. The reason is otherwise the Perforce server will lose track of the actual
-    contents of the workspaces, leading to inaccurate workspace file versions.  For example, if job1
-    and job2 use the same Perforce workspace, and both include file1, when the file1 is changed, a
-    Perforce 'get latest' will only retrieve file1 into the first job (e.g. job1) that builds, it will
-    not be retrieved into job2 unless you do a 'One Time Force Sync'.<br>
+    <b>Important Note</b>: Each job needs to use it's own unique workspace. Perforce keeps track of what
+    files are synced into each workspace, so reusing a workspace could result in files not being properly
+    synced down before a build runs. Additionally, if a workspace is used in multiple jobs, the possibility
+    exists that hudson may change the workspace spec while another job that uses it is syncing or polling. This
+    will result in odd behavior that's difficult to debug. Only reuse a client workspace if you absolutely 
+    know what you are doing!<br>
   </p>
   <p>
     <b>Important Note</b>: When Hudson creates a workspace, the workspace will contain only one
