@@ -89,6 +89,10 @@
       <f:checkbox field="dontRenameClient" default="false" />
     </f:entry>
 
+    <f:entry title="Don't update client workspace" help="/plugin/perforce/help/dontUpdateClient.html">
+      <f:checkbox field="dontUpdateClient" default="false" />
+    </f:entry>
+
     <f:entry title="Windows Specific Details" help="/plugin/perforce/help/windows.html">
       <table width="100%">
         <f:entry title="System Drive">

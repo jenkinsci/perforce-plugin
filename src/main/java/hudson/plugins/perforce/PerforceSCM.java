@@ -116,6 +116,10 @@ public class PerforceSCM extends SCM {
      */
     boolean updateCounterValue = false;
     /**
+     * If true, we will never update the client workspace spec on the perforce server.
+     */
+    boolean dontUpdateClient = false;
+    /**
      * If true the environment value P4PASSWD will be set to the value of p4Passwd.
      */
     boolean exposeP4Passwd = false;
@@ -136,10 +140,29 @@ public class PerforceSCM extends SCM {
     private String p4Ticket = null;
 
     @DataBoundConstructor
-    public PerforceSCM(String p4User, String p4Passwd, String p4Client, String p4Port, String projectPath, String projectOptions,
-                       String p4Exe, String p4SysRoot, String p4SysDrive, String p4Label, String p4Counter, boolean updateCounterValue,
-                       boolean forceSync, boolean alwaysForceSync, boolean updateView, boolean wipeBeforeBuild, boolean dontRenameClient, boolean exposeP4Passwd,
-                       int firstChange, PerforceRepositoryBrowser browser) {
+    public PerforceSCM(
+            String p4User,
+            String p4Passwd,
+            String p4Client,
+            String p4Port,
+            String projectPath,
+            String projectOptions,
+            String p4Exe,
+            String p4SysRoot,
+            String p4SysDrive,
+            String p4Label,
+            String p4Counter,
+            boolean updateCounterValue,
+            boolean forceSync,
+            boolean alwaysForceSync,
+            boolean updateView,
+            boolean wipeBeforeBuild,
+            boolean dontRenameClient,
+            boolean dontUpdateClient,
+            boolean exposeP4Passwd,
+            int firstChange,
+            PerforceRepositoryBrowser browser
+            ) {
 
         this.p4User = p4User;
         this.setP4Passwd(p4Passwd);
@@ -213,6 +236,7 @@ public class PerforceSCM extends SCM {
         this.wipeBeforeBuild = wipeBeforeBuild;
         this.updateView = updateView;
         this.dontRenameClient = dontRenameClient;
+        this.dontUpdateClient = dontUpdateClient;
         this.firstChange = firstChange;
     }
 
@@ -848,6 +872,10 @@ public class PerforceSCM extends SCM {
     }
 
     private void saveWorkspaceIfDirty(Depot depot, Workspace p4workspace, PrintStream log) throws PerforceException {
+        if (dontUpdateClient) {
+            log.println("'Don't update client' is set. Not saving the client changes.");
+            return;
+        }
         if (p4workspace.isNew()) {
             log.println("Saving new client " + p4workspace.getName());
             depot.getWorkspaces().saveWorkspace(p4workspace);
@@ -1384,6 +1412,14 @@ public class PerforceSCM extends SCM {
      */
     public void setWipeBeforeBuild(boolean wipeBeforeBuild) {
         this.wipeBeforeBuild = wipeBeforeBuild;
+    }
+
+    public boolean isDontUpdateClient() {
+        return dontUpdateClient;
+    }
+
+    public void setDontUpdateClient(boolean dontUpdateClient) {
+        this.dontUpdateClient = dontUpdateClient;
     }
 
     /**
