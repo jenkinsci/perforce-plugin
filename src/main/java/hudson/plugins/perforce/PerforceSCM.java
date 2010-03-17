@@ -99,6 +99,14 @@ public class PerforceSCM extends SCM {
      */
     boolean alwaysForceSync = false;
     /**
+     * Disable Workspace pre-build automatic sync
+     */
+    boolean disableAutoSync = false;
+    /**
+     * This is to allow the client to use the old naming scheme
+     */
+    boolean useOldClientName = false;
+    /**
      * If true, we will manage the workspace view within the plugin.  If false, we will leave the
      * view alone.
      */
@@ -139,6 +147,12 @@ public class PerforceSCM extends SCM {
      */
     private String p4Ticket = null;
 
+    /**
+     * We need to store the changelog file name for the build so that we can expose
+     * it to the build environment
+     */
+    private String changelogFilename = null;
+
     @DataBoundConstructor
     public PerforceSCM(
             String p4User,
@@ -156,9 +170,11 @@ public class PerforceSCM extends SCM {
             boolean forceSync,
             boolean alwaysForceSync,
             boolean updateView,
+            boolean disableAutoSync,
             boolean wipeBeforeBuild,
             boolean dontRenameClient,
             boolean dontUpdateClient,
+            boolean useOldClientName,
             boolean exposeP4Passwd,
             int firstChange,
             PerforceRepositoryBrowser browser
@@ -232,11 +248,13 @@ public class PerforceSCM extends SCM {
 
         this.forceSync = forceSync;
         this.alwaysForceSync = alwaysForceSync;
+        this.disableAutoSync = disableAutoSync;
         this.browser = browser;
         this.wipeBeforeBuild = wipeBeforeBuild;
         this.updateView = updateView;
         this.dontRenameClient = dontRenameClient;
         this.dontUpdateClient = dontUpdateClient;
+        this.useOldClientName = useOldClientName;
         this.firstChange = firstChange;
     }
 
@@ -310,6 +328,11 @@ public class PerforceSCM extends SCM {
                 env.put("P4_LABEL", label);
             }
         }
+
+        if(null != changelogFilename)
+        {
+            env.put("HUDSON_CHANGELOG_FILE", changelogFilename);
+        }
     }
 
     /**
@@ -354,6 +377,7 @@ public class PerforceSCM extends SCM {
             FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
 
         PrintStream log = listener.getLogger();
+        changelogFilename = changelogFile.getAbsolutePath();
 
         if(wipeBeforeBuild){
             log.println("Clearing workspace...");
@@ -389,41 +413,45 @@ public class PerforceSCM extends SCM {
             final int lastChange = getLastChange((Run)build.getPreviousBuild());
             log.println("Last sync'd change: " + lastChange);
 
-            List<Changelist> changes;
             int newestChange = lastChange;
-            if (p4Label != null) {
-                changes = new ArrayList<Changelist>(0);
-            } else {
-                String counterName;
-                if (p4Counter != null && !updateCounterValue)
-                    counterName = p4Counter;
-                else
-                    counterName = "change";
-
-                Counter counter = depot.getCounters().getCounter(counterName);
-                newestChange = counter.getValue();
-
-                if (lastChange >= newestChange) {
+            
+            if(disableAutoSync)
+            {
+                List<Changelist> changes;
+                if (p4Label != null) {
                     changes = new ArrayList<Changelist>(0);
                 } else {
-                    List<Integer> changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange);
-                    changes = depot.getChanges().getChangelistsFromNumbers(changeNumbersTo);
-                }
-            }
+                    String counterName;
+                    if (p4Counter != null && !updateCounterValue)
+                        counterName = p4Counter;
+                    else
+                        counterName = "change";
 
-            if (changes.size() > 0) {
-                // Save the changes we discovered.
-                PerforceChangeLogSet.saveToChangeLog(
-                        new FileOutputStream(changelogFile), changes);
-                newestChange = changes.get(0).getChangeNumber();
-            }
-            else {
-                // No new changes discovered (though the definition of the workspace or label may have changed).
-                createEmptyChangeLog(changelogFile, listener, "changelog");
-                // keep the newestChange to the same value except when changing
-                // definitions from label builds to counter builds
-                if (lastChange != -1)
-                    newestChange = lastChange;
+                    Counter counter = depot.getCounters().getCounter(counterName);
+                    newestChange = counter.getValue();
+
+                    if (lastChange >= newestChange) {
+                        changes = new ArrayList<Changelist>(0);
+                    } else {
+                        List<Integer> changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange);
+                        changes = depot.getChanges().getChangelistsFromNumbers(changeNumbersTo);
+                    }
+                }
+
+                if (changes.size() > 0) {
+                    // Save the changes we discovered.
+                    PerforceChangeLogSet.saveToChangeLog(
+                            new FileOutputStream(changelogFile), changes);
+                    newestChange = changes.get(0).getChangeNumber();
+                }
+                else {
+                    // No new changes discovered (though the definition of the workspace or label may have changed).
+                    createEmptyChangeLog(changelogFile, listener, "changelog");
+                    // keep the newestChange to the same value except when changing
+                    // definitions from label builds to counter builds
+                    if (lastChange != -1)
+                        newestChange = lastChange;
+                }
             }
 
             // Now we can actually do the sync process...
@@ -452,7 +480,10 @@ public class PerforceSCM extends SCM {
 
             long startTime = System.currentTimeMillis();
 
-            depot.getWorkspaces().syncTo(syncPath, forceSync || alwaysForceSync);
+            if(!disableAutoSync)
+            {
+                depot.getWorkspaces().syncTo(syncPath, forceSync || alwaysForceSync);
+            }
 
             long endTime = System.currentTimeMillis();
             long duration = endTime - startTime;
@@ -859,9 +890,22 @@ public class PerforceSCM extends SCM {
         String p4Client = this.p4Client;
 
         if (nodeIsRemote(buildNode) && !dontRenameClient) {
-            //use hashcode of the nodename to get a unique, slave-specific client name
-            nodeSuffix = "-" + String.valueOf(buildNode.getNodeName().hashCode());
-            p4Client += nodeSuffix;
+            if(useOldClientName)
+            {
+                //use the 1st part of the hostname as the node suffix
+                String host = workspace.act(new GetHostname());
+                if (host.contains(".")) {
+                nodeSuffix = "-" + host.subSequence(0, host.indexOf('.'));
+                } else {
+                nodeSuffix = "-" + host;
+                }
+            }
+            else
+            {
+                //use hashcode of the nodename to get a unique, slave-specific client name
+                nodeSuffix = "-" + String.valueOf(buildNode.getNodeName().hashCode());
+                p4Client += nodeSuffix;
+            }
         }
         return p4Client;
     }
@@ -1365,6 +1409,20 @@ public class PerforceSCM extends SCM {
     }
 
     /**
+     * @return True if auto sync is disabled
+     */
+    public boolean isDisableAutoSync() {
+        return disableAutoSync;
+    }
+
+    /**
+     * @return True if we are using the old style client names
+     */
+    public boolean isUseOldClientName() {
+        return this.useOldClientName;
+    }
+
+    /**
      * @param force True to perform a one time force sync, false to perform normal sync
      */
     public void setForceSync(boolean force) {
@@ -1376,6 +1434,20 @@ public class PerforceSCM extends SCM {
      */
     public void setAlwaysForceSync(boolean force) {
         this.alwaysForceSync = force;
+    }
+
+    /**
+     * @param disable True to disable the pre-build sync, false to perform pre-build sync
+     */
+    public void setDisableAutoSync(boolean disable) {
+        this.disableAutoSync = disable;
+    }
+
+    /**
+     * @param use True to use the old style client names, false to use the new style
+     */
+    public void setUseOldClientName(boolean use) {
+        this.useOldClientName = use;
     }
 
     /**

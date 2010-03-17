@@ -61,6 +61,10 @@
         <f:checkbox field="alwaysForceSync" value="True"/>
       </f:entry>
 
+      <f:entry title="Disable Auto Sync" help="/plugin/perforce/help/alwaysForceSync.html">
+        <f:checkbox field="disableAutoSync" value="False"/>
+      </f:entry>
+
       <f:entry title="First Changelist to Track" help="/plugin/perforce/help/firstChange.html">
         <f:textbox field="firstChange"
                 checkUrl="'${rootURL}/scm/PerforceSCM/checkChangeList?port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)+'&amp;change='+escape(this.value)"/>
@@ -91,6 +95,10 @@
 
     <f:entry title="Don't update client workspace" help="/plugin/perforce/help/dontUpdateClient.html">
       <f:checkbox field="dontUpdateClient" default="false" />
+    </f:entry>
+
+    <f:entry title="Use old style client names" help="/plugin/perforce/help/useOldClientName.html">
+      <f:checkbox field="useOldClientName" default="true" />
     </f:entry>
 
     <f:entry title="Windows Specific Details" help="/plugin/perforce/help/windows.html">
