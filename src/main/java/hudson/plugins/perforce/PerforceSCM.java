@@ -50,6 +50,7 @@ import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +73,6 @@ public class PerforceSCM extends SCM {
     String p4Port;
     String p4Client;
     String projectPath;
-    /* This is better for build than original options: noallwrite noclobber nocompress unlocked nomodtime normdir */
     String projectOptions;
     String p4Label;
     String p4Counter;
@@ -104,7 +104,9 @@ public class PerforceSCM extends SCM {
     boolean disableAutoSync = false;
     /**
      * This is to allow the client to use the old naming scheme
+     * @deprecated As of 1.0.25, replaced by {@link #clientSuffixType}
      */
+    @Deprecated
     boolean useOldClientName = false;
     /**
      * If true, we will manage the workspace view within the plugin.  If false, we will leave the
@@ -115,7 +117,9 @@ public class PerforceSCM extends SCM {
      * If false we add the slave hostname to the end of the client name when
      * running on a slave.  Defaulting to true so as not to change the behavior
      * for existing users.
+     * @deprecated As of 1.0.25, replaced by {@link #clientSuffixType}
      */
+    @Deprecated
     boolean dontRenameClient = true;
     /**
      * If true we update the named counter to the last changelist value after the sync operation.
@@ -148,6 +152,15 @@ public class PerforceSCM extends SCM {
     private String p4Ticket = null;
 
     /**
+     * Determines what to append to the end of the client workspace names on slaves
+     * Possible values:
+     *  None
+     *  Hostname
+     *  Hash
+     */
+    String slaveClientNameFormat = null;
+
+    /**
      * We need to store the changelog file name for the build so that we can expose
      * it to the build environment
      */
@@ -172,10 +185,9 @@ public class PerforceSCM extends SCM {
             boolean updateView,
             boolean disableAutoSync,
             boolean wipeBeforeBuild,
-            boolean dontRenameClient,
             boolean dontUpdateClient,
-            boolean useOldClientName,
             boolean exposeP4Passwd,
+            String slaveClientNameFormat,
             int firstChange,
             PerforceRepositoryBrowser browser
             ) {
@@ -252,10 +264,11 @@ public class PerforceSCM extends SCM {
         this.browser = browser;
         this.wipeBeforeBuild = wipeBeforeBuild;
         this.updateView = updateView;
-        this.dontRenameClient = dontRenameClient;
         this.dontUpdateClient = dontUpdateClient;
-        this.useOldClientName = useOldClientName;
+        this.slaveClientNameFormat = slaveClientNameFormat;
         this.firstChange = firstChange;
+        this.dontRenameClient = false;
+        this.useOldClientName = false;
     }
 
     /**
@@ -329,7 +342,7 @@ public class PerforceSCM extends SCM {
             }
         }
 
-        if(null != changelogFilename)
+        if(changelogFilename != null)
         {
             env.put("HUDSON_CHANGELOG_FILE", changelogFilename);
         }
@@ -415,7 +428,7 @@ public class PerforceSCM extends SCM {
 
             int newestChange = lastChange;
             
-            if(disableAutoSync)
+            if(!disableAutoSync)
             {
                 List<Changelist> changes;
                 if (p4Label != null) {
@@ -889,27 +902,37 @@ public class PerforceSCM extends SCM {
         String nodeSuffix = "";
         String p4Client = this.p4Client;
 
-        if (nodeIsRemote(buildNode) && !dontRenameClient) {
-            if(useOldClientName)
-            {
-                //use the 1st part of the hostname as the node suffix
-                String host = workspace.act(new GetHostname());
-                if (host.contains(".")) {
-                nodeSuffix = "-" + host.subSequence(0, host.indexOf('.'));
-                } else {
-                nodeSuffix = "-" + host;
-                }
+        if (nodeIsRemote(buildNode) && !getSlaveClientNameFormat().equals("")) {
+            String host = workspace.act(new GetHostname());
+            if (host.contains(".")) {
+                host = String.valueOf(host.subSequence(0, host.indexOf('.')));
             }
-            else
-            {
-                //use hashcode of the nodename to get a unique, slave-specific client name
-                nodeSuffix = "-" + String.valueOf(buildNode.getNodeName().hashCode());
-                p4Client += nodeSuffix;
-            }
+            //use hashcode of the nodename to get a unique, slave-specific client name
+            String hash = String.valueOf(buildNode.getNodeName().hashCode());
+
+            Map<String, String> substitutions = new Hashtable<String,String>();
+            substitutions.put("hostname", host);
+            substitutions.put("hash", hash);
+            substitutions.put("basename", this.p4Client);
+
+            p4Client = substituteParameters(getSlaveClientNameFormat(), substitutions);
         }
         return p4Client;
     }
 
+    public String getSlaveClientNameFormat() {
+        if(this.slaveClientNameFormat == null){
+            if(this.dontRenameClient){
+                slaveClientNameFormat = "${basename}";
+            } else if(this.useOldClientName) {
+                slaveClientNameFormat = "${basename}-${hostname}";
+            } else {
+                //Hash should be the new default
+                slaveClientNameFormat = "${basename}-${hash}";
+            }
+        }
+        return slaveClientNameFormat;
+    }
 
     private boolean nodeIsRemote(Node buildNode) {
         return buildNode != null && buildNode.getNodeName().length() != 0;
@@ -1477,6 +1500,13 @@ public class PerforceSCM extends SCM {
      */
     public boolean isWipeBeforeBuild() {
         return wipeBeforeBuild;
+    }
+
+    /**
+     * @param clientFormat A string defining the format of the client name for slave workspaces.
+     */
+    public void setSlaveClientNameFormat(String clientFormat){
+        this.slaveClientNameFormat = clientFormat;
     }
 
     /**

@@ -1,0 +1,14 @@
+<div>
+  <p>
+	In order for slaves to sync correctly, a different client workspace needs to be used for each. This box configures the client name that is used for the slaves.
+  </p>
+  <p>
+    Supported tokens are:
+<ul>
+<li>${basename} - The client name as configured in the above section</li>
+<li>${hostname} - The hostname of the slave</li>
+<li>${hash} - The hash code of the slave name</li>
+</ul>
+  </p>
+  <p>The recommended default value is "${basename}-${hash}" (without quotes).</p>
+</div>
