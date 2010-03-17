@@ -921,7 +921,7 @@ public class PerforceSCM extends SCM {
     }
 
     public String getSlaveClientNameFormat() {
-        if(this.slaveClientNameFormat == null){
+        if(this.slaveClientNameFormat == null || this.slaveClientNameFormat.equals("")){
             if(this.dontRenameClient){
                 slaveClientNameFormat = "${basename}";
             } else if(this.useOldClientName) {

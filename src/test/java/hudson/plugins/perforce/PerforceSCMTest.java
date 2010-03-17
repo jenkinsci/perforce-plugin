@@ -22,7 +22,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", "pass", "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", false, true, true, true, false, 
-                        true, true, true, false, false, 0, browser);
+                        true, false, false, "${basename}", 0, browser);
         project.setScm(scm);
 
         // config roundtrip
@@ -30,7 +30,7 @@ public class PerforceSCMTest extends HudsonTestCase {
 
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
-                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontRenameClient,dontUpdateClient,updateView,firstChange,p4Counter,updateCounterValue,exposeP4Passwd");
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,firstChange,p4Counter,updateCounterValue,exposeP4Passwd");
         //assertEqualBeans(scm.getBrowser(),p.getScm().getBrowser(),"URL");
     }
 
@@ -41,7 +41,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", false, true, true, true, false,
-                        true, true, true, false, false, 0, browser);
+                        true, false, false, "${basename}", 0, browser);
         project.setScm(scm);
 
         // config roundtrip
@@ -49,7 +49,7 @@ public class PerforceSCMTest extends HudsonTestCase {
 
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
-                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontRenameClient,dontUpdateClient,updateView,firstChange,p4Counter,updateCounterValue,exposeP4Passwd");
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,firstChange,p4Counter,updateCounterValue,exposeP4Passwd");
 
         PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
         String encryptedPassword = encryptor.encryptString(password);
@@ -63,7 +63,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", false, true, true, true, false,
-                        true, true, true, false, false, 0, browser);
+                        true, false, false, "${basename}", 0, browser);
 
         project.setScm(scm);
         
@@ -77,7 +77,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", false, true, true, true, false,
-                        true, true, true, false, false, 0, browser);
+                        true, false, false, "${basename}", 0, browser);
         project.setScm(scm);
 
         // config roundtrip
@@ -86,7 +86,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
-                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontRenameClient,dontUpdateClient,updateView,firstChange,p4Counter,updateCounterValue,exposeP4Passwd");
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,firstChange,p4Counter,updateCounterValue,exposeP4Passwd");
 
         PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
         String encryptedPassword = encryptor.encryptString(password);
