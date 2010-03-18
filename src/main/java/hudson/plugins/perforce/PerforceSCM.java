@@ -671,7 +671,10 @@ public class PerforceSCM extends SCM {
         Run lastBuild = project.getLastBuild();
         if (lastBuild == null) {
             logger.println("No previous build exists.");
-            return null;    // Unable to determine if there are changes.
+            //Don't trigger a build when the job has never run,
+            //this is to prevent the build from triggering while configuring
+            //a job that has been duplicated from another.
+            return Boolean.FALSE;
         }
 
         PerforceTagAction action = lastBuild.getAction(PerforceTagAction.class);
