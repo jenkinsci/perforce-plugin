@@ -16,7 +16,7 @@
 			<div class="changeset-message" style="width: 650px; margin-bottom: 4px;">
 				<a name="detail${loop.index}"></a>
 				<img src="${rootURL}/plugin/perforce/icons/changelist.gif" border="0" style="vertical-align: middle"/>
-				<b>${entry.change.changeNumber}</b> by <a href="${rootURL}/${entry.author.url}/">${entry.author}@${entry.change.workspace}</a> 
+				<b><a href="${browser.getChangeSetLink(entry)}">${entry.change.changeNumber}</a></b> by <a href="${rootURL}/${entry.author.url}/">${entry.author}@${entry.change.workspace}</a>
 				on <i:formatDate value="${entry.change.date}" type="both" dateStyle="medium" timeStyle="medium"/>
 				<br/>
 				${entry.msgAnnotated}

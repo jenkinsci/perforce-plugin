@@ -36,6 +36,7 @@ public class P4Web extends PerforceRepositoryBrowser {
 	// 'ac' stands for action and corresponds to a unique screen in P4Web
 	public final String p4WebEndShite = "?ac=22";	// The file contents screen
     public final String p4DifEndShite = "?ac=19";	// The file comparison screen (diff)
+    public final String p4ClEndShite = "?ac=10";        // The CL screen
     
     @DataBoundConstructor
     public P4Web(URL url) throws MalformedURLException {
@@ -59,14 +60,9 @@ public class P4Web extends PerforceRepositoryBrowser {
         return new URL(url.toString() + file.getFilename() + p4WebEndShite);
     }
 
-    /**
-     * P4 Web doesn't have a pretty view for changelists.  In fact, the one implemented
-     * for hudson is more informative and better looking.  Sheesh!
-     */
     @Override
     public URL getChangeSetLink(PerforceChangeLogEntry changeSet) throws IOException {
-    	// Like the man says, we ain't showing you jack!
-        return null;
+        return new URL(url.toString() + changeSet.getChange().getChangeNumber() + p4ClEndShite);
     }
     
     public URL getURL() {
@@ -96,8 +92,8 @@ public class P4Web extends PerforceRepositoryBrowser {
                     if(!host.endsWith("/")) 
                     	host += '/';
                     
-                    if(!host.startsWith("http://")) {
-                        return FormValidation.errorWithMarkup("The URL should contain <tt>http://</tt>");
+                    if(!host.startsWith("http://") && !host.startsWith("https://")) {
+                        return FormValidation.errorWithMarkup("The URL should contain <tt>http://</tt> or <tt>https://</tt>");
                     }
                     /**
                      * We need a base64 encoder in order to do authentication.
