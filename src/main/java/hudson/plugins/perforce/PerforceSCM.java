@@ -886,7 +886,13 @@ public class PerforceSCM extends SCM {
         String p4Client = this.p4Client;
 
         if (nodeIsRemote(buildNode) && !getSlaveClientNameFormat().equals("")) {
-            String host = workspace.act(new GetHostname());
+            String host = "UNKNOWNHOST";
+            try{
+                host = workspace.act(new GetHostname());
+            } catch (Exception e) {
+                LOGGER.warning("Could not get hostname for slave " + buildNode.getDisplayName());
+            }
+
             if (host.contains(".")) {
                 host = String.valueOf(host.subSequence(0, host.indexOf('.')));
             }
