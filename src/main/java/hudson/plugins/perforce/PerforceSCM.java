@@ -366,7 +366,7 @@ public class PerforceSCM extends SCM {
         // It seems there is a /./ to denote the root in the path on my test instance.
         // I don't know if this is in production, or how it works on other platforms (non win32)
         // but I am removing it here because perforce doesn't like it.
-        uriString = uriString.replaceAll("/./", "/");
+        uriString = uriString.replaceAll("/\\./", "/");
         // The URL is also escaped.  We need to unescape it because %20 in path names isn't cool for perforce.
         uriString = URLDecoder.decode(uriString, "UTF-8");
 
