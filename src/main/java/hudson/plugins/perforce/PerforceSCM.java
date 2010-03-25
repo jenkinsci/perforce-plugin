@@ -359,27 +359,7 @@ public class PerforceSCM extends SCM {
      * @throws InterruptedException
      */
     private String getLocalPathName(FilePath path, boolean isUnix) throws IOException, InterruptedException {
-        String uriString = path.toURI().toString();
-        // Get rid of URI prefix
-        // NOTE: this won't handle remote files, is that a problem?
-        uriString = uriString.replaceAll("file:/", "");
-        // It seems there is a /./ to denote the root in the path on my test instance.
-        // I don't know if this is in production, or how it works on other platforms (non win32)
-        // but I am removing it here because perforce doesn't like it.
-        uriString = uriString.replaceAll("/\\./", "/");
-        // The URL is also escaped.  We need to unescape it because %20 in path names isn't cool for perforce.
-        uriString = URLDecoder.decode(uriString, "UTF-8");
-
-        // Last but not least, we need to convert this to local path separators.
-        if (isUnix) {
-            // on unixen we need to prepend with /
-            uriString = "/" + uriString;
-        } else {
-            //just replace with sep doesn't work because java's foobar regexp replaceAll
-            uriString = uriString.replaceAll("/", "\\\\");
-        }
-
-        return uriString;
+        return path.getRemote();
     }
 
     /*
