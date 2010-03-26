@@ -75,6 +75,14 @@
   <t:listScmBrowsers name="browser" />
 
   <f:advanced>
+    <f:entry title="Workspace Line Endings" help="/plugin/perforce/help/lineEnd.html">
+        <select name="lineEndValue">
+            <j:forEach var="value" items="${instance['allLineEndChoices']}">
+                <f:option selected="${instance['lineEndValue']==value}">${value}</f:option>
+            </j:forEach>
+        </select>
+    </f:entry>
+    
     <f:entry title="P4 Label" help="/plugin/perforce/help/p4label.html">
       <f:textbox field="p4Label" id="p4Label"
           checkUrl="'${rootURL}/scm/PerforceSCM/validateP4Label?label='+escape(document.forms[1].p4Label.value)+'&amp;port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)"/>

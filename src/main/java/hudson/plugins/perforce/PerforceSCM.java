@@ -49,6 +49,7 @@ import java.io.StringWriter;
 import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -166,6 +167,11 @@ public class PerforceSCM extends SCM {
      */
     private String changelogFilename = null;
 
+    /**
+     * The value of the LineEnd field in the perforce Client spec.
+     */
+    private String lineEndValue = "local";
+
     @DataBoundConstructor
     public PerforceSCM(
             String p4User,
@@ -179,6 +185,7 @@ public class PerforceSCM extends SCM {
             String p4SysDrive,
             String p4Label,
             String p4Counter,
+            String lineEndValue,
             boolean updateCounterValue,
             boolean forceSync,
             boolean alwaysForceSync,
@@ -258,6 +265,7 @@ public class PerforceSCM extends SCM {
             }
         }
 
+        this.lineEndValue = lineEndValue;
         this.forceSync = forceSync;
         this.alwaysForceSync = alwaysForceSync;
         this.disableAutoSync = disableAutoSync;
@@ -825,6 +833,9 @@ public class PerforceSCM extends SCM {
         if (projectOptions != null)
             p4workspace.setOptions(projectOptions);
 
+        // Set the line ending option according to the configuration
+        p4workspace.setLineEnd(lineEndValue);
+        
         // Ensure that the root is appropriate (it might be wrong if the user
         // created it, or if we previously built on another node).
 
@@ -1124,6 +1135,7 @@ public class PerforceSCM extends SCM {
             }
             return FormValidation.ok();
         }
+
     }
 
     /* Regular expressions for parsing view mappings.
@@ -1511,6 +1523,25 @@ public class PerforceSCM extends SCM {
 
     public void setDontUpdateClient(boolean dontUpdateClient) {
         this.dontUpdateClient = dontUpdateClient;
+    }
+
+    public String getLineEndValue() {
+        return lineEndValue;
+    }
+
+    public void setLineEndValue(String lineEndValue) {
+        this.lineEndValue = lineEndValue;
+    }
+
+    public List<String> getAllLineEndChoices(){
+
+        return Arrays.asList(new String[]{
+            "local",
+            "unix",
+            "mac",
+            "win",
+            "share",
+        });
     }
 
     /**
