@@ -145,4 +145,12 @@ public class PerforceSCMTest extends HudsonTestCase {
                     "-//depot/path/sub/... //client/path/sub/...\n" +
                     "\"//depot/path with space/...\" \"//client/path with space/...\"");
     }
+
+    public void testUnixPathName() throws Exception {
+        assertEquals("/Some/unix/path/", PerforceSCM.processPathName("//Some\\unix/./path/", true));
+    }
+
+    public void testWindowsPathName() throws Exception {
+        assertEquals("C:\\Windows\\Path\\Name\\", PerforceSCM.processPathName("C://Windows\\.\\Path\\\\Name\\",false));
+    }
 }

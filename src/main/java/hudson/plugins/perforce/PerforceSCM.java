@@ -367,7 +367,21 @@ public class PerforceSCM extends SCM {
      * @throws InterruptedException
      */
     private String getLocalPathName(FilePath path, boolean isUnix) throws IOException, InterruptedException {
-        return path.getRemote();
+        return processPathName(path.getRemote(), isUnix);
+    }
+
+    public static String processPathName(String path, boolean isUnix){
+        String pathName = new String(path);
+        pathName = pathName.replaceAll("\\\\+", "\\\\");
+        pathName = pathName.replaceAll("/\\./", "/");
+        pathName = pathName.replaceAll("\\\\\\.\\\\", "\\\\");
+        pathName = pathName.replaceAll("/+", "/");
+        if(isUnix){
+            pathName = pathName.replaceAll("\\\\", "/");
+        } else {
+            pathName = pathName.replaceAll("/", "\\\\");
+        }
+        return pathName;
     }
 
     /*
