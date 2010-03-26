@@ -21,7 +21,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         P4Web browser = new P4Web(new URL("http://localhost/"));
         PerforceSCM scm = new PerforceSCM(
         		"user", "pass", "client", "port", "path", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", false, true, true, true, false, 
+        		"sysDrive", "label", "counter", "shared", false, true, true, true, false,
                         true, false, false, "${basename}", 0, browser);
         project.setScm(scm);
 
@@ -30,7 +30,7 @@ public class PerforceSCMTest extends HudsonTestCase {
 
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
-                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,firstChange,p4Counter,updateCounterValue,exposeP4Passwd");
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd");
         //assertEqualBeans(scm.getBrowser(),p.getScm().getBrowser(),"URL");
     }
 
@@ -40,7 +40,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", false, true, true, true, false,
+        		"sysDrive", "label", "counter", "shared", false, true, true, true, false,
                         true, false, false, "${basename}", 0, browser);
         project.setScm(scm);
 
@@ -49,7 +49,7 @@ public class PerforceSCMTest extends HudsonTestCase {
 
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
-                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,firstChange,p4Counter,updateCounterValue,exposeP4Passwd");
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd");
 
         PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
         String encryptedPassword = encryptor.encryptString(password);
@@ -62,7 +62,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", false, true, true, true, false,
+        		"sysDrive", "label", "counter", "shared", false, true, true, true, false,
                         true, false, false, "${basename}", 0, browser);
 
         project.setScm(scm);
@@ -76,7 +76,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", false, true, true, true, false,
+        		"sysDrive", "label", "counter", "shared", false, true, true, true, false,
                         true, false, false, "${basename}", 0, browser);
         project.setScm(scm);
 
@@ -86,7 +86,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
-                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,firstChange,p4Counter,updateCounterValue,exposeP4Passwd");
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd");
 
         PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
         String encryptedPassword = encryptor.encryptString(password);

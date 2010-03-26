@@ -75,8 +75,8 @@
   <t:listScmBrowsers name="browser" />
 
   <f:advanced>
-    <f:entry title="Workspace Line Endings" help="/plugin/perforce/help/lineEnd.html">
-        <select name="lineEndValue">
+    <f:entry title="Client Line Endings" help="/plugin/perforce/help/lineEnd.html">
+        <select name="lineEndValue" id="lineEndValue">
             <j:forEach var="value" items="${instance['allLineEndChoices']}">
                 <f:option selected="${instance['lineEndValue']==value}">${value}</f:option>
             </j:forEach>
