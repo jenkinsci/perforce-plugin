@@ -409,17 +409,16 @@ public class PerforceSCM extends SCM {
         String p4Label = substituteParameters(this.p4Label, build.getBuildVariables());
         Depot depot = getDepot(launcher,workspace);
 
-        //always force sync when doing a Matrix Build so we don't have to create
-        //a workspace for every combination. (which would result in hundreds of workspaces.)
+        //If we're doing a matrix build, we should always force sync.
         if((Object)build instanceof MatrixBuild || (Object)build instanceof MatrixRun){
-            log.println("This is a matrix build; Using force sync.");
-            forceSync = true;
+            if(!alwaysForceSync && !wipeBeforeBuild)
+                log.println("This is a matrix build; It is HIGHLY recommended that you enable the " +
+                            "'Always Force Sync' or 'Clean Workspace' options. " +
+                            "Failing to do so will likely result in child builds not being synced properly.");
         }
 
         try {
             Workspace p4workspace = getPerforceWorkspace(projectPath, depot, build.getBuiltOn(), launcher, workspace, listener, false);
-
-            
 
             saveWorkspaceIfDirty(depot, p4workspace, log);
 
