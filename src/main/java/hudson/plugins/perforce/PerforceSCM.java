@@ -847,7 +847,9 @@ public class PerforceSCM extends SCM {
             p4workspace.setOptions(projectOptions);
 
         // Set the line ending option according to the configuration
-        p4workspace.setLineEnd(lineEndValue);
+        if (lineEndValue != null && getAllLineEndChoices().contains(lineEndValue)){
+            p4workspace.setLineEnd(lineEndValue);
+        }
         
         // Ensure that the root is appropriate (it might be wrong if the user
         // created it, or if we previously built on another node).
