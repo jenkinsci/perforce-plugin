@@ -855,7 +855,7 @@ public class PerforceSCM extends SCM {
         // created it, or if we previously built on another node).
 
         String localPath = getLocalPathName(workspace, launcher.isUnix());
-        if (!localPath.equals(p4workspace.getRoot()) && !dontChangeRoot) {
+        if (!localPath.equals(p4workspace.getRoot()) && !dontChangeRoot && !dontUpdateClient) {
             log.println("Changing P4 Client Root to: " + localPath);
             forceSync = true;
             p4workspace.setRoot(localPath);
