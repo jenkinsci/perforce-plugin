@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -918,6 +919,10 @@ public class PerforceSCM extends SCM {
                 host = workspace.act(new GetHostname());
             } catch (Exception e) {
                 LOGGER.warning("Could not get hostname for slave " + buildNode.getDisplayName());
+                Writer stackTrace = new StringWriter();
+                PrintWriter stackTracePrinter = new PrintWriter(stackTrace);
+                e.printStackTrace(stackTracePrinter);
+                LOGGER.info(stackTrace.toString());
             }
 
             if (host.contains(".")) {
