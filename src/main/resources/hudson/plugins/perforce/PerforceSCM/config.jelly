@@ -116,6 +116,17 @@
       </table>
     </f:entry>
 
+    <f:entry title="Perforce Charset Options" help="/plugins/perforce/help/charset.html">
+        <table width="100%">
+        <f:entry title="P4CHARSET">
+            <f:textbox field="p4Charset"/>
+        </f:entry>
+        <f:entry title="P4COMMANDCHARSET">
+            <f:textbox field="p4CommandCharset"/>
+        </f:entry>
+        </table>
+    </f:entry>
+
     <f:optionalBlock name="p4.useViewMask" title="Use View Mask" help="/plugin/perforce/help/useViewMask.html" checked="${instance.useViewMask}">
         <f:entry title="View Mask" help="/plugin/perforce/help/viewMask.html">
             <f:textarea name="p4.viewMask" value="${instance.viewMask}"

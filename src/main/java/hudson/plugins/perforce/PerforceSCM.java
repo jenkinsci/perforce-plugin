@@ -184,6 +184,12 @@ public class PerforceSCM extends SCM {
     private boolean useViewMaskForPolling = true;
     private boolean useViewMaskForSyncing = false;
 
+    /**
+     * charset options
+     */
+    private String p4Charset = null;
+    private String p4CommandCharset = null;
+    
     @DataBoundConstructor
     public PerforceSCM(
             String p4User,
@@ -198,6 +204,8 @@ public class PerforceSCM extends SCM {
             String p4Label,
             String p4Counter,
             String lineEndValue,
+            String p4Charset,
+            String p4CommandCharset,
             boolean updateCounterValue,
             boolean forceSync,
             boolean alwaysForceSync,
@@ -292,6 +300,8 @@ public class PerforceSCM extends SCM {
         this.firstChange = firstChange;
         this.dontRenameClient = false;
         this.useOldClientName = false;
+        this.p4Charset = Util.fixEmptyAndTrim(p4Charset);
+        this.p4CommandCharset = Util.fixEmptyAndTrim(p4CommandCharset);
     }
 
     /**
@@ -322,6 +332,9 @@ public class PerforceSCM extends SCM {
         depot.setExecutable(p4Exe);
         depot.setSystemDrive(p4SysDrive);
         depot.setSystemRoot(p4SysRoot);
+
+        depot.setCharset(p4Charset);
+        depot.setCommandCharset(p4CommandCharset);
 
         return depot;
     }
@@ -1640,6 +1653,22 @@ public class PerforceSCM extends SCM {
 
     public void setUseViewMask(boolean useViewMask) {
         this.useViewMask = useViewMask;
+    }
+
+    public String getP4Charset() {
+        return p4Charset;
+    }
+
+    public void setP4Charset(String p4Charset) {
+        this.p4Charset = p4Charset;
+    }
+
+    public String getP4CommandCharset() {
+        return p4CommandCharset;
+    }
+
+    public void setP4CommandCharset(String p4CommandCharset) {
+        this.p4CommandCharset = p4CommandCharset;
     }
 
     public String getLineEndValue() {

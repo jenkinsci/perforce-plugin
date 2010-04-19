@@ -81,7 +81,8 @@ public class Depot {
 	private Labels labels;
 	private Status status;
 	private Groups groups;
-	private Counters counters;
+	private Counters counters;
+
 	public Depot() {
 		this(new DefaultExecutorFactory());
 	}
@@ -208,7 +209,18 @@ public class Depot {
 		return groups;
 	}
 
-	/**	 * Retrieves the {@link Counters} object for interacting with this depot's counters.	 * 	 * @return Counters object	 */	public Counters getCounters() {		if(counters == null)			counters = new Counters(this);		return counters;	}	/**
+	/**
+	 * Retrieves the {@link Counters} object for interacting with this depot's counters.
+	 * 
+	 * @return Counters object
+	 */
+	public Counters getCounters() {
+		if(counters == null)
+			counters = new Counters(this);
+		return counters;
+	}
+
+	/**
 	 * Retrieves the status object for interacting with the depot's status.
 	 * <p>
 	 * E.g., depot.getStatus().isValid() for checking if the settings are correct.
@@ -347,6 +359,22 @@ public class Depot {
 	public void setPath(String path) {
 		setenv("PATH", path);
 	}
+
+        public String getCharset() {
+            return settings.get("P4CHARSET");
+        }
+
+        public void setCharset(String charset){
+            setenv("P4CHARSET", charset);
+        }
+
+        public String getCommandCharset() {
+            return settings.get("P4COMMANDCHARSET");
+        }
+
+        public void setCommandCharset(String charset){
+            setenv("P4COMMANDCHARSET", charset);
+        }
 
 	/**
 	 * Append the path element to the existing path. If the path element given is already in the path, no change is
