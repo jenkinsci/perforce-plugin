@@ -399,13 +399,40 @@ public class Changes extends AbstractPerforceTemplate {
         StringBuilder sb = new StringBuilder();
         sb.append("//");
         sb.append(workspace.getName());
-        sb.append("/...@");
+        sb.append("/...");
+
+        String path = sb.toString();
+        return getChangeNumbersInRangeForSinglePath(workspace, first, last, path);
+    }
+    
+    public List<Integer> getChangeNumbersInRange(Workspace workspace, int first, int last, String paths) throws PerforceException {
+        if(paths == null){
+            return getChangeNumbersInRange(workspace, first, last);
+        }
+        List<Integer> numbers = new ArrayList<Integer>();
+        for(String path : paths.replaceAll("\r", "").split("\n")){
+            List<Integer> newNumbers = getChangeNumbersInRangeForSinglePath(workspace, first, last, path);
+            for(Integer num : newNumbers){
+                if(!numbers.contains(num)){
+                    numbers.add(num);
+                }
+            }
+        }
+        Collections.sort(numbers);
+        Collections.reverse(numbers);
+        return numbers;
+    }
+
+    public List<Integer> getChangeNumbersInRangeForSinglePath(Workspace workspace, int first, int last, String path) throws PerforceException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(path);
+        sb.append("@");
         sb.append(first);
         sb.append(",@");
         sb.append(last);
+        String fullPath = sb.toString();
 
-        String path = sb.toString();
-        String[] cmd = new String[] { getP4Exe(), "-s", "changes", path };
+        String[] cmd = new String[] { getP4Exe(), "-s", "changes", fullPath };
 
         List<String> response = getRawPerforceResponseLines(cmd);
         List<Integer> numbers = new ArrayList<Integer>(response.size());
@@ -425,4 +452,5 @@ public class Changes extends AbstractPerforceTemplate {
         }
         return numbers;
     }
+
 }

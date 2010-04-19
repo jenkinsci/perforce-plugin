@@ -104,7 +104,7 @@
     <f:entry title="Client name format for slaves" help="/plugin/perforce/help/clientNameFormat.html">
       <f:textbox field="slaveClientNameFormat"/>
     </f:entry>
-
+    
     <f:entry title="Windows Specific Details" help="/plugin/perforce/help/windows.html">
       <table width="100%">
         <f:entry title="System Drive">
@@ -116,6 +116,19 @@
       </table>
     </f:entry>
 
+    <f:optionalBlock name="p4.useViewMask" title="Use View Mask" help="/plugin/perforce/help/useViewMask.html" checked="${instance.useViewMask}">
+        <f:entry title="View Mask" help="/plugin/perforce/help/viewMask.html">
+            <f:textarea name="p4.viewMask" value="${instance.viewMask}"
+                      checkUrl="'${rootURL}/scm/PerforceSCM/checkViewMask?viewMask='+escape(this.value)"/>
+        </f:entry>
+        <f:entry title="Use mask when polling" help="/plugin/perforce/help/useViewMaskForPolling.html">
+            <f:checkbox name="p4.useViewMaskForPolling" checked="${instance.useViewMaskForPolling}"/>
+        </f:entry>
+        <f:entry title="Use mask when syncing" help="/plugin/perforce/help/useViewMaskForSyncing.html">
+            <f:checkbox name="p4.useViewMaskForSyncing" checked="${instance.useViewMaskForSyncing}"/>
+        </f:entry>
+    </f:optionalBlock>
+    
   </f:advanced>
 
 </j:jelly>

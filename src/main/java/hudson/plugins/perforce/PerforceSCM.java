@@ -23,6 +23,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
+import hudson.model.Descriptor.FormException;
 import hudson.model.Hudson;
 import hudson.model.JobProperty;
 import hudson.model.Node;
@@ -35,6 +36,7 @@ import hudson.scm.SCMDescriptor;
 import hudson.util.FormValidation;
 
 import hudson.util.StreamTaskListener;
+import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -173,6 +175,15 @@ public class PerforceSCM extends SCM {
      */
     private String lineEndValue = "local";
 
+    /**
+     * View mask settings for polling and/or syncing against a subset
+     * of files in the client workspace.
+     */
+    private boolean useViewMask = false;
+    private String viewMask = null;
+    private boolean useViewMaskForPolling = true;
+    private boolean useViewMaskForSyncing = false;
+
     @DataBoundConstructor
     public PerforceSCM(
             String p4User,
@@ -197,7 +208,10 @@ public class PerforceSCM extends SCM {
             boolean exposeP4Passwd,
             String slaveClientNameFormat,
             int firstChange,
-            PerforceRepositoryBrowser browser
+            PerforceRepositoryBrowser browser/*,
+            String viewMask,
+            boolean useViewMaskForPolling,
+            boolean useViewMaskForSyncing*/
             ) {
 
         this.p4User = p4User;
@@ -448,7 +462,12 @@ public class PerforceSCM extends SCM {
                     if (lastChange >= newestChange) {
                         changes = new ArrayList<Changelist>(0);
                     } else {
-                        List<Integer> changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange);
+                        List<Integer> changeNumbersTo;
+                        if(useViewMaskForSyncing && useViewMask){
+                            changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange, viewMask);
+                        } else {
+                            changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange);
+                        }
                         changes = depot.getChanges().getChangelistsFromNumbers(changeNumbersTo);
                     }
                 }
@@ -472,19 +491,22 @@ public class PerforceSCM extends SCM {
             // Now we can actually do the sync process...
             StringBuilder sbMessage = new StringBuilder("Sync'ing workspace to ");
             StringBuilder sbSyncPath = new StringBuilder(p4WorkspacePath);
-            sbSyncPath.append("@");
+            StringBuilder sbSyncPathSuffix = new StringBuilder();
+            sbSyncPathSuffix.append("@");
 
             if (p4Label != null) {
                 sbMessage.append("label ");
                 sbMessage.append(p4Label);
-                sbSyncPath.append(p4Label);
+                sbSyncPathSuffix.append(p4Label);
             }
             else {
                 sbMessage.append("changelist ");
                 sbMessage.append(newestChange);
-                sbSyncPath.append(newestChange);
+                sbSyncPathSuffix.append(newestChange);
             }
 
+            sbSyncPath.append(sbSyncPathSuffix);
+            
             if (forceSync || alwaysForceSync)
                 sbMessage.append(" (forcing sync of unchanged files).");
             else
@@ -497,7 +519,16 @@ public class PerforceSCM extends SCM {
 
             if(!disableAutoSync)
             {
-                depot.getWorkspaces().syncTo(syncPath, forceSync || alwaysForceSync);
+                if(useViewMaskForSyncing && useViewMask){
+                    for(String path : viewMask.replaceAll("\r", "").split("\n")){
+                        StringBuilder sbMaskPath = new StringBuilder(path);
+                        sbMaskPath.append(sbSyncPathSuffix);
+                        String maskPath = sbMaskPath.toString();
+                        depot.getWorkspaces().syncTo(maskPath, forceSync || alwaysForceSync);
+                    }
+                } else {
+                    depot.getWorkspaces().syncTo(syncPath, forceSync || alwaysForceSync);
+                }
             }
 
             long endTime = System.currentTimeMillis();
@@ -732,8 +763,17 @@ public class PerforceSCM extends SCM {
                 // Has any new change been submitted since then (that is selected
                 // by this workspace).
 
-                String root = "//" + p4workspace.getName() + "/...";
-                List<Integer> changeNumbers = depot.getChanges().getChangeNumbers(root, -1, 2);
+                List<Integer> changeNumbers;
+                if(useViewMaskForPolling && useViewMask){
+                    Integer newestChange;
+                    Counter counter = depot.getCounters().getCounter("change");
+                    newestChange = counter.getValue();
+
+                    changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber, newestChange, viewMask);
+                } else {
+                    String root = "//" + p4workspace.getName() + "/...";
+                    changeNumbers = depot.getChanges().getChangeNumbers(root, -1, 2);
+                }
                 if (changeNumbers.isEmpty()) {
                     // Wierd, this shouldn't be!  I suppose it could happen if the
                     // view selects no files (e.g. //depot/non-existent-branch/...).
@@ -984,6 +1024,16 @@ public class PerforceSCM extends SCM {
             return "Perforce";
         }
 
+        @Override
+        public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+            PerforceSCM newInstance = (PerforceSCM)super.newInstance(req, formData);
+            newInstance.setUseViewMask(req.getParameter("p4.useViewMask") != null);
+            newInstance.setViewMask(Util.fixEmptyAndTrim(req.getParameter("p4.viewMask")));
+            newInstance.setUseViewMaskForPolling(req.getParameter("p4.useViewMaskForPolling") != null);
+            newInstance.setUseViewMaskForSyncing(req.getParameter("p4.useViewMaskForSyncing") != null);
+            return newInstance;
+        }
+
         public String isValidProjectPath(String path) {
             if (!path.startsWith("//")) {
                 return "Path must start with '//' (Example: //depot/ProjectName/...)";
@@ -1129,6 +1179,20 @@ public class PerforceSCM extends SCM {
                         !DEPOT_AND_WORKSPACE_QUOTED.matcher(mapping).matches() &&
                         !COMMENT.matcher(mapping).matches())
                         return FormValidation.error("Invalid mapping:" + mapping);
+                }
+            }
+            return FormValidation.ok();
+        }
+
+        public FormValidation doCheckViewMask(StaplerRequest req) {
+            String view = Util.fixEmptyAndTrim(req.getParameter("viewMask"));
+            if (view != null) {
+                for (String path : view.replace("\r","").split("\n")) {
+                    if (path.startsWith("-") || path.startsWith("\"-"))
+                        return FormValidation.error("'-' not yet supported in view mask:" + path);
+                    if (!DEPOT_ONLY.matcher(path).matches() &&
+                        !DEPOT_ONLY_QUOTED.matcher(path).matches())
+                        return FormValidation.error("Invalid depot path:" + path);
                 }
             }
             return FormValidation.ok();
@@ -1544,6 +1608,38 @@ public class PerforceSCM extends SCM {
 
     public void setDontUpdateClient(boolean dontUpdateClient) {
         this.dontUpdateClient = dontUpdateClient;
+    }
+
+    public boolean isUseViewMaskForPolling() {
+        return useViewMaskForPolling;
+    }
+
+    public void setUseViewMaskForPolling(boolean useViewMaskForPolling) {
+        this.useViewMaskForPolling = useViewMaskForPolling;
+    }
+
+    public boolean isUseViewMaskForSyncing() {
+        return useViewMaskForSyncing;
+    }
+
+    public void setUseViewMaskForSyncing(boolean useViewMaskForSyncing) {
+        this.useViewMaskForSyncing = useViewMaskForSyncing;
+    }
+
+    public String getViewMask() {
+        return viewMask;
+    }
+
+    public void setViewMask(String viewMask) {
+        this.viewMask = viewMask;
+    }
+
+    public boolean isUseViewMask() {
+        return useViewMask;
+    }
+
+    public void setUseViewMask(boolean useViewMask) {
+        this.useViewMask = useViewMask;
     }
 
     public String getLineEndValue() {
