@@ -89,6 +89,8 @@ public class PerforceSCM extends SCM {
 
     private static final Logger LOGGER = Logger.getLogger(PerforceSCM.class.getName());
 
+    private static final int MAX_CHANGESETS_ON_FIRST_BUILD = 50;
+
     /**
      * This is being removed, including it as transient to fix exceptions on startup.
      */
@@ -452,7 +454,7 @@ public class PerforceSCM extends SCM {
 
             //Get the list of changes since the last time we looked...
             String p4WorkspacePath = "//" + p4workspace.getName() + "/...";
-            final int lastChange = getLastChange((Run)build.getPreviousBuild());
+            int lastChange = getLastChange((Run)build.getPreviousBuild());
             log.println("Last sync'd change: " + lastChange);
 
             int newestChange = lastChange;
@@ -471,6 +473,13 @@ public class PerforceSCM extends SCM {
 
                     Counter counter = depot.getCounters().getCounter(counterName);
                     newestChange = counter.getValue();
+
+                    if (lastChange == 0){
+                        lastChange = newestChange - MAX_CHANGESETS_ON_FIRST_BUILD;
+                        if (lastChange < 0){
+                            lastChange = 0;
+                        }
+                    }
 
                     if (lastChange >= newestChange) {
                         changes = new ArrayList<Changelist>(0);
