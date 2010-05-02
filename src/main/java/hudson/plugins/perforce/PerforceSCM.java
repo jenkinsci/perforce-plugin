@@ -949,12 +949,9 @@ public class PerforceSCM extends SCM {
                 }
             }
         }
-
-        // If we use the same client on multiple hosts (e.g. master and slave),
-        // erase the host field so the client isn't tied to a single host.
-        if (dontRenameClient) {
-            p4workspace.setHost("");
-        }
+        // Clean host field so the client can be used on other slaves
+        // such as those operating with the workspace on a network share
+        p4workspace.setHost("");
 
         // NOTE: The workspace is not saved.
         return p4workspace;
