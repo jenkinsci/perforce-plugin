@@ -448,7 +448,7 @@ public class PerforceSCM extends SCM {
         }
 
         try {
-            Workspace p4workspace = getPerforceWorkspace(projectPath, depot, build.getBuiltOn(), launcher, workspace, listener, false);
+            Workspace p4workspace = getPerforceWorkspace(projectPath, depot, build.getBuiltOn(), build, launcher, workspace, listener, false);
 
             saveWorkspaceIfDirty(depot, p4workspace, log);
 
@@ -684,12 +684,12 @@ public class PerforceSCM extends SCM {
         
         Depot depot = getDepot(launcher,workspace);
         //Currently we are unable to poll for changes if there are parameters in the view
-        if(projectPath.contains("${")){
+        if(projectPath.contains("${") || p4Client.contains("${")){
             logger.println("Cannot poll for changes on a view that contains parameter substitutions. Aborting.");
             return false;
         }
         try {
-            Workspace p4workspace = getPerforceWorkspace(projectPath, depot, project.getLastBuiltOn(), launcher, workspace, listener, false);
+            Workspace p4workspace = getPerforceWorkspace(projectPath, depot, project.getLastBuiltOn(), null, launcher, workspace, listener, false);
             if (p4workspace.isNew())
                 return true;
 
@@ -870,7 +870,7 @@ public class PerforceSCM extends SCM {
     }
 
     private Workspace getPerforceWorkspace(String projectPath,
-            Depot depot, Node buildNode,
+            Depot depot, Node buildNode, AbstractBuild build,
             Launcher launcher, FilePath workspace, TaskListener listener, boolean dontChangeRoot)
         throws IOException, InterruptedException, PerforceException
     {
@@ -882,7 +882,11 @@ public class PerforceSCM extends SCM {
         // hostname to the end of the client spec
 
         String p4Client = this.p4Client;
-        p4Client = getEffectiveClientName(buildNode, workspace);
+        if (build != null) {
+            p4Client = getEffectiveClientName(build);
+        } else {
+            p4Client = getEffectiveClientName(buildNode, workspace);
+        }
 
         if (!nodeIsRemote(buildNode)) {
             log.print("Using master perforce client: ");
@@ -967,6 +971,7 @@ public class PerforceSCM extends SCM {
             new StreamTaskListener(System.out).getLogger().println(
                     "Could not get effective client name: " + e.getMessage());
         } finally {
+            p4Client = substituteParameters(p4Client, build.getBuildVariables());
             return p4Client;
         }
     }
