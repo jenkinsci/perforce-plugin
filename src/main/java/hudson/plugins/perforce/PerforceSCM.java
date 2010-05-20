@@ -925,8 +925,18 @@ public class PerforceSCM extends SCM {
         
         // Ensure that the root is appropriate (it might be wrong if the user
         // created it, or if we previously built on another node).
-
-        String localPath = getLocalPathName(workspace, launcher.isUnix());
+        
+        // Both launcher and workspace can be null if requiresWorkspaceForPolling returns true
+        // So provide 'reasonable' default values.
+        boolean isunix = true;
+        if (launcher!= null)
+        	isunix=launcher.isUnix();
+        
+        String localPath = p4workspace.getRoot();
+        
+        if (workspace!=null)
+        	localPath = getLocalPathName(workspace, isunix);
+        
         if (!localPath.equals(p4workspace.getRoot()) && !dontChangeRoot && !dontUpdateClient) {
             log.println("Changing P4 Client Root to: " + localPath);
             forceSync = true;
@@ -1769,7 +1779,32 @@ public class PerforceSCM extends SCM {
     }
 
     @Override public boolean requiresWorkspaceForPolling() {
-        return true;
+	// If slaveClientNameFormat is empty - not using a host specific name, so can always
+	// use 'master' to calculate poll changes without a local workspace
+	// This allows slaves to be thrown away and still allow polling to work
+
+	if(isSlaveClientNameStatic()) {
+		Logger.getLogger(PerforceSCM.class.getName()).info(
+			"No SlaveClientName supplied - assuming shared clientname - so no Workspace required for Polling");
+		return false;
+	}
+      return true;
+    }
+
+    public boolean isSlaveClientNameStatic() {
+        Map<String,String> testSub1 = new Hashtable<String,String>();
+        testSub1.put("hostname", "HOSTNAME1");
+        testSub1.put("hash", "HASH1");
+        testSub1.put("basename", this.p4Client);
+        String result1 = substituteParameters(getSlaveClientNameFormat(), testSub1);
+
+        Map<String,String> testSub2 = new Hashtable<String,String>();
+        testSub2.put("hostname", "HOSTNAME2");
+        testSub2.put("hash", "HASH2");
+        testSub2.put("basename", this.p4Client);
+        String result2 = substituteParameters(getSlaveClientNameFormat(), testSub2);
+
+        return result1.equals(result2);
     }
 
 }
