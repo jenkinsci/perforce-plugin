@@ -86,7 +86,15 @@ public class Changelist implements java.io.Serializable {
 	 */
 	public static class FileEntry implements java.io.Serializable {
 		public static enum Action {
-			ADD, EDIT, DELETE, INTEGRATE, BRANCH, PURGE, MOVE_DELETE, MOVE_ADD
+			ADD,
+                        EDIT,
+                        DELETE,
+                        INTEGRATE,
+                        BRANCH,
+                        PURGE,
+                        MOVE_DELETE,
+                        MOVE_ADD,
+                        IMPORT,
 		}
 
 		Action action;
