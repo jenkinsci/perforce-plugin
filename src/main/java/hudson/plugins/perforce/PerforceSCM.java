@@ -992,6 +992,10 @@ public class PerforceSCM extends SCM {
         String nodeSuffix = "";
         String p4Client = this.p4Client;
 
+        if (workspace == null){
+            workspace = buildNode.getRootPath();
+        }
+
         if (nodeIsRemote(buildNode) && !getSlaveClientNameFormat().equals("")) {
             String host = "UNKNOWNHOST";
             try{
