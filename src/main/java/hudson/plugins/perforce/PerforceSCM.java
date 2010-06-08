@@ -26,7 +26,9 @@ import hudson.model.Computer;
 import hudson.model.Descriptor.FormException;
 import hudson.model.Hudson;
 import hudson.model.JobProperty;
+import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Node;
+import hudson.model.ParameterDefinition;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
@@ -386,6 +388,20 @@ public class PerforceSCM extends SCM {
         }
     }
 
+    private Hashtable<String, String> getDefaultSubstitutions(AbstractProject project) {
+        Hashtable<String, String> subst = new Hashtable<String, String>();
+        ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) project.getProperty(hudson.model.ParametersDefinitionProperty.class);
+        for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
+            try {
+                String name = pd.getDefaultParameterValue().getName();
+                String value = pd.getDefaultParameterValue().createVariableResolver(null).resolve(name);
+                subst.put(name, value);
+            } catch (Exception e) {
+            }
+        }
+        return subst;
+    }
+
     /**
      * Perform some manipulation on the workspace URI to get a valid local path
      * <p>
@@ -682,14 +698,12 @@ public class PerforceSCM extends SCM {
             return false;
         }
         
+        Hashtable<String, String> subst = getDefaultSubstitutions(project);
+
         Depot depot = getDepot(launcher,workspace);
-        //Currently we are unable to poll for changes if there are parameters in the view
-        if(projectPath.contains("${") || p4Client.contains("${")){
-            logger.println("Cannot poll for changes on a view that contains parameter substitutions. Aborting.");
-            return false;
-        }
+        
         try {
-            Workspace p4workspace = getPerforceWorkspace(projectPath, depot, project.getLastBuiltOn(), null, launcher, workspace, listener, false);
+            Workspace p4workspace = getPerforceWorkspace(substituteParameters(projectPath, subst), depot, project.getLastBuiltOn(), null, launcher, workspace, listener, false);
             if (p4workspace.isNew())
                 return true;
 
