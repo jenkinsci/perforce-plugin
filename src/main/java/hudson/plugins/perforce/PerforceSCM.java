@@ -818,11 +818,13 @@ public class PerforceSCM extends SCM {
                 if (changeNumbers.isEmpty()) {
                     // Wierd, this shouldn't be!  I suppose it could happen if the
                     // view selects no files (e.g. //depot/non-existent-branch/...).
-                    // Just in case, let's try to build.
-                    return Boolean.TRUE;
+                    // This can also happen when using view masks with polling.
+                    logger.println("No changes found.");
+                    return Boolean.FALSE;
+                } else {
+                    highestSelectedChangeNumber = changeNumbers.get(0).intValue();
+                    logger.println("Latest submitted change selected by workspace is " + highestSelectedChangeNumber);
                 }
-                highestSelectedChangeNumber = changeNumbers.get(0).intValue();
-                logger.println("Latest submitted change selected by workspace is " + highestSelectedChangeNumber);
             }
 
             if (lastChangeNumber >= highestSelectedChangeNumber) {
