@@ -453,6 +453,7 @@ public class PerforceSCM extends SCM {
         //keep projectPath local so any modifications for slaves don't get saved
         String projectPath = substituteParameters(this.projectPath, build.getBuildVariables());
         String p4Label = substituteParameters(this.p4Label, build.getBuildVariables());
+        String viewMask = substituteParameters(this.viewMask, build.getBuildVariables());
         Depot depot = getDepot(launcher,workspace);
 
         //If we're doing a matrix build, we should always force sync.
@@ -810,7 +811,7 @@ public class PerforceSCM extends SCM {
                     Counter counter = depot.getCounters().getCounter("change");
                     newestChange = counter.getValue();
 
-                    changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber, newestChange, viewMask);
+                    changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber, newestChange, substituteParameters(viewMask, getDefaultSubstitutions(project)));
                 } else {
                     String root = "//" + p4workspace.getName() + "/...";
                     changeNumbers = depot.getChanges().getChangeNumbers(root, -1, 2);
