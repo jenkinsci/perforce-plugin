@@ -699,11 +699,6 @@ public class PerforceSCM extends SCM {
 
         PrintStream logger = listener.getLogger();
         logger.println("Looking for changes...");
-
-        if(project.getLastBuild() == null){
-            logger.println("No previous build exists.");
-            return false;
-        }
         
         Hashtable<String, String> subst = getDefaultSubstitutions(project);
 
