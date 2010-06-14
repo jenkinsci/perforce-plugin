@@ -29,6 +29,7 @@ import hudson.model.JobProperty;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Node;
 import hudson.model.ParameterDefinition;
+import hudson.model.ParameterValue;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
@@ -391,12 +392,17 @@ public class PerforceSCM extends SCM {
     private Hashtable<String, String> getDefaultSubstitutions(AbstractProject project) {
         Hashtable<String, String> subst = new Hashtable<String, String>();
         ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) project.getProperty(hudson.model.ParametersDefinitionProperty.class);
-        for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
-            try {
-                String name = pd.getDefaultParameterValue().getName();
-                String value = pd.getDefaultParameterValue().createVariableResolver(null).resolve(name);
-                subst.put(name, value);
-            } catch (Exception e) {
+        if(pdp != null) {
+            for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
+                try {
+                    ParameterValue defaultValue = pd.getDefaultParameterValue();
+                    if(defaultValue != null) {
+                        String name = defaultValue.getName();
+                        String value = defaultValue.createVariableResolver(null).resolve(name);
+                        subst.put(name, value);
+                    }
+                } catch (Exception e) {
+                }
             }
         }
         return subst;
