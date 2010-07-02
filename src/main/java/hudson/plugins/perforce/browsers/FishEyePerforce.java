@@ -40,12 +40,12 @@ public final class FishEyePerforce extends PerforceRepositoryBrowser {
         int r = new Integer(file.getRevision());
         if(r <= 1)
         	return null;
-        return new URL(url, trimHeadSlash(file.getFilename()) + new QueryBuilder(url.getQuery()).add("r1=" + (r-1)).add("r2=" + r));
+        return new URL(url, trimHeadSlash(trimHeadSlash(file.getFilename())) + new QueryBuilder(url.getQuery()).add("r1=" + (r-1)).add("r2=" + r));
     }
 
     @Override
     public URL getFileLink(Changelist.FileEntry file) throws IOException {
-        return new URL(url, trimHeadSlash(file.getFilename()) + new QueryBuilder(url.getQuery()));
+        return new URL(url, trimHeadSlash(trimHeadSlash(file.getFilename())) + new QueryBuilder(url.getQuery()));
     }
 
     @Override
