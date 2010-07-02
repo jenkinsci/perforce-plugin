@@ -8,6 +8,7 @@ import hudson.scm.*;
 import hudson.model.User;
 
 import com.tek42.perforce.model.Changelist;
+import java.text.SimpleDateFormat;
 
 /**
  * Perforce Implementation of {@link ChangeLogSet.Entry}.  This is a 1 to 1 mapping of
@@ -45,6 +46,17 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
     @Exported
     public String getMsg() {
         return change.getDescription();
+    }
+
+    @Exported
+    public String getChangeNumber() {
+        return new Integer(getChange().getChangeNumber()).toString();
+    }
+
+    @Exported
+    public String getChangeTime() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return sdf.format(getChange().getDate());
     }
 
     /**
