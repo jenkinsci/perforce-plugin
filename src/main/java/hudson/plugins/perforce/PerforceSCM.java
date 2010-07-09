@@ -446,6 +446,30 @@ public class PerforceSCM extends SCM {
         PrintStream log = listener.getLogger();
         changelogFilename = changelogFile.getAbsolutePath();
 
+        boolean wipeBeforeBuild = this.wipeBeforeBuild;
+        boolean forceSync = this.forceSync;
+
+        if(build.getBuildVariables() != null){
+            Object p4clean;
+            if((p4clean = build.getBuildVariables().get("P4CLEANWORKSPACE")) != null){
+                String p4cleanString = p4clean.toString();
+                if(p4cleanString.toUpperCase().equals("TRUE") || p4cleanString.equals("1")){
+                    wipeBeforeBuild = true;
+                } else {
+                    wipeBeforeBuild = false;
+                }
+            }
+            Object p4force;
+            if((p4force = build.getBuildVariables().get("P4FORCESYNC")) != null){
+                String p4forceString = p4force.toString();
+                if(p4forceString.toUpperCase().equals("TRUE") || p4forceString.equals("1")){
+                    forceSync = true;
+                } else {
+                    forceSync = false;
+                }
+            }
+        }
+
         if(wipeBeforeBuild){
             log.println("Clearing workspace...");
             if(processWorkspaceBeforeDeletion(build.getProject(), workspace, build.getBuiltOn())){
@@ -454,6 +478,7 @@ public class PerforceSCM extends SCM {
             } else {
                 log.println("Could not clear workspace. See hudson.perforce.PerforceSCM logger for details.");
             }
+				forceSync = true;
         }
 
         //keep projectPath local so any modifications for slaves don't get saved
@@ -582,7 +607,7 @@ public class PerforceSCM extends SCM {
             log.println("Sync complete, took " + duration + " ms");
 
             // reset one time use variables...
-            forceSync = false;
+            this.forceSync = false;
             firstChange = -1;
 
             if (p4Label != null) {
