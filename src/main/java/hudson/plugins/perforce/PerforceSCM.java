@@ -173,7 +173,7 @@ public class PerforceSCM extends SCM {
      * We need to store the changelog file name for the build so that we can expose
      * it to the build environment
      */
-    private String changelogFilename = null;
+    transient private String changelogFilename = null;
 
     /**
      * The value of the LineEnd field in the perforce Client spec.
