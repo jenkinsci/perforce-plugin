@@ -254,16 +254,16 @@ public class PerforceSCM extends SCM {
         this.p4Counter = Util.fixEmptyAndTrim(p4Counter);
         this.updateCounterValue = updateCounterValue;
 
-        this.projectPath = projectPath;
+        this.projectPath = Util.fixEmptyAndTrim(projectPath);
 
         if (p4Exe != null)
-            this.p4Exe = p4Exe;
+            this.p4Exe = Util.fixEmptyAndTrim(p4Exe);
 
         if (p4SysRoot != null && p4SysRoot.length() != 0)
-            this.p4SysRoot = p4SysRoot;
+            this.p4SysRoot = Util.fixEmptyAndTrim(p4SysRoot);
 
         if (p4SysDrive != null && p4SysDrive.length() != 0)
-            this.p4SysDrive = p4SysDrive;
+            this.p4SysDrive = Util.fixEmptyAndTrim(p4SysDrive);
 
         // Get systemDrive,systemRoot computer environment variables from
         // the current machine.
@@ -279,17 +279,17 @@ public class PerforceSCM extends SCM {
             }
         }
         if (p4SysRoot != null && p4SysRoot.length() != 0) {
-            this.p4SysRoot = p4SysRoot;
+            this.p4SysRoot = Util.fixEmptyAndTrim(p4SysRoot);
         } else {
             if (systemRoot != null && !systemRoot.trim().equals("")) {
-                this.p4SysRoot = systemRoot;
+                this.p4SysRoot = Util.fixEmptyAndTrim(systemRoot);
             }
         }
         if (p4SysDrive != null && p4SysDrive.length() != 0) {
-            this.p4SysDrive = p4SysDrive;
+            this.p4SysDrive = Util.fixEmptyAndTrim(p4SysDrive);
         } else {
             if (systemDrive != null && !systemDrive.trim().equals("")) {
-                this.p4SysDrive = systemDrive;
+                this.p4SysDrive = Util.fixEmptyAndTrim(systemDrive);
             }
         }
 
