@@ -321,7 +321,7 @@ public class PerforceSCM extends SCM {
      * Always create a new Depot to reflect any changes to the machines that
      * P4 actions will be performed on.
      */
-    protected Depot getDepot(Launcher launcher, FilePath workspace) {
+    protected Depot getDepot(Launcher launcher, FilePath workspace, AbstractProject project) {
 
         HudsonP4ExecutorFactory p4Factory = new HudsonP4ExecutorFactory(launcher,workspace);
 
@@ -332,7 +332,11 @@ public class PerforceSCM extends SCM {
         depot.setPassword(encryptor.decryptString(p4Passwd));
 
         depot.setPort(p4Port);
-        depot.setClient(p4Client);
+        if(project != null){
+            depot.setClient(substituteParameters(p4Client, getDefaultSubstitutions(project)));
+        } else {
+            depot.setClient(p4Client);
+        }
 
         depot.setExecutable(p4Exe);
         depot.setSystemDrive(p4SysDrive);
@@ -391,6 +395,7 @@ public class PerforceSCM extends SCM {
 
     private Hashtable<String, String> getDefaultSubstitutions(AbstractProject project) {
         Hashtable<String, String> subst = new Hashtable<String, String>();
+        subst.put("JOB_NAME", project.getFullName());
         ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) project.getProperty(hudson.model.ParametersDefinitionProperty.class);
         if(pdp != null) {
             for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
@@ -482,10 +487,10 @@ public class PerforceSCM extends SCM {
         }
 
         //keep projectPath local so any modifications for slaves don't get saved
-        String projectPath = substituteParameters(this.projectPath, build.getBuildVariables());
-        String p4Label = substituteParameters(this.p4Label, build.getBuildVariables());
-        String viewMask = substituteParameters(this.viewMask, build.getBuildVariables());
-        Depot depot = getDepot(launcher,workspace);
+        String projectPath = substituteParameters(this.projectPath, build);
+        String p4Label = substituteParameters(this.p4Label, build);
+        String viewMask = substituteParameters(this.viewMask, build);
+        Depot depot = getDepot(launcher,workspace, build.getProject());
 
         //If we're doing a matrix build, we should always force sync.
         if((Object)build instanceof MatrixBuild || (Object)build instanceof MatrixRun){
@@ -496,7 +501,7 @@ public class PerforceSCM extends SCM {
         }
 
         try {
-            Workspace p4workspace = getPerforceWorkspace(projectPath, depot, build.getBuiltOn(), build, launcher, workspace, listener, false);
+            Workspace p4workspace = getPerforceWorkspace(build.getProject(), projectPath, depot, build.getBuiltOn(), build, launcher, workspace, listener, false);
 
             saveWorkspaceIfDirty(depot, p4workspace, log);
 
@@ -727,10 +732,10 @@ public class PerforceSCM extends SCM {
         
         Hashtable<String, String> subst = getDefaultSubstitutions(project);
 
-        Depot depot = getDepot(launcher,workspace);
+        Depot depot = getDepot(launcher,workspace,project);
         
         try {
-            Workspace p4workspace = getPerforceWorkspace(substituteParameters(projectPath, subst), depot, project.getLastBuiltOn(), null, launcher, workspace, listener, false);
+            Workspace p4workspace = getPerforceWorkspace(project, substituteParameters(projectPath, subst), depot, project.getLastBuiltOn(), null, launcher, workspace, listener, false);
             if (p4workspace.isNew())
                 return true;
 
@@ -912,7 +917,7 @@ public class PerforceSCM extends SCM {
         return getMostRecentTagAction(build.getPreviousBuild());
     }
 
-    private Workspace getPerforceWorkspace(String projectPath,
+    private Workspace getPerforceWorkspace(AbstractProject project, String projectPath,
             Depot depot, Node buildNode, AbstractBuild build,
             Launcher launcher, FilePath workspace, TaskListener listener, boolean dontChangeRoot)
         throws IOException, InterruptedException, PerforceException
@@ -928,7 +933,7 @@ public class PerforceSCM extends SCM {
         if (build != null) {
             p4Client = getEffectiveClientName(build);
         } else {
-            p4Client = getEffectiveClientName(buildNode, workspace);
+            p4Client = getEffectiveClientName(project, buildNode, workspace);
         }
 
         if (!nodeIsRemote(buildNode)) {
@@ -1019,21 +1024,21 @@ public class PerforceSCM extends SCM {
         FilePath workspace = build.getWorkspace();
         String p4Client = this.p4Client;
         try {
-            p4Client = getEffectiveClientName(buildNode, workspace);
+            p4Client = getEffectiveClientName(build.getProject(), buildNode, workspace);
         } catch (Exception e){
             new StreamTaskListener(System.out).getLogger().println(
                     "Could not get effective client name: " + e.getMessage());
         } finally {
-            p4Client = substituteParameters(p4Client, build.getBuildVariables());
+            p4Client = substituteParameters(p4Client, build);
             return p4Client;
         }
     }
 
-    private String getEffectiveClientName(Node buildNode, FilePath workspace)
+    private String getEffectiveClientName(AbstractProject project, Node buildNode, FilePath workspace)
             throws IOException, InterruptedException {
 
         String nodeSuffix = "";
-        String p4Client = this.p4Client;
+        String p4Client = substituteParameters(this.p4Client, getDefaultSubstitutions(project));
 
         if (workspace == null){
             workspace = buildNode.getRootPath();
@@ -1359,6 +1364,17 @@ public class PerforceSCM extends SCM {
             }
         }
         return parsed;
+    }
+
+    static String substituteParameters(String string, AbstractBuild build) {
+        Hashtable<String,String> subst = new Hashtable<String,String>();
+        subst.put("JOB_NAME", build.getProject().getFullName());
+        subst.put("BUILD_TAG", "hudson-" + build.getProject().getName() + "-" + String.valueOf(build.getNumber()));
+        subst.put("BUILD_ID", build.getId());
+        subst.put("BUILD_NUMBER", String.valueOf(build.getNumber()));
+        String result = substituteParameters(string, build.getBuildVariables());
+        result = substituteParameters(result, subst);
+        return result;
     }
 
     static String substituteParameters(String string, Map<String,String> subst) {
