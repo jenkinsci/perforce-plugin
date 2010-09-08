@@ -612,8 +612,12 @@ public class PerforceSCM extends SCM {
             log.println("Sync complete, took " + duration + " ms");
 
             // reset one time use variables...
-            this.forceSync = false;
-            firstChange = -1;
+            if(this.forceSync == true || this.firstChange != -1){
+                this.forceSync = false;
+                this.firstChange = -1;
+                //save the one time use variables...
+                build.getParent().save();
+            }
 
             if (p4Label != null) {
                 // Add tagging action that indicates that the build is already
@@ -636,9 +640,6 @@ public class PerforceSCM extends SCM {
                 log.println("Updating counter " + p4Counter + " to " + newestChange);
                 depot.getCounters().saveCounter(counter);
             }
-
-            //save the one time use variables...
-            build.getParent().save();
 
             // remember the p4Ticket if we were issued one
             p4Ticket = depot.getP4Ticket();
