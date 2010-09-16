@@ -46,8 +46,20 @@ public class PerforceTagAction extends AbstractScmTagAction {
         this.view = views;
     }
 
+    public PerforceTagAction(PerforceTagAction tga) {
+        super(tga.build);
+        this.depot = tga.depot;
+        this.changeNumber = tga.changeNumber;
+        this.tag = tga.tag;
+        this.view = tga.view;
+    }
+
     public int getChangeNumber() {
         return changeNumber;
+    }
+
+    public String getView() {
+        return view;
     }
 
     public String getIconFileName() {
@@ -114,9 +126,17 @@ public class PerforceTagAction extends AbstractScmTagAction {
     public synchronized void doSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
 
-        tag = req.getParameter("name");
-        desc = req.getParameter("desc");
+        String tag = req.getParameter("name");
+        String desc = req.getParameter("desc");
 
+        tagBuild(tag, desc);
+
+        rsp.sendRedirect(".");
+    }
+
+    public void tagBuild(String tagname, String description) throws IOException {
+        tag = tagname;
+        desc = description;
         Label label = new Label();
         label.setName(tag);
         label.setDescription(desc);
@@ -124,7 +144,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
 
         //Only take the depot paths and add them to the view.
         List<String> viewPairs = PerforceSCM.parseProjectPath(view, "workspace");
-        for (int i=0; i < viewPairs.size(); i+=2){    
+        for (int i=0; i < viewPairs.size(); i+=2){
             String depotPath = viewPairs.get(i);
             label.addView(depotPath);
         }
@@ -137,6 +157,6 @@ public class PerforceTagAction extends AbstractScmTagAction {
             throw new IOException("Failed to issue perforce label." + e.getMessage());
         }
         build.save();
-        rsp.sendRedirect(".");
     }
+    
 }
