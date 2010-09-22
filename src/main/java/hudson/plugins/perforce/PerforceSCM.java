@@ -1269,6 +1269,7 @@ public class PerforceSCM extends SCM {
                         !DEPOT_AND_WORKSPACE.matcher(mapping).matches() &&
                         !DEPOT_ONLY_QUOTED.matcher(mapping).matches() &&
                         !DEPOT_AND_WORKSPACE_QUOTED.matcher(mapping).matches() &&
+                        !DEPOT_AND_QUOTED_WORKSPACE.matcher(mapping).matches() &&
                         !COMMENT.matcher(mapping).matches())
                         return FormValidation.error("Invalid mapping:" + mapping);
                 }
@@ -1324,6 +1325,8 @@ public class PerforceSCM extends SCM {
             Pattern.compile("^([+-]?//\\S+?/\\S+)\\s+//\\S+?(/\\S+)$");
     private static final Pattern DEPOT_AND_WORKSPACE_QUOTED =
             Pattern.compile("^\"([+-]?//\\S+?/[^\"]+)\"\\s+\"//\\S+?(/[^\"]+)\"$");
+    private static final Pattern DEPOT_AND_QUOTED_WORKSPACE =
+            Pattern.compile("^([+-]?//\\S+?/\\S+)\\s+\"//\\S+?(/[^\"]+)\"$");
 
     /**
      * Parses the projectPath into a list of pairs of strings representing the depot and client
@@ -1358,6 +1361,13 @@ public class PerforceSCM extends SCM {
                            // add the found depot path and the clientname-tweaked client path
                             parsed.add("\"" + depotAndWorkspaceQuoted.group(1) + "\"");
                             parsed.add("\"//" + p4Client + depotAndWorkspaceQuoted.group(2) + "\"");
+                        } else {
+                            Matcher depotAndQuotedWorkspace = DEPOT_AND_QUOTED_WORKSPACE.matcher(line);
+                            if (depotAndQuotedWorkspace.find()) {
+                                // add the found depot path and the clientname-tweaked client path
+                                parsed.add(depotAndQuotedWorkspace.group(1));
+                                parsed.add("\"//" + p4Client + depotAndQuotedWorkspace.group(2) + "\"");
+                            }
                         }
                         // Assume anything else is a comment and ignore it
                     }
