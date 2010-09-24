@@ -505,6 +505,12 @@ public class PerforceSCM extends SCM {
 
             saveWorkspaceIfDirty(depot, p4workspace, log);
 
+            //If we're not managing the view, populate the projectPath with the current view from perforce
+            //This is both for convenience, and so the labelling mechanism can operate correctly
+            if(!updateView){
+                projectPath = p4workspace.getViewsAsString();
+            }
+            
             //Get the list of changes since the last time we looked...
             String p4WorkspacePath = "//" + p4workspace.getName() + "/...";
             int lastChange = getLastChange((Run)build.getPreviousBuild());
@@ -611,11 +617,21 @@ public class PerforceSCM extends SCM {
 
             log.println("Sync complete, took " + duration + " ms");
 
+            boolean doSaveProject = false;
             // reset one time use variables...
             if(this.forceSync == true || this.firstChange != -1){
                 this.forceSync = false;
                 this.firstChange = -1;
                 //save the one time use variables...
+                doSaveProject = true;
+            }
+            //If we aren't managing the client views, update the current ones
+            //with those from perforce, and save them if they have changed.
+            if(!this.updateView && !projectPath.equals(this.projectPath)){
+                this.projectPath = projectPath;
+                doSaveProject = true;
+            }
+            if(doSaveProject){
                 build.getParent().save();
             }
 
