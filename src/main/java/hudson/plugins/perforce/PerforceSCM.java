@@ -974,6 +974,16 @@ public class PerforceSCM extends SCM {
         assert p4workspace != null;
         boolean creatingNewWorkspace = p4workspace.isNew();
 
+        // If the client workspace doesn't exist, and we're not managing the clients,
+        // Then terminate the build with an error
+        if(!updateView && creatingNewWorkspace){
+            log.println("*** Perforce client workspace '" + p4Client +"' doesn't exist.");
+            log.println("*** Please create it, or allow hudson to manage clients on it's own.");
+            log.println("*** If the client name mentioned above is not what you expected, ");
+            log.println("*** check your 'Client name format for slaves' advanced config option.");
+            throw new AbortException("Error accessing perforce workspace.");
+        }
+
         // Ensure that the clientspec (workspace) name is set correctly
         // TODO Examine why this would be necessary.
 
