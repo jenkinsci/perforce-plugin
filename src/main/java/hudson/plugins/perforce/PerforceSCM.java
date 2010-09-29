@@ -1340,6 +1340,26 @@ public class PerforceSCM extends SCM {
             return FormValidation.ok();
         }
 
+        public List<String> getAllLineEndChoices(){
+            List<String> allChoices = Arrays.asList(new String[]{
+                "local",
+                "unix",
+                "mac",
+                "win",
+                "share",
+            });
+            ArrayList<String> choices = new ArrayList<String>();
+            //Order choices so that the current one is first in the list
+            //This is required in order for tests to work, unfortunately
+            //choices.add(lineEndValue);
+            for(String choice : allChoices){
+                //if(!choice.equals(lineEndValue)){
+                    choices.add(choice);
+                //}
+            }
+            return choices;
+        }
+
     }
 
     /* Regular expressions for parsing view mappings.
@@ -1806,13 +1826,7 @@ public class PerforceSCM extends SCM {
     }
 
     public List<String> getAllLineEndChoices(){
-        List<String> allChoices = Arrays.asList(new String[]{
-            "local",
-            "unix",
-            "mac",
-            "win",
-            "share",
-        });
+        List<String> allChoices = ((PerforceSCMDescriptor)this.getDescriptor()).getAllLineEndChoices();
         ArrayList<String> choices = new ArrayList<String>();
         //Order choices so that the current one is first in the list
         //This is required in order for tests to work, unfortunately
