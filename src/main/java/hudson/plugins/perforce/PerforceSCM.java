@@ -1066,7 +1066,7 @@ public class PerforceSCM extends SCM {
 
         String nodeSuffix = "";
         String p4Client = substituteParameters(this.p4Client, getDefaultSubstitutions(project));
-
+        String basename = p4Client;
         if (workspace == null){
             workspace = buildNode.getRootPath();
         }
@@ -1092,7 +1092,7 @@ public class PerforceSCM extends SCM {
             Map<String, String> substitutions = new Hashtable<String,String>();
             substitutions.put("hostname", host);
             substitutions.put("hash", hash);
-            substitutions.put("basename", this.p4Client);
+            substitutions.put("basename", basename);
 
             p4Client = substituteParameters(getSlaveClientNameFormat(), substitutions);
         }
