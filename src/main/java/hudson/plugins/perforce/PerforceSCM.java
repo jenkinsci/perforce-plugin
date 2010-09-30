@@ -1898,8 +1898,8 @@ public class PerforceSCM extends SCM {
 	// This allows slaves to be thrown away and still allow polling to work
 
 	if(isSlaveClientNameStatic()) {
-		Logger.getLogger(PerforceSCM.class.getName()).info(
-			"No SlaveClientName supplied - assuming shared clientname - so no Workspace required for Polling");
+		//Logger.getLogger(PerforceSCM.class.getName()).info(
+		//	"No SlaveClientName supplied - assuming shared clientname - so no Workspace required for Polling");
 		return false;
 	}
       return true;
