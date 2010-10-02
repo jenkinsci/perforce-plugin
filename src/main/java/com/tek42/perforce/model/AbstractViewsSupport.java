@@ -76,7 +76,7 @@ public abstract class AbstractViewsSupport implements java.io.Serializable {
 	public String getViewsAsString() {
 		StringBuilder sb = new StringBuilder();
 		for(String view : views) {
-			sb.append(view + "\n");
+			sb.append(view.trim() + "\n");
 		}
 		return sb.toString();
 	}

@@ -1364,15 +1364,15 @@ public class PerforceSCM extends SCM {
 
     /* Regular expressions for parsing view mappings.
      */
-    private static final Pattern COMMENT = Pattern.compile("^$|^#.*$");
-    private static final Pattern DEPOT_ONLY = Pattern.compile("^[+-]?//\\S+?(/\\S+)$");
-    private static final Pattern DEPOT_ONLY_QUOTED = Pattern.compile("^\"[+-]?//\\S+?(/[^\"]+)\"$");
+    private static final Pattern COMMENT = Pattern.compile("^\\s*$|^#.*$");
+    private static final Pattern DEPOT_ONLY = Pattern.compile("^\\s*[+-]?//\\S+?(/\\S+)$");
+    private static final Pattern DEPOT_ONLY_QUOTED = Pattern.compile("^\\s*\"[+-]?//\\S+?(/[^\"]+)\"$");
     private static final Pattern DEPOT_AND_WORKSPACE =
-            Pattern.compile("^([+-]?//\\S+?/\\S+)\\s+//\\S+?(/\\S+)$");
+            Pattern.compile("^\\s*([+-]?//\\S+?/\\S+)\\s+//\\S+?(/\\S+)$");
     private static final Pattern DEPOT_AND_WORKSPACE_QUOTED =
-            Pattern.compile("^\"([+-]?//\\S+?/[^\"]+)\"\\s+\"//\\S+?(/[^\"]+)\"$");
+            Pattern.compile("^\\s*\"([+-]?//\\S+?/[^\"]+)\"\\s+\"//\\S+?(/[^\"]+)\"$");
     private static final Pattern DEPOT_AND_QUOTED_WORKSPACE =
-            Pattern.compile("^([+-]?//\\S+?/\\S+)\\s+\"//\\S+?(/[^\"]+)\"$");
+            Pattern.compile("^\\s*([+-]?//\\S+?/\\S+)\\s+\"//\\S+?(/[^\"]+)\"$");
 
     /**
      * Parses the projectPath into a list of pairs of strings representing the depot and client
