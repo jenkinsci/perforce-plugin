@@ -752,7 +752,26 @@ public class PerforceSCM extends SCM {
         Depot depot = getDepot(launcher,workspace,project);
         
         try {
-            Workspace p4workspace = getPerforceWorkspace(project, substituteParameters(projectPath, subst), depot, project.getLastBuiltOn(), null, launcher, workspace, listener, false);
+            Node buildNode = project.getLastBuiltOn();
+            if (buildNode == null){
+                for(Node node : Hudson.getInstance().getNodes()){
+                    hudson.model.Label l = project.getAssignedLabel();
+                    if(l!=null && !l.contains(node)){
+                        continue;
+                    }
+                    if(l==null && node.getMode() == hudson.model.Node.Mode.EXCLUSIVE){
+                        continue;
+                    }
+                    buildNode = node;
+                    break;
+                }
+            }
+            if (buildNode == null){
+                logger.println("Could not find a node to use for polling! Aborting.");
+                return false;
+            }
+            logger.println("Using node: " + buildNode.getDisplayName());
+            Workspace p4workspace = getPerforceWorkspace(project, substituteParameters(projectPath, subst), depot, buildNode, null, launcher, workspace, listener, false);
             if (p4workspace.isNew())
                 return true;
 
@@ -1067,6 +1086,7 @@ public class PerforceSCM extends SCM {
         String nodeSuffix = "";
         String p4Client = substituteParameters(this.p4Client, getDefaultSubstitutions(project));
         String basename = p4Client;
+
         if (workspace == null){
             workspace = buildNode.getRootPath();
         }
