@@ -508,7 +508,7 @@ public class PerforceSCM extends SCM {
             //If we're not managing the view, populate the projectPath with the current view from perforce
             //This is both for convenience, and so the labelling mechanism can operate correctly
             if(!updateView){
-                projectPath = p4workspace.getViewsAsString();
+                projectPath = p4workspace.getTrimmedViewsAsString();
             }
             
             //Get the list of changes since the last time we looked...
@@ -1474,7 +1474,7 @@ public class PerforceSCM extends SCM {
                 return false;
             String p1 = pi.next();
             String p2 = pi.next();  // assuming an even number of pair items
-            if (!line.trim().equals(p1 + " " + p2))
+            if (!line.trim().equals(p1.trim() + " " + p2.trim()))
                 return false;
         }
         return !pi.hasNext(); // equals iff there are no more pairs
