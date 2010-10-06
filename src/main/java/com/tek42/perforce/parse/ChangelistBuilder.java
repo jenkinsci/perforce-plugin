@@ -60,7 +60,7 @@ public class ChangelistBuilder implements Builder<Changelist> {
 	 */
 	public Changelist build(StringBuilder sb) throws PerforceException {
 		Changelist change = null;
-		StringTokenizer lines = new StringTokenizer(sb.toString(), "\t\n\r");
+		StringTokenizer lines = new StringTokenizer(sb.toString(), "\n\r");
 		try {
 			while(lines.hasMoreElements()) {
 				String line = lines.nextToken();
@@ -90,7 +90,7 @@ public class ChangelistBuilder implements Builder<Changelist> {
 					StringBuilder desc = new StringBuilder();
 					line = lines.nextToken();
 					while(line != null && !line.startsWith("Affected files") && !line.startsWith("Jobs fixed")) {
-						logger.debug("Description Line: " + line);
+						logger.debug("Description Line: " + line.trim());
 						desc.append(line + "\n");
 						line = lines.nextToken();
 					}
