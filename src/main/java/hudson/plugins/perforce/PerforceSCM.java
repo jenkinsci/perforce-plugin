@@ -367,11 +367,10 @@ public class PerforceSCM extends SCM {
             // this may help when tickets are used since we are
             // not storing the ticket on the client during login
             if (p4Ticket != null) {
-                env.put("P4PASSWD", p4Ticket);
-            } else {
-                PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
-                env.put("P4PASSWD", encryptor.decryptString(p4Passwd));
+                env.put("P4TICKET", p4Ticket);
             }
+            PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+            env.put("P4PASSWD", encryptor.decryptString(p4Passwd));
         }
 
         env.put("P4CLIENT", getEffectiveClientName(build));
