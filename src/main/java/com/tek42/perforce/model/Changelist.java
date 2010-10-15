@@ -100,6 +100,7 @@ public class Changelist implements java.io.Serializable {
 		Action action;
 		String filename;
 		String revision;
+                Changelist changelist;
 
 		public String toString() {
 			StringBuilder sb = new StringBuilder();
@@ -151,6 +152,14 @@ public class Changelist implements java.io.Serializable {
 		public void setRevision(String revision) {
 			this.revision = revision;
 		}
+
+                public void setChangelist(Changelist changelist) {
+                    this.changelist = changelist;
+                }
+
+                public Changelist getChangelist() {
+                    return this.changelist;
+                }
 	}
 
 	/**
