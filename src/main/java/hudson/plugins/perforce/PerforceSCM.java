@@ -46,10 +46,12 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import javax.servlet.ServletException;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.InetAddress;
@@ -440,6 +442,15 @@ public class PerforceSCM extends SCM {
         return pathName;
     }
 
+    private static class WipeWorkspaceFilter implements FileFilter, Serializable {
+        public boolean accept(File arg0) {
+            if(arg0.getName().equals(".repository")){
+                return false;
+            }
+            return true;
+        }
+    }
+    
     /*
      * @see hudson.scm.SCM#checkout(hudson.model.AbstractBuild, hudson.Launcher, hudson.FilePath, hudson.model.BuildListener, java.io.File)
      */
@@ -477,7 +488,10 @@ public class PerforceSCM extends SCM {
         if(wipeBeforeBuild){
             log.println("Clearing workspace...");
             if(processWorkspaceBeforeDeletion(build.getProject(), workspace, build.getBuiltOn())){
-                workspace.deleteContents();
+                List<FilePath> workspaceDirs = workspace.list(new WipeWorkspaceFilter());
+                for(FilePath dir : workspaceDirs){
+                    dir.deleteRecursive();
+                }
                 log.println("Cleared workspace.");
             } else {
                 log.println("Could not clear workspace. See hudson.perforce.PerforceSCM logger for details.");
