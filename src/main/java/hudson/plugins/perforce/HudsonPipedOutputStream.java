@@ -28,10 +28,12 @@ public class HudsonPipedOutputStream extends PipedOutputStream {
 
 	// Close stream, when hudson process finishes.
 	public void closeOnProcess(final Proc process) {
+                final HudsonPipedOutputStream stream = this;
 		Runnable runnable = new Runnable() {
 			public void run() {
 				try {
 					process.join();
+                                        stream.flush();
 				} catch(IOException e) {
 					// Do nothing
 				} catch(InterruptedException e) {
@@ -46,7 +48,7 @@ public class HudsonPipedOutputStream extends PipedOutputStream {
 				}
 			}
 		};
-
+                
 		new Thread(runnable).start();
 	}
 
