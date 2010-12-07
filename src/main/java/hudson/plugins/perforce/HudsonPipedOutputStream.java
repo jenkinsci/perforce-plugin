@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PipedOutputStream;
 
 import hudson.Proc;
+import hudson.remoting.FastPipedOutputStream;
 
 /**
  * Extended class of PipedOutputStream, used specifically for passing into
@@ -24,7 +25,7 @@ import hudson.Proc;
  *
  * @author Victor Szoltysek
  */
-public class HudsonPipedOutputStream extends PipedOutputStream {
+public class HudsonPipedOutputStream extends FastPipedOutputStream {
 
 	// Close stream, when hudson process finishes.
 	public void closeOnProcess(final Proc process) {

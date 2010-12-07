@@ -10,6 +10,8 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Proc;
 import hudson.model.Hudson;
+import hudson.remoting.FastPipedInputStream;
+import hudson.remoting.FastPipedOutputStream;
 import hudson.util.StreamTaskListener;
 
 /**
@@ -63,12 +65,12 @@ public class HudsonP4Executor implements Executor {
 
             // hudsonOut->p4in->reader
             HudsonPipedOutputStream hudsonOut = new HudsonPipedOutputStream();
-            PipedInputStream p4in = new PipedInputStream(hudsonOut);
+            FastPipedInputStream p4in = new FastPipedInputStream(hudsonOut);
             reader = new BufferedReader(new InputStreamReader(p4in));
 
             // hudsonIn<-p4Out<-writer
-            PipedInputStream hudsonIn = new PipedInputStream();
-            PipedOutputStream p4out = new PipedOutputStream(hudsonIn);
+            FastPipedInputStream hudsonIn = new FastPipedInputStream();
+            FastPipedOutputStream p4out = new FastPipedOutputStream(hudsonIn);
             writer = new BufferedWriter(new OutputStreamWriter(p4out));
 
             Proc process = hudsonLauncher.launch().cmds(cmd).envs(env).stdin(hudsonIn).stdout(hudsonOut).pwd(filePath).start();
