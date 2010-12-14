@@ -785,8 +785,6 @@ public class PerforceSCM extends SCM {
             }
             logger.println("Using node: " + buildNode.getDisplayName());
             Workspace p4workspace = getPerforceWorkspace(project, substituteParameters(projectPath, subst), depot, buildNode, null, launcher, workspace, listener, false);
-            if (p4workspace.isNew())
-                return true;
 
             saveWorkspaceIfDirty(depot, p4workspace, logger);
             
