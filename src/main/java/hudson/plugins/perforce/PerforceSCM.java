@@ -37,6 +37,7 @@ import hudson.scm.ChangeLogParser;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import hudson.util.FormValidation;
+import hudson.util.LogTaskListener;
 
 import hudson.util.StreamTaskListener;
 import net.sf.json.JSONObject;
@@ -1917,9 +1918,30 @@ public class PerforceSCM extends SCM {
      */
     @Override
     public boolean processWorkspaceBeforeDeletion(AbstractProject<?,?> project, FilePath workspace, Node node) {
-        Logger.getLogger(PerforceSCM.class.getName()).info(
+        Logger perforceLogger = Logger.getLogger(PerforceSCM.class.getName());
+        perforceLogger.info(
             "Workspace is being deleted; enabling one-time force sync.");
-        forceSync = true;
+        TaskListener listener = new LogTaskListener(perforceLogger,Level.INFO);
+        PrintStream log = listener.getLogger();
+        Launcher launcher = node.createLauncher(listener);
+        Depot depot = getDepot(launcher, workspace, project);
+        try {
+            Workspace p4workspace = getPerforceWorkspace(
+                project,
+                substituteParameters(projectPath,getDefaultSubstitutions(project)),
+                depot,
+                node,
+                null,
+                null,
+                workspace,
+                listener,
+                dontRenameClient);
+            saveWorkspaceIfDirty(depot, p4workspace, log);
+            depot.getWorkspaces().flushTo("//" + p4workspace.getName() + "/...#0");
+        } catch (Exception ex) {
+            Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
+        }
         return true;
     }
 

@@ -129,6 +129,14 @@ public class Workspaces extends AbstractPerforceTemplate {
                 }
 	}
 
+        public StringBuilder flushTo(String path) throws PerforceException {
+            StringBuilder response = getPerforceResponse(new String[] { getP4Exe(), "sync", "-k", path });
+            if(hitMax(response)){
+                throw new PerforceException("Hit perforce server limit while flushing client: " + response);
+            }
+            return response;
+        }
+
 	/**
      * Test whether there are any changes pending for the current client (P4CLIENT env var).
      * 
@@ -140,4 +148,5 @@ public class Workspaces extends AbstractPerforceTemplate {
         StringBuilder result = getPerforceResponse(new String[] { getP4Exe(), "sync", "-n" });
         return result;
     }
+
 }
