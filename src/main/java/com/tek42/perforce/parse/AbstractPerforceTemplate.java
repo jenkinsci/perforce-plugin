@@ -435,6 +435,7 @@ public abstract class AbstractPerforceTemplate {
                 // Though, I don't believe this problem exists outside of the build environment, 
                 // and wouldn't normally worry, I still want to be able to test security level 3
                 // from the automated build...
+                getLogger().warn("Login with '" + getP4Exe() + "' failed: " + e.getMessage());
                 try {
                     ticket = p4Login("/usr/bin/p4");
                 } catch (PerforceException e1) {

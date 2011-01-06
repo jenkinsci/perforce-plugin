@@ -95,7 +95,11 @@ public class Changes extends AbstractPerforceTemplate {
 
 		List<Changelist> changes = new ArrayList<Changelist>();
 		for(String id : ids) {
+                    try{
 			changes.add(getChangelist(new Integer(id)));
+                    } catch(Exception e){
+                        throw new PerforceException("Could not retrieve changelists.\nResponse from perforce was:\n" + response, e);
+                    }
 		}
 		return changes;
 	}
@@ -141,7 +145,11 @@ public class Changes extends AbstractPerforceTemplate {
 		List<String> ids = parseList(response, 1);
 		List<Integer> numbers = new ArrayList<Integer>(ids.size());
 		for(String id : ids) {
+                    try{
 			numbers.add(new Integer(id));
+                    } catch (Exception e) {
+                        throw new PerforceException("Failed to get change numbers.\nResponse from perforce was:\n" + response, e);
+                    }
 		}
 		return numbers;
 	}

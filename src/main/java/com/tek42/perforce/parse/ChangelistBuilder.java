@@ -182,7 +182,7 @@ public class ChangelistBuilder implements Builder<Changelist> {
 			}
 		} catch(Exception e) {
 			logger.error("Exception: " + e.getMessage());
-			throw new PerforceException("Failed to retrieve changelist.", e);
+			throw new PerforceException("Failed to retrieve changelist.\nResponse from perforce was:\n" + sb, e);
 		}
 		return change;
 	}

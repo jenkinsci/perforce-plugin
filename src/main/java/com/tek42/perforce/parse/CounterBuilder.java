@@ -42,7 +42,7 @@ public class CounterBuilder implements Builder<Counter> {
 		if(m.find()) {
                     counter.setValue(Integer.parseInt(m.group(0).trim()));
 		} else {
-                    throw new PerforceException("Could not get value of counter!");
+                    throw new PerforceException("Could not get value of counter.\nResponse from perforce was:\n" + sb);
                 }
 		return counter;
 	}
