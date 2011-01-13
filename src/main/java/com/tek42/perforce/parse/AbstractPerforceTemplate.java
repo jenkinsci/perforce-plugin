@@ -253,6 +253,16 @@ public abstract class AbstractPerforceTemplate {
 			} catch(IOException e) {
 				throw new PerforceException("Failed to open connection to perforce", e);
 			} finally {
+                                try{
+                                    p4.getWriter().close();
+                                } catch (IOException e) {
+                                    //failed to close pipe, but we can't do much about that
+                                }
+                                try{
+                                    p4.getReader().close();
+                                } catch (IOException e) {
+                                    //failed to close pipe, but we can't do much about that
+                                }
 				p4.close();
 			}
 		} while(loop);
@@ -294,6 +304,7 @@ public abstract class AbstractPerforceTemplate {
 
 			try
 			{
+                                p4.getWriter().close();
 				while((line = reader.readLine()) != null) {
 				    lines.add(line);
 				    totalLength += line.length();
@@ -317,7 +328,17 @@ public abstract class AbstractPerforceTemplate {
 				getLogger().warn(sw.toString());
 			}
 			finally{
-				p4.close();
+                            try{
+                                p4.getWriter().close();
+                            } catch (IOException e) {
+                                getLogger().warn("Write pipe failed to close.");
+                            }
+                            try{
+                                p4.getReader().close();
+                            } catch (IOException e) {
+                                getLogger().warn("Read pipe failed to close.");
+                            }
+                            p4.close();
 			}
 			loop = false;
 			// If we failed to execute because of an authentication issue, try a p4 login.
@@ -384,6 +405,7 @@ public abstract class AbstractPerforceTemplate {
         try
         {
             BufferedReader reader = p4.getReader();
+            p4.getWriter().close();
             String line = null;
             while((line = reader.readLine()) != null) {
                 lines.add(line);
@@ -407,6 +429,16 @@ public abstract class AbstractPerforceTemplate {
             getLogger().warn(sw.toString());
         }
         finally{
+            try{
+                p4.getWriter().close();
+            } catch (IOException e) {
+                getLogger().warn("Write pipe failed to close.");
+            }
+            try{
+                p4.getReader().close();
+            } catch (IOException e) {
+                getLogger().warn("Read pipe failed to close.");
+            }
             p4.close();
         }
 
