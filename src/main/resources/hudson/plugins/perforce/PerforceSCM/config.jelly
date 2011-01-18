@@ -61,8 +61,12 @@
         <f:checkbox field="alwaysForceSync" value="True"/>
       </f:entry>
 
-      <f:entry title="Disable Auto Sync" help="/plugin/perforce/help/disableAutoSync.html">
+      <f:entry title="Disable Sync and Changelog" help="/plugin/perforce/help/disableAutoSync.html">
         <f:checkbox field="disableAutoSync" value="False"/>
+      </f:entry>
+
+      <f:entry title="Disable Syncing Only" help="/plugin/perforce/help/disableSyncOnly.html">
+        <f:checkbox field="disableSyncOnly" value="False"/>
       </f:entry>
 
       <f:entry title="First Changelist to Track" help="/plugin/perforce/help/firstChange.html">

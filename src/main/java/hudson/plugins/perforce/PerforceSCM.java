@@ -111,9 +111,14 @@ public class PerforceSCM extends SCM {
      */
     boolean alwaysForceSync = false;
     /**
-     * Disable Workspace pre-build automatic sync
+     * Disable Workspace pre-build automatic sync and changelog retrieval
+     * This should be renamed if we can implement upgrade logic to handle old configs
      */
     boolean disableAutoSync = false;
+    /**
+     * Disable Workspace syncing
+     */
+    boolean disableSyncOnly = false;
     /**
      * This is to allow the client to use the old naming scheme
      * @deprecated As of 1.0.25, replaced by {@link #clientSuffixType}
@@ -219,6 +224,7 @@ public class PerforceSCM extends SCM {
             boolean alwaysForceSync,
             boolean updateView,
             boolean disableAutoSync,
+            boolean disableSyncOnly,
             boolean wipeBeforeBuild,
             boolean dontUpdateClient,
             boolean exposeP4Passwd,
@@ -300,6 +306,7 @@ public class PerforceSCM extends SCM {
         this.forceSync = forceSync;
         this.alwaysForceSync = alwaysForceSync;
         this.disableAutoSync = disableAutoSync;
+        this.disableSyncOnly = disableSyncOnly;
         this.browser = browser;
         this.wipeBeforeBuild = wipeBeforeBuild;
         this.updateView = updateView;
@@ -528,7 +535,7 @@ public class PerforceSCM extends SCM {
             //Get the list of changes since the last time we looked...
             String p4WorkspacePath = "//" + p4workspace.getName() + "/...";
             int lastChange = getLastChange((Run)build.getPreviousBuild());
-            log.println("Last sync'd change: " + lastChange);
+            log.println("Last build changeset: " + lastChange);
 
             int newestChange = lastChange;
             
@@ -581,55 +588,53 @@ public class PerforceSCM extends SCM {
                     if (lastChange != -1)
                         newestChange = lastChange;
                 }
-            }
 
-            // Now we can actually do the sync process...
-            StringBuilder sbMessage = new StringBuilder("Sync'ing workspace to ");
-            StringBuilder sbSyncPath = new StringBuilder(p4WorkspacePath);
-            StringBuilder sbSyncPathSuffix = new StringBuilder();
-            sbSyncPathSuffix.append("@");
+                if(!disableSyncOnly){
+                    // Now we can actually do the sync process...
+                    StringBuilder sbMessage = new StringBuilder("Sync'ing workspace to ");
+                    StringBuilder sbSyncPath = new StringBuilder(p4WorkspacePath);
+                    StringBuilder sbSyncPathSuffix = new StringBuilder();
+                    sbSyncPathSuffix.append("@");
 
-            if (p4Label != null) {
-                sbMessage.append("label ");
-                sbMessage.append(p4Label);
-                sbSyncPathSuffix.append(p4Label);
-            }
-            else {
-                sbMessage.append("changelist ");
-                sbMessage.append(newestChange);
-                sbSyncPathSuffix.append(newestChange);
-            }
-
-            sbSyncPath.append(sbSyncPathSuffix);
-            
-            if (forceSync || alwaysForceSync)
-                sbMessage.append(" (forcing sync of unchanged files).");
-            else
-                sbMessage.append(".");
-
-            log.println(sbMessage.toString());
-            String syncPath = sbSyncPath.toString();
-
-            long startTime = System.currentTimeMillis();
-
-            if(!disableAutoSync)
-            {
-                if(useViewMaskForSyncing && useViewMask){
-                    for(String path : viewMask.replaceAll("\r", "").split("\n")){
-                        StringBuilder sbMaskPath = new StringBuilder(path);
-                        sbMaskPath.append(sbSyncPathSuffix);
-                        String maskPath = sbMaskPath.toString();
-                        depot.getWorkspaces().syncTo(maskPath, forceSync || alwaysForceSync);
+                    if (p4Label != null) {
+                        sbMessage.append("label ");
+                        sbMessage.append(p4Label);
+                        sbSyncPathSuffix.append(p4Label);
                     }
-                } else {
-                    depot.getWorkspaces().syncTo(syncPath, forceSync || alwaysForceSync);
+                    else {
+                        sbMessage.append("changelist ");
+                        sbMessage.append(newestChange);
+                        sbSyncPathSuffix.append(newestChange);
+                    }
+
+                    sbSyncPath.append(sbSyncPathSuffix);
+
+                    if (forceSync || alwaysForceSync)
+                        sbMessage.append(" (forcing sync of unchanged files).");
+                    else
+                        sbMessage.append(".");
+
+                    log.println(sbMessage.toString());
+                    String syncPath = sbSyncPath.toString();
+
+                    long startTime = System.currentTimeMillis();
+
+                    if(useViewMaskForSyncing && useViewMask){
+                        for(String path : viewMask.replaceAll("\r", "").split("\n")){
+                            StringBuilder sbMaskPath = new StringBuilder(path);
+                            sbMaskPath.append(sbSyncPathSuffix);
+                            String maskPath = sbMaskPath.toString();
+                            depot.getWorkspaces().syncTo(maskPath, forceSync || alwaysForceSync);
+                        }
+                    } else {
+                        depot.getWorkspaces().syncTo(syncPath, forceSync || alwaysForceSync);
+                    }
+                    long endTime = System.currentTimeMillis();
+                    long duration = endTime - startTime;
+
+                    log.println("Sync complete, took " + duration + " ms");
                 }
             }
-
-            long endTime = System.currentTimeMillis();
-            long duration = endTime - startTime;
-
-            log.println("Sync complete, took " + duration + " ms");
 
             boolean doSaveProject = false;
             // reset one time use variables...
@@ -1855,6 +1860,14 @@ public class PerforceSCM extends SCM {
 
     public void setLineEndValue(String lineEndValue) {
         this.lineEndValue = lineEndValue;
+    }
+
+    public boolean isDisableSyncOnly() {
+        return disableSyncOnly;
+    }
+
+    public void setDisableSyncOnly(boolean disableSyncOnly) {
+        this.disableSyncOnly = disableSyncOnly;
     }
 
     public List<String> getAllLineEndChoices(){
