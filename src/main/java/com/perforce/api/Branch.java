@@ -235,7 +235,7 @@ public class Branch extends Mapping {
 		Change c = new Change();
 		c.setEnv(env);
 		c.setDescription(description);
-		c.setUser(User.getUser(env.getUser()));
+		c.setUser(User.getUser(env, env.getUser()));
 		c.setClientName(env.getClient());
 		c.commit();
 		return integrate(env, fents, branch, sb, c);

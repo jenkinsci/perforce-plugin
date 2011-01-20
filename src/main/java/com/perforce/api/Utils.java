@@ -37,6 +37,8 @@ import java.net.*;
  */
 public final class Utils {
 
+    private static final String ENCODING_SCHEME = "UTF-8";
+
 	/**
 	 * Initializes the package, in order to avoid some arbitrary JVM problems
 	 * that have been encountered. This is a hack and should not have to be done
@@ -263,8 +265,14 @@ public final class Utils {
 		} else {
 			while(-1 != (p2 = path.indexOf("/", p1 + 1))) {
 				args[0] = path.substring(0, p2);
-				if(urlencode)
-					args[0] = URLEncoder.encode((String) args[0]);
+				if(urlencode) {
+                    try {
+					    args[0] = URLEncoder.encode((String) args[0], ENCODING_SCHEME);
+                    }
+                    catch (UnsupportedEncodingException uee) {
+                        System.err.println("Unsupported URL encoding for ["+(String)args[0]+"]  "+uee.getMessage());
+                    }
+                }
 				args[1] = path.substring(p1 + 1, p2);
 				sb.append(MessageFormat.format(pathfmt, args));
 				sb.append('/');
@@ -279,8 +287,14 @@ public final class Utils {
 			rev = path.substring(p2 + 1);
 		}
 		args[0] = path.substring(0, p2);
-		if(urlencode)
-			args[0] = URLEncoder.encode((String) args[0]);
+		if(urlencode) {
+            try {
+                args[0] = URLEncoder.encode((String) args[0], ENCODING_SCHEME);
+            }
+            catch (UnsupportedEncodingException uee) {
+                System.err.println("Unsupported URL encoding for ["+(String)args[0]+"]  "+uee.getMessage());
+            }
+        }
 		String fname = path.substring(p1 + 1, p2);
 		args[1] = fname;
 		if(null == filefmt) {
@@ -292,8 +306,14 @@ public final class Utils {
 		if(null != rev) {
 			sb.append('#');
 			args[0] = path;
-			if(urlencode)
-				args[0] = URLEncoder.encode((String) args[0]);
+			if(urlencode) {
+                try {
+                    args[0] = URLEncoder.encode((String) args[0], ENCODING_SCHEME);
+                }
+                catch (UnsupportedEncodingException uee) {
+                    System.err.println("Unsupported URL encoding for ["+(String)args[0]+"]  "+uee.getMessage());
+                }
+            }
 			args[1] = rev;
 			if(null == revfmt) {
 				sb.append(args[1]);

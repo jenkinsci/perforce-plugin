@@ -126,9 +126,9 @@ public final class HashDecay extends Hashtable implements Runnable {
 			decay_thread.interrupt();
 			decay_thread.join(100);
 		} catch(InterruptedException ex) {
-			decay_thread.destroy();
+            ;;
 		} catch(SecurityException ex) {
-			decay_thread.destroy();
+            ;;
 		}
 	}
 
