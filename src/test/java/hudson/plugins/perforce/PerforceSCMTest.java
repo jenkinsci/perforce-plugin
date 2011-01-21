@@ -22,7 +22,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", "pass", "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        true, false, false, "${basename}", 0, browser);
+                        true, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         project.setScm(scm);
 
         // config roundtrip
@@ -31,6 +31,8 @@ public class PerforceSCMTest extends HudsonTestCase {
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
                 "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset");
+        assertEquals("exclude_user", scm.getExcludedUsers());
+        assertEquals("exclude_file", scm.getExcludedFiles());
         //assertEqualBeans(scm.getBrowser(),p.getScm().getBrowser(),"URL");
     }
 
@@ -41,7 +43,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        true, false, false, "${basename}", 0, browser);
+                        true, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         project.setScm(scm);
 
         // config roundtrip
@@ -50,6 +52,8 @@ public class PerforceSCMTest extends HudsonTestCase {
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
                 "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset");
+        assertEquals("exclude_user", scm.getExcludedUsers());
+        assertEquals("exclude_file", scm.getExcludedFiles());
 
         PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
         String encryptedPassword = encryptor.encryptString(password);
@@ -63,7 +67,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        true, false, false, "${basename}", 0, browser);
+                        true, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
 
         project.setScm(scm);
         
@@ -77,7 +81,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        true, false, false, "${basename}", 0, browser);
+                        true, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         project.setScm(scm);
 
         // config roundtrip
@@ -87,6 +91,8 @@ public class PerforceSCMTest extends HudsonTestCase {
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
                 "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset");
+        assertEquals("exclude_user", scm.getExcludedUsers());
+        assertEquals("exclude_file", scm.getExcludedFiles());
 
         PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
         String encryptedPassword = encryptor.encryptString(password);
