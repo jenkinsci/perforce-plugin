@@ -131,6 +131,14 @@
         </table>
     </f:entry>
 
+    <f:entry title="Poll Exclude User(s)" help="/plugin/perforce/help/excludeUsers.html">
+        <f:textbox field="excludedUsers" id="excludedUsers" />
+    </f:entry>
+
+    <f:entry title="Poll Exclude File(s)" help="/plugin/perforce/help/excludeFiles.html">
+        <f:textarea field="excludedFiles" id="excludedFiles" />
+    </f:entry>
+
     <f:optionalBlock name="p4.useViewMask" title="Use View Mask" help="/plugin/perforce/help/useViewMask.html" checked="${instance.useViewMask}">
         <f:entry title="View Mask" help="/plugin/perforce/help/viewMask.html">
             <f:textarea name="p4.viewMask" value="${instance.viewMask}"
@@ -143,7 +151,7 @@
             <f:checkbox name="p4.useViewMaskForSyncing" checked="${instance.useViewMaskForSyncing}"/>
         </f:entry>
     </f:optionalBlock>
-    
+
   </f:advanced>
 
 </j:jelly>

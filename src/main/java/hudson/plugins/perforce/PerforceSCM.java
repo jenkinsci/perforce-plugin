@@ -8,6 +8,7 @@ import com.tek42.perforce.model.Label;
 import com.tek42.perforce.model.Workspace;
 import com.tek42.perforce.parse.Counters;
 import com.tek42.perforce.parse.Workspaces;
+import com.tek42.perforce.model.Changelist.FileEntry;
 
 import hudson.AbortException;
 import hudson.EnvVars;
@@ -164,6 +165,17 @@ public class PerforceSCM extends SCM {
     int firstChange = -1;
 
     /**
+     * P4 user name(s) to exclude from SCM poll to prevent build trigger.
+     * Multiple user names are deliminated by space.
+     */
+    String excludedUsers;
+
+    /**
+     * P4 file(s) to exclude from SCM poll to prevent build trigger.
+     */
+    String excludedFiles;
+
+    /**
      * If a ticket was issued we can use it instead of the password in the environment.
      */
     private String p4Ticket = null;
@@ -230,7 +242,9 @@ public class PerforceSCM extends SCM {
             boolean exposeP4Passwd,
             String slaveClientNameFormat,
             int firstChange,
-            PerforceRepositoryBrowser browser/*,
+            PerforceRepositoryBrowser browser,
+            String excludedUsers,
+            String excludedFiles/*
             String viewMask,
             boolean useViewMaskForPolling,
             boolean useViewMaskForSyncing*/
@@ -317,6 +331,8 @@ public class PerforceSCM extends SCM {
         this.useOldClientName = false;
         this.p4Charset = Util.fixEmptyAndTrim(p4Charset);
         this.p4CommandCharset = Util.fixEmptyAndTrim(p4CommandCharset);
+        this.excludedUsers = Util.fixEmptyAndTrim(excludedUsers);
+        this.excludedFiles = Util.fixEmptyAndTrim(excludedFiles);
     }
 
     /**
@@ -919,11 +935,63 @@ public class PerforceSCM extends SCM {
                 return Boolean.FALSE;
             }
             else {
+                if (isChangelistExcluded(depot.getChanges().getChangelist(highestSelectedChangeNumber), logger)) {
+                    logger.println("Changelist "+highestSelectedChangeNumber+" is composed of file(s) and/or user(s) that are excluded.");
+                    return Boolean.FALSE;
+                }
                 return Boolean.TRUE;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Determines whether or not P4 changelist should be excluded and ignored by the polling trigger.
+     * Exclusions include files and/or changelists submitted by a specific user(s).
+     *
+     * @param changelist the p4 changelist 
+     * @return  True if changelist only contains user(s) and/or file(s) that are denoted to be excluded
+     */
+    private boolean isChangelistExcluded(Changelist changelist, PrintStream logger) {
+        if (changelist == null){
+            return false;
+        }
+
+        if (excludedUsers != null && !excludedUsers.trim().equals("")) 
+        {
+            List<String> users = Arrays.asList(excludedUsers.split(" "));
+
+            if ( users.contains(changelist.getUser()) ) {
+                logger.println("Excluded User ["+changelist.getUser()+"] found in changelist.");
+                return true;
+            }
+        }
+
+        if (excludedFiles != null && !excludedFiles.trim().equals("")) 
+        {
+            List<String> files = Arrays.asList(excludedFiles.split("\n"));
+            StringBuffer buff = null;
+
+            if (files.size() > 0 && changelist.getFiles().size() > 0) 
+            {
+                for (FileEntry f : changelist.getFiles()) {
+                    if (!files.contains(f.getFilename())) {
+                        return false;
+                    }
+
+                    if (buff == null) {
+                        buff = new StringBuffer("Exclude file(s) found:\n");
+                    }
+                    buff.append("\t"+f.getFilename());
+                }
+
+                logger.println(buff.toString());
+                return true;    // get here means changelist contains only and file(s) to exclude
+            }
+        }
+
+        return false;
     }
 
     // TODO Handle the case where p4Label is set.
@@ -1868,6 +1936,22 @@ public class PerforceSCM extends SCM {
 
     public void setDisableSyncOnly(boolean disableSyncOnly) {
         this.disableSyncOnly = disableSyncOnly;
+	}
+
+    public String getExcludedUsers() { 
+        return excludedUsers;
+    }
+
+    public void setExcludedUsers(String users) {
+        excludedUsers = users;
+    }
+
+    public String getExcludedFiles() {
+        return excludedFiles;
+    }
+
+    public void setExcludedFiles(String files) {
+        excludedFiles = files;
     }
 
     public List<String> getAllLineEndChoices(){
