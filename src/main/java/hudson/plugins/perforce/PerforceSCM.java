@@ -931,7 +931,7 @@ public class PerforceSCM extends SCM {
             }
             else {
                 if (isChangelistExcluded(depot.getChanges().getChangelist(highestSelectedChangeNumber), logger)) {
-                    logger.println("Changelist "+highestSelectedChangeNumber+" is composed of file(s) and/or user(s) that are excluded.  As a result, workspace has not changed.");
+                    logger.println("Changelist "+highestSelectedChangeNumber+" is composed of file(s) and/or user(s) that are excluded.");
                     return Boolean.FALSE;
                 }
                 return Boolean.TRUE;
@@ -949,23 +949,41 @@ public class PerforceSCM extends SCM {
      * @return  True if changelist only contains user(s) and/or file(s) that are denoted to be excluded
      */
     private boolean isChangelistExcluded(Changelist changelist, PrintStream logger) {
-        logger.println("ExcludeUsers: " + excludedUsers);
-        logger.println("ExcludeFiles: " + excludedFiles);
-        if (changelist == null || (excludedUsers == null || excludedUsers.trim().equals("")) ) {
+        if (changelist == null){
             return false;
         }
 
-        List<String> users = Arrays.asList(excludedUsers.split(" "));
-        if ( users.contains(changelist.getUser()) ) {
-            return true;
+        if (excludedUsers != null && !excludedUsers.trim().equals("")) 
+        {
+            List<String> users = Arrays.asList(excludedUsers.split(" "));
+
+            if ( users.contains(changelist.getUser()) ) {
+                logger.println("Excluded User ["+changelist.getUser()+"] found in changelist.");
+                return true;
+            }
         }
 
-        // TODO check if contains user then exclude
-        //if (changelist.getUser())
+        if (excludedFiles != null && !excludedFiles.trim().equals("")) 
+        {
+            List<String> files = Arrays.asList(excludedFiles.split("\n"));
+            StringBuffer buff = null;
 
-        // get changelist files and users, must be inclusive to be excluded
-        for (FileEntry f : changelist.getFiles()) {
-            logger.println("Changed: "+f.getFilename());
+            if (files.size() > 0 && changelist.getFiles().size() > 0) 
+            {
+                for (FileEntry f : changelist.getFiles()) {
+                    if (!files.contains(f.getFilename())) {
+                        return false;
+                    }
+
+                    if (buff == null) {
+                        buff = new StringBuffer("Exclude file(s) found:\n");
+                    }
+                    buff.append("\t"+f.getFilename());
+                }
+
+                logger.println(buff.toString());
+                return true;    // get here means changelist contains only and file(s) to exclude
+            }
         }
 
         return false;
