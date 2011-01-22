@@ -891,6 +891,7 @@ public class PerforceSCM extends SCM {
             }
 
             int highestSelectedChangeNumber;
+            List<Integer> changeNumbers;
 
             if (p4Counter != null && !updateCounterValue) {
 
@@ -900,21 +901,21 @@ public class PerforceSCM extends SCM {
                 Counter counter = depot.getCounters().getCounter(p4Counter);
                 highestSelectedChangeNumber = counter.getValue();
                 logger.println("Latest submitted change selected by named counter is " + highestSelectedChangeNumber);
+                String root = "//" + p4workspace.getName() + "/...";
+                changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, highestSelectedChangeNumber, root);
             } else {
 
                 // Has any new change been submitted since then (that is selected
                 // by this workspace).
+                Integer newestChange;
+                Counter counter = depot.getCounters().getCounter("change");
+                newestChange = counter.getValue();
 
-                List<Integer> changeNumbers;
                 if(useViewMaskForPolling && useViewMask){
-                    Integer newestChange;
-                    Counter counter = depot.getCounters().getCounter("change");
-                    newestChange = counter.getValue();
-
-                    changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber, newestChange, substituteParameters(viewMask, getDefaultSubstitutions(project)));
+                    changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, substituteParameters(viewMask, getDefaultSubstitutions(project)));
                 } else {
                     String root = "//" + p4workspace.getName() + "/...";
-                    changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber, newestChange, root);
+                    changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, root);
                 }
                 if (changeNumbers.isEmpty()) {
                     // Wierd, this shouldn't be!  I suppose it could happen if the
