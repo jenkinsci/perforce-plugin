@@ -914,7 +914,7 @@ public class PerforceSCM extends SCM {
                     changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber, newestChange, substituteParameters(viewMask, getDefaultSubstitutions(project)));
                 } else {
                     String root = "//" + p4workspace.getName() + "/...";
-                    changeNumbers = depot.getChanges().getChangeNumbers(root, -1, 2);
+                    changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber, newestChange, root);
                 }
                 if (changeNumbers.isEmpty()) {
                     // Wierd, this shouldn't be!  I suppose it could happen if the
@@ -935,11 +935,14 @@ public class PerforceSCM extends SCM {
                 return Boolean.FALSE;
             }
             else {
-                if (isChangelistExcluded(depot.getChanges().getChangelist(highestSelectedChangeNumber), logger)) {
-                    logger.println("Changelist "+highestSelectedChangeNumber+" is composed of file(s) and/or user(s) that are excluded.");
-                    return Boolean.FALSE;
+                for(int changeNumber: changeNumbers){
+                    if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber), logger)) {
+                        logger.println("Changelist "+changeNumber+" is composed of file(s) and/or user(s) that are excluded.");
+                    } else {
+                        return Boolean.TRUE;
+                    }
                 }
-                return Boolean.TRUE;
+                return Boolean.FALSE;
             }
         }
 
