@@ -61,7 +61,6 @@ public abstract class AbstractPerforceTemplate {
             "Your session has expired, please login again.",
             "You don't have permission for this operation.",
             "Password invalid.",
-            "Enter password:",    // this 'error' can sometimes be caused by a truncated pipe
         };
 
     @SuppressWarnings("unused")
