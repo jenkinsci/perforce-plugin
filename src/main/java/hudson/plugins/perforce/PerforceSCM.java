@@ -886,6 +886,7 @@ public class PerforceSCM extends SCM {
             }
 
             int highestSelectedChangeNumber;
+            List<Integer> changeNumbers = null;
 
             if (p4Counter != null && !updateCounterValue) {
 
@@ -900,7 +901,6 @@ public class PerforceSCM extends SCM {
                 // Has any new change been submitted since then (that is selected
                 // by this workspace).
 
-                List<Integer> changeNumbers;
                 if(useViewMaskForPolling && useViewMask){
                     Integer newestChange;
                     Counter counter = depot.getCounters().getCounter("change");
@@ -930,11 +930,14 @@ public class PerforceSCM extends SCM {
                 return Boolean.FALSE;
             }
             else {
-                if (isChangelistExcluded(depot.getChanges().getChangelist(highestSelectedChangeNumber), logger)) {
-                    logger.println("Changelist "+highestSelectedChangeNumber+" is composed of file(s) and/or user(s) that are excluded.");
-                    return Boolean.FALSE;
+                for (int changeNumber : changeNumbers) {
+                    if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber), logger)) {
+                        logger.println("Changelist "+changeNumber+" is composed of file(s) and/or user(s) that are excluded.");
+                    } else {
+                        return Boolean.TRUE;
+                    }
                 }
-                return Boolean.TRUE;
+                return Boolean.FALSE;
             }
         }
 
