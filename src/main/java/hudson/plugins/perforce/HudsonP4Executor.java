@@ -76,7 +76,7 @@ public class HudsonP4Executor implements Executor {
             Proc process = hudsonLauncher.launch().cmds(cmd).envs(env).stdin(hudsonIn).stdout(hudsonOut).pwd(filePath).start();
             
             // Required to close hudsonOut stream
-            hudsonOut.closeOnProcess(process);
+            //hudsonOut.closeOnProcess(process); //I suspect that this may be prematurely closing the pipe
 
         } catch(IOException e) {
             //try to close all the pipes before throwing an exception
