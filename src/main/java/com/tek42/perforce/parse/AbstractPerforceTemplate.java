@@ -480,7 +480,7 @@ public abstract class AbstractPerforceTemplate {
 
 	        // if we obtained a ticket, save it for later use. Our environment setup by Depot can't usually
 	        // see the .p4tickets file.
-	        if (ticket != null) {
+	        if (ticket != null && !ticket.contains("Enter password:")) {
 	            getLogger().warn("Using p4 issued ticket.");
 	            depot.setP4Ticket(ticket);
 	        }
