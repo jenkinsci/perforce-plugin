@@ -1014,7 +1014,6 @@ public class PerforceSCM extends SCM {
         patternString = patternString.replaceAll("\\.\\.\\.", ".*");
         Pattern pattern = Pattern.compile(patternString);
         Matcher matcher = pattern.matcher(filename);
-        System.out.println("Attempting to match "+filename+" against "+patternString);
         if(matcher.matches()){
             return true;
         } else {
