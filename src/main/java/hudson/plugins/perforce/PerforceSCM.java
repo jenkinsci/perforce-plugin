@@ -980,7 +980,7 @@ public class PerforceSCM extends SCM {
             if (files.size() > 0 && changelist.getFiles().size() > 0) 
             {
                 for (FileEntry f : changelist.getFiles()) {
-                    if (!files.contains(f.getFilename())) {
+                    if (!doesFilenameMatchAnyP4Pattern(f.getFilename(),files)) {
                         return false;
                     }
 
@@ -996,6 +996,30 @@ public class PerforceSCM extends SCM {
         }
 
         return false;
+    }
+
+    private static boolean doesFilenameMatchAnyP4Pattern(String filename, List<String> patternStrings){
+        for(String patternString : patternStrings){
+            if(doesFilenameMatchP4Pattern(filename, patternString)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean doesFilenameMatchP4Pattern(String filename, String patternString){
+        patternString = patternString.trim();
+        filename = filename.trim();
+        patternString = patternString.replaceAll("\\*", "[^/]*");
+        patternString = patternString.replaceAll("\\.\\.\\.", ".*");
+        Pattern pattern = Pattern.compile(patternString);
+        Matcher matcher = pattern.matcher(filename);
+        System.out.println("Attempting to match "+filename+" against "+patternString);
+        if(matcher.matches()){
+            return true;
+        } else {
+            return false;
+        }
     }
 
     // TODO Handle the case where p4Label is set.
