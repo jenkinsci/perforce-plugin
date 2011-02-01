@@ -12,7 +12,7 @@
   <name>Perforce Plugin</name>
   <packaging>hpi</packaging>
   <version>1.1.15-SNAPSHOT</version>
-  <url>http://wiki.hudson-ci.org/display/HUDSON/Perforce+Plugin</url>
+  <url>http://wiki.jenkins-ci.org/display/JENKINS/Perforce+Plugin</url>
 
   <developers>
     <developer>
@@ -116,14 +116,14 @@
   <distributionManagement>
     <repository>
       <id>java.net-m2-repository</id>
-      <url>http://maven.hudson-labs.org/content/repositories/releases/</url>
+      <url>http://maven.jenkins-ci.org/content/repositories/releases/</url>
     </repository>
   </distributionManagement>
 
   <scm>
-    <connection>scm:git:git://github.com/hudson/perforce-plugin.git</connection>
-    <developerConnection>scm:git:git@github.com:hudson/perforce-plugin.git</developerConnection>
-    <url>http://github.com/hudson/perforce-plugin</url>
+    <connection>scm:git:git://github.com/jenkinsci/perforce-plugin.git</connection>
+    <developerConnection>scm:git:git@github.com:jenkinsci/perforce-plugin.git</developerConnection>
+    <url>http://github.com/jenkinsci/perforce-plugin</url>
   </scm>
 
 </project>
