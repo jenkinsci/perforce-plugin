@@ -244,10 +244,7 @@ public class PerforceSCM extends SCM {
             int firstChange,
             PerforceRepositoryBrowser browser,
             String excludedUsers,
-            String excludedFiles/*
-            String viewMask,
-            boolean useViewMaskForPolling,
-            boolean useViewMaskForSyncing*/
+            String excludedFiles
             ) {
 
         this.p4User = p4User;
