@@ -1492,6 +1492,10 @@ public class PerforceSCM extends SCM {
             return choices;
         }
 
+        public String getAppName() {
+            return Hudson.getInstance().getDisplayName();
+        }
+
     }
 
     /* Regular expressions for parsing view mappings.
@@ -1558,7 +1562,8 @@ public class PerforceSCM extends SCM {
     static String substituteParameters(String string, AbstractBuild build) {
         Hashtable<String,String> subst = new Hashtable<String,String>();
         subst.put("JOB_NAME", build.getProject().getFullName());
-        subst.put("BUILD_TAG", "hudson-" + build.getProject().getName() + "-" + String.valueOf(build.getNumber()));
+        String hudsonName = Hudson.getInstance().getDisplayName().toLowerCase();
+        subst.put("BUILD_TAG", hudsonName + "-" + build.getProject().getName() + "-" + String.valueOf(build.getNumber()));
         subst.put("BUILD_ID", build.getId());
         subst.put("BUILD_NUMBER", String.valueOf(build.getNumber()));
         String result = substituteParameters(string, build.getBuildVariables());
