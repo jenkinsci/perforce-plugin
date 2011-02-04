@@ -69,6 +69,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * Extends {@link SCM} to provide integration with Perforce SCM repositories.
@@ -997,6 +998,7 @@ public class PerforceSCM extends SCM {
 
     private static boolean doesFilenameMatchAnyP4Pattern(String filename, List<String> patternStrings){
         for(String patternString : patternStrings){
+            if(patternString.trim().equals("")) continue;
             if(doesFilenameMatchP4Pattern(filename, patternString)){
                 return true;
             }
@@ -1004,7 +1006,7 @@ public class PerforceSCM extends SCM {
         return false;
     }
 
-    public static boolean doesFilenameMatchP4Pattern(String filename, String patternString){
+    public static boolean doesFilenameMatchP4Pattern(String filename, String patternString) throws PatternSyntaxException {
         patternString = patternString.trim();
         filename = filename.trim();
         patternString = patternString.replaceAll("\\*", "[^/]*");
@@ -1464,6 +1466,34 @@ public class PerforceSCM extends SCM {
                         throw new PerforceException("broken");
                 } catch (Exception e) {
                     return FormValidation.error("Changelist: " + change + " does not exist.");
+                }
+            }
+            return FormValidation.ok();
+        }
+
+        /**
+         * Checks if the value is a valid file path/regex file pattern.
+         */
+        public FormValidation doValidateExcludedFiles(StaplerRequest req) {
+            String excludedFiles = fixNull(req.getParameter("excludedFiles")).trim();
+            List<String> files = Arrays.asList(excludedFiles.split("\n"));
+            for (String file : files) {
+                // splitting with \n can still leave \r on some OS/browsers
+                // trimming should eliminate it.
+                file = file.trim();
+                // empty line? lets ignore it.
+                if(file.equals("")) continue;
+                // check to make sure it's a valid file spec
+                if( !DEPOT_ONLY.matcher(file).matches() && !DEPOT_ONLY_QUOTED.matcher(file).matches() ){
+                    return FormValidation.error("Invalid file spec ["+file+"]: Not a perforce file spec.");
+                }
+                // check to make sure the globbing regex will work
+                // (ie, in case there are special characters that the user hasn't escaped properly)
+                try {
+                    doesFilenameMatchP4Pattern("somefile", file);
+                }
+                catch (PatternSyntaxException pse) {
+                    return FormValidation.error("Invalid file spec ["+file+"]: " + pse.getMessage());
                 }
             }
             return FormValidation.ok();
