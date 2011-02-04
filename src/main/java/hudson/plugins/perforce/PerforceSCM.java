@@ -69,6 +69,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * Extends {@link SCM} to provide integration with Perforce SCM repositories.
@@ -166,7 +167,7 @@ public class PerforceSCM extends SCM {
     String excludedUsers;
 
     /**
-     * P4 file(s) to exclude from SCM poll to prevent build trigger.
+     * P4 file(s) or regex file pattern to exclude from SCM poll to prevent build trigger.
      */
     String excludedFiles;
 
@@ -946,7 +947,7 @@ public class PerforceSCM extends SCM {
 
     /**
      * Determines whether or not P4 changelist should be excluded and ignored by the polling trigger.
-     * Exclusions include files and/or changelists submitted by a specific user(s).
+     * Exclusions include files, regex patterns of files, and/or changelists submitted by a specific user(s).
      *
      * @param changelist the p4 changelist 
      * @return  True if changelist only contains user(s) and/or file(s) that are denoted to be excluded
@@ -970,11 +971,31 @@ public class PerforceSCM extends SCM {
         {
             List<String> files = Arrays.asList(excludedFiles.split("\n"));
             StringBuffer buff = null;
+            Matcher matcher = null;
+            boolean matchFound;
 
             if (files.size() > 0 && changelist.getFiles().size() > 0) 
             {
-                for (FileEntry f : changelist.getFiles()) {
-                    if (!files.contains(f.getFilename())) {
+                for (FileEntry f : changelist.getFiles()) 
+                {
+                    matchFound = files.contains(f.getFilename());   
+        
+                    // didn't find literal match, try regex
+                    if (!matchFound) {
+                        for (String regex : files) 
+                        {
+                            try {
+                                matcher = Pattern.compile(regex).matcher(f.getFilename());       
+                                matchFound = matcher.find();
+                            }
+                            catch (PatternSyntaxException pse) {
+                                break;  // should never occur since we validate regex input before hand, but just be safe
+                            }
+                        }
+                    }
+
+                    // no literal or regex match found
+                    if (!matchFound) {
                         return false;
                     }
 
@@ -985,7 +1006,7 @@ public class PerforceSCM extends SCM {
                 }
 
                 logger.println(buff.toString());
-                return true;    // get here means changelist contains only and file(s) to exclude
+                return true;    // get here means changelist contains only file(s) to exclude
             }
         }
 
@@ -1438,6 +1459,25 @@ public class PerforceSCM extends SCM {
                         throw new PerforceException("broken");
                 } catch (Exception e) {
                     return FormValidation.error("Changelist: " + change + " does not exist.");
+                }
+            }
+            return FormValidation.ok();
+        }
+
+        /**
+         * Checks if the value is a valid file path/regex file pattern.
+         */
+        public FormValidation doValidateExcludedFiles(StaplerRequest req) {
+            String excludedFiles = fixNull(req.getParameter("excludedFiles")).trim();
+            List<String> files = Arrays.asList(excludedFiles.split("\n"));
+
+            for (String regex : files) {
+                Pattern pattern = null;
+                try {
+                    Pattern.compile(regex);
+                }
+                catch (PatternSyntaxException pse) {
+                    return FormValidation.error("Invalid regular express ["+regex+"]: " + pse.getMessage());
                 }
             }
             return FormValidation.ok();
