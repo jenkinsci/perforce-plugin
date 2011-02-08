@@ -22,7 +22,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", "pass", "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        true, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+                        false, true, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         project.setScm(scm);
 
         // config roundtrip
@@ -43,7 +43,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        true, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+                        false, true, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         project.setScm(scm);
 
         // config roundtrip
@@ -67,7 +67,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        true, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+                        false, true, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
 
         project.setScm(scm);
         
@@ -81,7 +81,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        true, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+                        false, true, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         project.setScm(scm);
 
         // config roundtrip
@@ -159,4 +159,44 @@ public class PerforceSCMTest extends HudsonTestCase {
     public void testWindowsPathName() throws Exception {
         assertEquals("C:\\Windows\\Path\\Name\\", PerforceSCM.processPathName("C://Windows\\.\\Path\\\\Name\\",false));
     }
+
+    public void testFilenameP4PatternMatcher() throws Exception {
+        assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot/somefile/testfile",
+                "//depot/..."));
+        assertEquals(false, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot3/somefile/testfile",
+                "//depot/..."));
+        assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot/somefile/testfile",
+                "//depot/.../testfile"));
+        assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot/somefile/testfile",
+                "//depot/*/testfile"));
+        assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot/somefile/testfile",
+                "//depot/some*/..."));
+        assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot/somefile/testfile",
+                "//depot/*file..."));
+        assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot/somefile/testfile",
+                "//depot/.../*"));
+        assertEquals(false, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot/somefile/testfile",
+                "//depot/somefile/test"));
+        assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot/somefile/testfile",
+                "//depot/somefile/testfile"));
+        assertEquals(false, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot/somefile/testfile",
+                "//depot/.../test"));
+        assertEquals(false, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot/somefile/testfile",
+                "//depot/.../*test"));
+        assertEquals(false, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot/somefile/testfile",
+                "//depot/.../file*"));
+    }
+
 }

@@ -36,7 +36,7 @@
                 checkUrl="'${rootURL}/scm/PerforceSCM/validateP4Client?port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)+'&amp;client='+escape(document.forms[1].p4Client.value)"/>
       </f:entry>
 
-      <f:entry title="Let Hudson Manage Workspace View" help="/plugin/perforce/help/updateView.html">
+      <f:entry title="Let ${descriptor['appName']} Manage Workspace View" help="/plugin/perforce/help/updateView.html">
         <f:checkbox field="updateView" default="true" value="True"/>
       </f:entry>
 
@@ -61,8 +61,12 @@
         <f:checkbox field="alwaysForceSync" value="True"/>
       </f:entry>
 
-      <f:entry title="Disable Auto Sync" help="/plugin/perforce/help/disableAutoSync.html">
+      <f:entry title="Disable Sync and Changelog" help="/plugin/perforce/help/disableAutoSync.html">
         <f:checkbox field="disableAutoSync" value="False"/>
+      </f:entry>
+
+      <f:entry title="Disable Syncing Only" help="/plugin/perforce/help/disableSyncOnly.html">
+        <f:checkbox field="disableSyncOnly" value="False"/>
       </f:entry>
 
       <f:entry title="First Changelist to Track" help="/plugin/perforce/help/firstChange.html">
@@ -132,8 +136,8 @@
     </f:entry>
 
     <f:entry title="Poll Exclude File(s)" help="/plugin/perforce/help/excludeFiles.html">
-        <f:textarea field="excludedFiles" id="excludedFiles" 
-            checkUrl="'${rootURL}/scm/PerforceSCM/validateExcludedFiles?excludedFiles='+escape(this.value)" />
+        <f:textarea field="excludedFiles" id="excludedFiles"
+                      checkUrl="'${rootURL}/scm/PerforceSCM/validateExcludedFiles?excludedFiles='+escape(this.value)" />
     </f:entry>
 
     <f:optionalBlock name="p4.useViewMask" title="Use View Mask" help="/plugin/perforce/help/useViewMask.html" checked="${instance.useViewMask}">

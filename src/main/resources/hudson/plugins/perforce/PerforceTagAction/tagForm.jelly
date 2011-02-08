@@ -3,7 +3,7 @@
 
   This belongs to a build view.
   
-  Note: though the hudson api uses the term tag (as well as the other SCMs) Perforce uses
+  Note: though the jenkins api uses the term tag (as well as the other SCMs) Perforce uses
   the term label.  So because of that, we will use the term when displaying UI to the end user
 -->
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">

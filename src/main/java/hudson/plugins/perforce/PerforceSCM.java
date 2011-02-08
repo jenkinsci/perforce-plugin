@@ -113,9 +113,14 @@ public class PerforceSCM extends SCM {
      */
     boolean alwaysForceSync = false;
     /**
-     * Disable Workspace pre-build automatic sync
+     * Disable Workspace pre-build automatic sync and changelog retrieval
+     * This should be renamed if we can implement upgrade logic to handle old configs
      */
     boolean disableAutoSync = false;
+    /**
+     * Disable Workspace syncing
+     */
+    boolean disableSyncOnly = false;
     /**
      * This is to allow the client to use the old naming scheme
      * @deprecated As of 1.0.25, replaced by {@link #clientSuffixType}
@@ -232,6 +237,7 @@ public class PerforceSCM extends SCM {
             boolean alwaysForceSync,
             boolean updateView,
             boolean disableAutoSync,
+            boolean disableSyncOnly,
             boolean wipeBeforeBuild,
             boolean dontUpdateClient,
             boolean exposeP4Passwd,
@@ -239,10 +245,7 @@ public class PerforceSCM extends SCM {
             int firstChange,
             PerforceRepositoryBrowser browser,
             String excludedUsers,
-            String excludedFiles/*
-            String viewMask,
-            boolean useViewMaskForPolling,
-            boolean useViewMaskForSyncing*/
+            String excludedFiles
             ) {
 
         this.p4User = p4User;
@@ -315,6 +318,7 @@ public class PerforceSCM extends SCM {
         this.forceSync = forceSync;
         this.alwaysForceSync = alwaysForceSync;
         this.disableAutoSync = disableAutoSync;
+        this.disableSyncOnly = disableSyncOnly;
         this.browser = browser;
         this.wipeBeforeBuild = wipeBeforeBuild;
         this.updateView = updateView;
@@ -545,7 +549,7 @@ public class PerforceSCM extends SCM {
             //Get the list of changes since the last time we looked...
             String p4WorkspacePath = "//" + p4workspace.getName() + "/...";
             int lastChange = getLastChange((Run)build.getPreviousBuild());
-            log.println("Last sync'd change: " + lastChange);
+            log.println("Last build changeset: " + lastChange);
 
             int newestChange = lastChange;
             
@@ -598,55 +602,53 @@ public class PerforceSCM extends SCM {
                     if (lastChange != -1)
                         newestChange = lastChange;
                 }
-            }
 
-            // Now we can actually do the sync process...
-            StringBuilder sbMessage = new StringBuilder("Sync'ing workspace to ");
-            StringBuilder sbSyncPath = new StringBuilder(p4WorkspacePath);
-            StringBuilder sbSyncPathSuffix = new StringBuilder();
-            sbSyncPathSuffix.append("@");
+                if(!disableSyncOnly){
+                    // Now we can actually do the sync process...
+                    StringBuilder sbMessage = new StringBuilder("Sync'ing workspace to ");
+                    StringBuilder sbSyncPath = new StringBuilder(p4WorkspacePath);
+                    StringBuilder sbSyncPathSuffix = new StringBuilder();
+                    sbSyncPathSuffix.append("@");
 
-            if (p4Label != null) {
-                sbMessage.append("label ");
-                sbMessage.append(p4Label);
-                sbSyncPathSuffix.append(p4Label);
-            }
-            else {
-                sbMessage.append("changelist ");
-                sbMessage.append(newestChange);
-                sbSyncPathSuffix.append(newestChange);
-            }
-
-            sbSyncPath.append(sbSyncPathSuffix);
-            
-            if (forceSync || alwaysForceSync)
-                sbMessage.append(" (forcing sync of unchanged files).");
-            else
-                sbMessage.append(".");
-
-            log.println(sbMessage.toString());
-            String syncPath = sbSyncPath.toString();
-
-            long startTime = System.currentTimeMillis();
-
-            if(!disableAutoSync)
-            {
-                if(useViewMaskForSyncing && useViewMask){
-                    for(String path : viewMask.replaceAll("\r", "").split("\n")){
-                        StringBuilder sbMaskPath = new StringBuilder(path);
-                        sbMaskPath.append(sbSyncPathSuffix);
-                        String maskPath = sbMaskPath.toString();
-                        depot.getWorkspaces().syncTo(maskPath, forceSync || alwaysForceSync);
+                    if (p4Label != null) {
+                        sbMessage.append("label ");
+                        sbMessage.append(p4Label);
+                        sbSyncPathSuffix.append(p4Label);
                     }
-                } else {
-                    depot.getWorkspaces().syncTo(syncPath, forceSync || alwaysForceSync);
+                    else {
+                        sbMessage.append("changelist ");
+                        sbMessage.append(newestChange);
+                        sbSyncPathSuffix.append(newestChange);
+                    }
+
+                    sbSyncPath.append(sbSyncPathSuffix);
+
+                    if (forceSync || alwaysForceSync)
+                        sbMessage.append(" (forcing sync of unchanged files).");
+                    else
+                        sbMessage.append(".");
+
+                    log.println(sbMessage.toString());
+                    String syncPath = sbSyncPath.toString();
+
+                    long startTime = System.currentTimeMillis();
+
+                    if(useViewMaskForSyncing && useViewMask){
+                        for(String path : viewMask.replaceAll("\r", "").split("\n")){
+                            StringBuilder sbMaskPath = new StringBuilder(path);
+                            sbMaskPath.append(sbSyncPathSuffix);
+                            String maskPath = sbMaskPath.toString();
+                            depot.getWorkspaces().syncTo(maskPath, forceSync || alwaysForceSync);
+                        }
+                    } else {
+                        depot.getWorkspaces().syncTo(syncPath, forceSync || alwaysForceSync);
+                    }
+                    long endTime = System.currentTimeMillis();
+                    long duration = endTime - startTime;
+
+                    log.println("Sync complete, took " + duration + " ms");
                 }
             }
-
-            long endTime = System.currentTimeMillis();
-            long duration = endTime - startTime;
-
-            log.println("Sync complete, took " + duration + " ms");
 
             boolean doSaveProject = false;
             // reset one time use variables...
@@ -897,20 +899,21 @@ public class PerforceSCM extends SCM {
                 Counter counter = depot.getCounters().getCounter(p4Counter);
                 highestSelectedChangeNumber = counter.getValue();
                 logger.println("Latest submitted change selected by named counter is " + highestSelectedChangeNumber);
+                String root = "//" + p4workspace.getName() + "/...";
+                changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, highestSelectedChangeNumber, root);
             } else {
 
                 // Has any new change been submitted since then (that is selected
                 // by this workspace).
+                Integer newestChange;
+                Counter counter = depot.getCounters().getCounter("change");
+                newestChange = counter.getValue();
 
                 if(useViewMaskForPolling && useViewMask){
-                    Integer newestChange;
-                    Counter counter = depot.getCounters().getCounter("change");
-                    newestChange = counter.getValue();
-
-                    changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber, newestChange, substituteParameters(viewMask, getDefaultSubstitutions(project)));
+                    changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, substituteParameters(viewMask, getDefaultSubstitutions(project)));
                 } else {
                     String root = "//" + p4workspace.getName() + "/...";
-                    changeNumbers = depot.getChanges().getChangeNumbers(root, -1, 2);
+                    changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, root);
                 }
                 if (changeNumbers.isEmpty()) {
                     // Wierd, this shouldn't be!  I suppose it could happen if the
@@ -976,26 +979,8 @@ public class PerforceSCM extends SCM {
 
             if (files.size() > 0 && changelist.getFiles().size() > 0) 
             {
-                for (FileEntry f : changelist.getFiles()) 
-                {
-                    matchFound = files.contains(f.getFilename());   
-        
-                    // didn't find literal match, try regex
-                    if (!matchFound) {
-                        for (String regex : files) 
-                        {
-                            try {
-                                matcher = Pattern.compile(regex).matcher(f.getFilename());       
-                                matchFound = matcher.find();
-                            }
-                            catch (PatternSyntaxException pse) {
-                                break;  // should never occur since we validate regex input before hand, but just be safe
-                            }
-                        }
-                    }
-
-                    // no literal or regex match found
-                    if (!matchFound) {
+                for (FileEntry f : changelist.getFiles()) {
+                    if (!doesFilenameMatchAnyP4Pattern(f.getFilename(),files)) {
                         return false;
                     }
 
@@ -1011,6 +996,30 @@ public class PerforceSCM extends SCM {
         }
 
         return false;
+    }
+
+    private static boolean doesFilenameMatchAnyP4Pattern(String filename, List<String> patternStrings){
+        for(String patternString : patternStrings){
+            if(patternString.trim().equals("")) continue;
+            if(doesFilenameMatchP4Pattern(filename, patternString)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean doesFilenameMatchP4Pattern(String filename, String patternString) throws PatternSyntaxException {
+        patternString = patternString.trim();
+        filename = filename.trim();
+        patternString = patternString.replaceAll("\\*", "[^/]*");
+        patternString = patternString.replaceAll("\\.\\.\\.", ".*");
+        Pattern pattern = Pattern.compile(patternString);
+        Matcher matcher = pattern.matcher(filename);
+        if(matcher.matches()){
+            return true;
+        } else {
+            return false;
+        }
     }
 
     // TODO Handle the case where p4Label is set.
@@ -1470,14 +1479,23 @@ public class PerforceSCM extends SCM {
         public FormValidation doValidateExcludedFiles(StaplerRequest req) {
             String excludedFiles = fixNull(req.getParameter("excludedFiles")).trim();
             List<String> files = Arrays.asList(excludedFiles.split("\n"));
-
-            for (String regex : files) {
-                Pattern pattern = null;
+            for (String file : files) {
+                // splitting with \n can still leave \r on some OS/browsers
+                // trimming should eliminate it.
+                file = file.trim();
+                // empty line? lets ignore it.
+                if(file.equals("")) continue;
+                // check to make sure it's a valid file spec
+                if( !DEPOT_ONLY.matcher(file).matches() && !DEPOT_ONLY_QUOTED.matcher(file).matches() ){
+                    return FormValidation.error("Invalid file spec ["+file+"]: Not a perforce file spec.");
+                }
+                // check to make sure the globbing regex will work
+                // (ie, in case there are special characters that the user hasn't escaped properly)
                 try {
-                    Pattern.compile(regex);
+                    doesFilenameMatchP4Pattern("somefile", file);
                 }
                 catch (PatternSyntaxException pse) {
-                    return FormValidation.error("Invalid regular express ["+regex+"]: " + pse.getMessage());
+                    return FormValidation.error("Invalid file spec ["+file+"]: " + pse.getMessage());
                 }
             }
             return FormValidation.ok();
@@ -1501,6 +1519,10 @@ public class PerforceSCM extends SCM {
                 //}
             }
             return choices;
+        }
+
+        public String getAppName() {
+            return Hudson.getInstance().getDisplayName();
         }
 
     }
@@ -1569,7 +1591,8 @@ public class PerforceSCM extends SCM {
     static String substituteParameters(String string, AbstractBuild build) {
         Hashtable<String,String> subst = new Hashtable<String,String>();
         subst.put("JOB_NAME", build.getProject().getFullName());
-        subst.put("BUILD_TAG", "hudson-" + build.getProject().getName() + "-" + String.valueOf(build.getNumber()));
+        String hudsonName = Hudson.getInstance().getDisplayName().toLowerCase();
+        subst.put("BUILD_TAG", hudsonName + "-" + build.getProject().getName() + "-" + String.valueOf(build.getNumber()));
         subst.put("BUILD_ID", build.getId());
         subst.put("BUILD_NUMBER", String.valueOf(build.getNumber()));
         String result = substituteParameters(string, build.getBuildVariables());
@@ -1967,6 +1990,14 @@ public class PerforceSCM extends SCM {
     public void setLineEndValue(String lineEndValue) {
         this.lineEndValue = lineEndValue;
     }
+
+    public boolean isDisableSyncOnly() {
+        return disableSyncOnly;
+    }
+
+    public void setDisableSyncOnly(boolean disableSyncOnly) {
+        this.disableSyncOnly = disableSyncOnly;
+	}
 
     public String getExcludedUsers() { 
         return excludedUsers;
