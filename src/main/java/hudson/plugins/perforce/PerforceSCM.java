@@ -597,10 +597,6 @@ public class PerforceSCM extends SCM {
                 else {
                     // No new changes discovered (though the definition of the workspace or label may have changed).
                     createEmptyChangeLog(changelogFile, listener, "changelog");
-                    // keep the newestChange to the same value except when changing
-                    // definitions from label builds to counter builds
-                    if (lastChange != -1)
-                        newestChange = lastChange;
                 }
 
                 if(!disableSyncOnly){
