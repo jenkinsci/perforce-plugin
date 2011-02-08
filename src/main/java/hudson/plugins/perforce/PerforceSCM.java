@@ -166,7 +166,7 @@ public class PerforceSCM extends SCM {
     int firstChange = -1;
 
     /**
-     * P4 user name(s) to exclude from SCM poll to prevent build trigger.
+     * P4 user name(s) or regex user pattern to exclude from SCM poll to prevent build trigger.
      * Multiple user names are deliminated by space.
      */
     String excludedUsers;
@@ -962,11 +962,28 @@ public class PerforceSCM extends SCM {
 
         if (excludedUsers != null && !excludedUsers.trim().equals("")) 
         {
-            List<String> users = Arrays.asList(excludedUsers.split(" "));
+            List<String> users = Arrays.asList(excludedUsers.split("\n"));
 
             if ( users.contains(changelist.getUser()) ) {
                 logger.println("Excluded User ["+changelist.getUser()+"] found in changelist.");
                 return true;
+            }
+
+            // no literal match, try regex
+            Matcher matcher = null;
+            
+            for (String regex : users) 
+            {
+                try {
+                    matcher = Pattern.compile(regex).matcher(changelist.getUser());
+                    if (matcher.find()) {
+                        logger.println("Excluded User ["+changelist.getUser()+"] found in changelist.");
+                        return true;
+                    }
+                }
+                catch (PatternSyntaxException pse) {
+                    break;  // should never occur since we validate regex input before hand, but just be safe
+                }
             }
         }
 
@@ -1468,6 +1485,29 @@ public class PerforceSCM extends SCM {
                         throw new PerforceException("broken");
                 } catch (Exception e) {
                     return FormValidation.error("Changelist: " + change + " does not exist.");
+                }
+            }
+            return FormValidation.ok();
+        }
+
+        /**
+         * Checks if the value is a valid user name/regex pattern.
+         */
+        public FormValidation doValidateExcludedUsers(StaplerRequest req) {
+            String excludedUsers = fixNull(req.getParameter("excludedUsers")).trim();
+            List<String> users = Arrays.asList(excludedUsers.split("\n"));
+
+            for (String regex : users) {
+                regex = regex.trim();
+                Pattern pattern = null;
+
+                if(regex.equals("")) continue;
+
+                try {
+                    Pattern.compile(regex);
+                }
+                catch (PatternSyntaxException pse) {
+                    return FormValidation.error("Invalid regular express ["+regex+"]: " + pse.getMessage());
                 }
             }
             return FormValidation.ok();

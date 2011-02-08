@@ -132,12 +132,13 @@
     </f:entry>
 
     <f:entry title="Poll Exclude User(s)" help="/plugin/perforce/help/excludeUsers.html">
-        <f:textbox field="excludedUsers" id="excludedUsers" />
+        <f:textarea field="excludedUsers" id="excludedUsers" 
+            checkUrl="'${rootURL}/scm/PerforceSCM/validateExcludedUsers?excludedUsers='+escape(this.value)" />
     </f:entry>
 
     <f:entry title="Poll Exclude File(s)" help="/plugin/perforce/help/excludeFiles.html">
         <f:textarea field="excludedFiles" id="excludedFiles"
-                      checkUrl="'${rootURL}/scm/PerforceSCM/validateExcludedFiles?excludedFiles='+escape(this.value)" />
+              checkUrl="'${rootURL}/scm/PerforceSCM/validateExcludedFiles?excludedFiles='+escape(this.value)" />
     </f:entry>
 
     <f:optionalBlock name="p4.useViewMask" title="Use View Mask" help="/plugin/perforce/help/useViewMask.html" checked="${instance.useViewMask}">
