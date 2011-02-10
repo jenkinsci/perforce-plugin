@@ -117,6 +117,18 @@ public abstract class AbstractPerforceTemplate {
 		return response.toString().startsWith(maxError);
 	}
 
+        /**
+         * Used to filter the response from perforce so the API can throw out 
+         * useless lines and thus save memory during large operations.
+         * ie. synced/refreshed lines from 'p4 sync'
+         */
+        public abstract static class ResponseFilter {
+            public abstract boolean accept(String line);
+            public boolean reject(String line){
+                return !accept(line);
+            }
+        }
+
 	/**
 	 * Adds any extra parameters that need to be applied to all perforce commands. For example, adding the login ticket
 	 * to authenticate with.
@@ -275,7 +287,16 @@ public abstract class AbstractPerforceTemplate {
 	 * @return	The response from perforce as a stringbuilder
 	 * @throws PerforceException	If perforce throws any errors
 	 */
-	protected StringBuilder getPerforceResponse(String cmd[]) throws PerforceException {
+        protected StringBuilder getPerforceResponse(String cmd[]) throws PerforceException {
+            return getPerforceResponse(cmd, new ResponseFilter(){
+                @Override
+                public boolean accept(String line) {
+                    return true;
+                }
+            });
+        }
+
+	protected StringBuilder getPerforceResponse(String cmd[], ResponseFilter filter) throws PerforceException {
 		// TODO: Create a way to wildcard portions of the error checking.  Add method to check for these errors.
 		boolean loop = false;
 		boolean attemptLogin = true;
@@ -306,13 +327,13 @@ public abstract class AbstractPerforceTemplate {
 			{
                                 p4.getWriter().close();
 				while((line = reader.readLine()) != null) {
+                                    // only check for errors if we have not found one already
+                                    if (mesgIndex == -1)
+                                        mesgIndex = checkAuthnErrors(line);
+                                    if(filter.reject(line)) continue;
 				    lines.add(line);
 				    totalLength += line.length();
 					count++;
-					
-					// only check for errors if we have not found one already
-					if (mesgIndex == -1)
-					    mesgIndex = checkAuthnErrors(line);
 				}
 			}
 			catch(IOException ioe)
