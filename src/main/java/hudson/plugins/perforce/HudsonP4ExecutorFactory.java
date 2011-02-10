@@ -6,6 +6,7 @@ import java.util.Map;
 import com.tek42.perforce.process.ExecutorFactory;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Launcher.RemoteLauncher;
 
 /*
  * Implementation of P4Java's ExecutorFactory to create new HudsonP4Executors
@@ -35,7 +36,11 @@ public class HudsonP4ExecutorFactory implements ExecutorFactory {
     }
 
     public HudsonP4Executor newExecutor() {
-	return new HudsonP4Executor(hudsonLauncher, env, filePath);
+        if(hudsonLauncher instanceof RemoteLauncher){
+            return new HudsonP4RemoteExecutor(hudsonLauncher, env, filePath);
+        } else {
+            return new HudsonP4DefaultExecutor(hudsonLauncher, env, filePath);
+        }
     }
 
     public void setEnv(Map<String, String> env) {
