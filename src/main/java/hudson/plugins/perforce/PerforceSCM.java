@@ -1095,7 +1095,7 @@ public class PerforceSCM extends SCM {
         if (build != null) {
             p4Client = getEffectiveClientName(build);
         } else {
-            p4Client = getEffectiveClientName(project, buildNode, workspace);
+            p4Client = getDefaultEffectiveClientName(project, buildNode, workspace);
         }
 
         if (!nodeIsRemote(buildNode)) {
@@ -1195,23 +1195,27 @@ public class PerforceSCM extends SCM {
         Node buildNode = build.getBuiltOn();
         FilePath workspace = build.getWorkspace();
         String p4Client = this.p4Client;
+        p4Client = substituteParameters(p4Client, build);
         try {
-            p4Client = getEffectiveClientName(build.getProject(), buildNode, workspace);
+            p4Client = getEffectiveClientName(p4Client, buildNode, workspace);
         } catch (Exception e){
             new StreamTaskListener(System.out).getLogger().println(
                     "Could not get effective client name: " + e.getMessage());
         } finally {
-            p4Client = substituteParameters(p4Client, build);
             return p4Client;
         }
     }
 
-    private String getEffectiveClientName(AbstractProject project, Node buildNode, FilePath workspace)
+    private String getDefaultEffectiveClientName(AbstractProject project, Node buildNode, FilePath workspace)
+            throws IOException, InterruptedException {
+        String basename = substituteParameters(this.p4Client, getDefaultSubstitutions(project));
+        return getEffectiveClientName(basename, buildNode, workspace);
+    }
+
+    private String getEffectiveClientName(String basename, Node buildNode, FilePath workspace)
             throws IOException, InterruptedException {
 
         String nodeSuffix = "";
-        String p4Client = substituteParameters(this.p4Client, getDefaultSubstitutions(project));
-        String basename = p4Client;
 
         if (workspace == null){
             workspace = buildNode.getRootPath();
