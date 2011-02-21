@@ -1216,6 +1216,7 @@ public class PerforceSCM extends SCM {
             throws IOException, InterruptedException {
 
         String nodeSuffix = "";
+		String p4Client = basename;
 
         if (workspace == null){
             workspace = buildNode.getRootPath();
