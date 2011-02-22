@@ -433,7 +433,7 @@ public class Changes extends AbstractPerforceTemplate {
 
     public List<Integer> getChangeNumbersInRangeForSinglePath(Workspace workspace, int first, int last, String path) throws PerforceException {
         StringBuilder sb = new StringBuilder();
-        sb.append(path);
+        sb.append(path.replaceAll("\"", ""));
         sb.append("@");
         sb.append(first);
         sb.append(",@");

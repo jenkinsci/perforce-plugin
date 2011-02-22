@@ -113,6 +113,7 @@ public class Workspaces extends AbstractPerforceTemplate {
 	 * @throws PerforceException
 	 */
 	public StringBuilder syncTo(String path, boolean forceSync) throws PerforceException {
+                //Error handling and output filtering
                 final StringBuilder errors = new StringBuilder();
                 ResponseFilter filter = new ResponseFilter(){
                     private int count=0;
@@ -136,6 +137,8 @@ public class Workspaces extends AbstractPerforceTemplate {
                         return false;
                     }
                 };
+                //remove all quotes from the path, because perforce doesn't like extra ones very much.
+                path = path.replaceAll("\"", "");
 		if(forceSync){
                     StringBuilder response = getPerforceResponse(new String[] { getP4Exe(), "-s", "sync", "-f", path }, filter);
                     if(hitMax(response)){
