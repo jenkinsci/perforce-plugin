@@ -122,7 +122,10 @@ public class Workspaces extends AbstractPerforceTemplate {
                         if(line.contains("Request too large")){
                             return true;
                         }
-                        if(line.startsWith("error:")){
+                        //detect errors during syncing
+                        //ignore lines containing "files(s) up-to-date", because
+                        //perforce classifies that as an 'error' for some strange reason
+                        if(line.startsWith("error:") && !line.contains("file(s) up-to-date.")){
                             errors.append(line);
                             errors.append("\n");
                         }
@@ -139,14 +142,14 @@ public class Workspaces extends AbstractPerforceTemplate {
                         throw new PerforceException("Hit perforce server limit while force syncing: " + response);
                     }
                     if(errors.length()>0){
-                        throw new PerforceException("Errors encountered while force syncing: " + errors.toString());
+                        throw new PerforceException("Errors encountered while force syncing: \n" + errors.toString());
                     }
                     return response;
                 }
 		else {
                     StringBuilder response = getPerforceResponse(new String[] { getP4Exe(), "-s", "sync", path }, filter);
                     if(hitMax(response)){
-                        throw new PerforceException("Hit perforce server limit while syncing: " + response);
+                        throw new PerforceException("Hit perforce server limit while syncing: \n" + response);
                     }
                     if(errors.length()>0){
                         throw new PerforceException("Errors encountered while syncing: " + errors.toString());
