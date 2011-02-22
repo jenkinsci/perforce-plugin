@@ -113,13 +113,18 @@ public class Workspaces extends AbstractPerforceTemplate {
 	 * @throws PerforceException
 	 */
 	public StringBuilder syncTo(String path, boolean forceSync) throws PerforceException {
+                final StringBuilder errors = new StringBuilder();
                 ResponseFilter filter = new ResponseFilter(){
                     private int count=0;
                     @Override
                     public boolean accept(String line) {
                         count++;
-                        if(line.startsWith("Request too large")){
+                        if(line.contains("Request too large")){
                             return true;
+                        }
+                        if(line.startsWith("error:")){
+                            errors.append(line);
+                            errors.append("\n");
                         }
                         //return at most 50 lines. Throw away the rest so we don't run out of memory
                         if(count<50){
@@ -129,16 +134,22 @@ public class Workspaces extends AbstractPerforceTemplate {
                     }
                 };
 		if(forceSync){
-                    StringBuilder response = getPerforceResponse(new String[] { getP4Exe(), "sync", "-f", path }, filter);
+                    StringBuilder response = getPerforceResponse(new String[] { getP4Exe(), "-s", "sync", "-f", path }, filter);
                     if(hitMax(response)){
                         throw new PerforceException("Hit perforce server limit while force syncing: " + response);
+                    }
+                    if(errors.length()>0){
+                        throw new PerforceException("Errors encountered while force syncing: " + errors.toString());
                     }
                     return response;
                 }
 		else {
-                    StringBuilder response = getPerforceResponse(new String[] { getP4Exe(), "sync", path }, filter);
+                    StringBuilder response = getPerforceResponse(new String[] { getP4Exe(), "-s", "sync", path }, filter);
                     if(hitMax(response)){
                         throw new PerforceException("Hit perforce server limit while syncing: " + response);
+                    }
+                    if(errors.length()>0){
+                        throw new PerforceException("Errors encountered while syncing: " + errors.toString());
                     }
                     return response;
                 }
