@@ -1091,7 +1091,7 @@ public class PerforceSCM extends SCM {
         // make sure each slave has a unique client name by adding it's
         // hostname to the end of the client spec
 
-        String p4Client = this.p4Client;
+        String p4Client;
         if (build != null) {
             p4Client = getEffectiveClientName(build);
         } else {
@@ -1201,9 +1201,8 @@ public class PerforceSCM extends SCM {
         } catch (Exception e){
             new StreamTaskListener(System.out).getLogger().println(
                     "Could not get effective client name: " + e.getMessage());
-        } finally {
-            return p4Client;
         }
+        return p4Client;
     }
 
     private String getDefaultEffectiveClientName(AbstractProject project, Node buildNode, FilePath workspace)
@@ -1500,7 +1499,6 @@ public class PerforceSCM extends SCM {
 
             for (String regex : users) {
                 regex = regex.trim();
-                Pattern pattern = null;
 
                 if(regex.equals("")) continue;
 
@@ -1543,13 +1541,13 @@ public class PerforceSCM extends SCM {
         }
 
         public List<String> getAllLineEndChoices(){
-            List<String> allChoices = Arrays.asList(new String[]{
+            List<String> allChoices = Arrays.asList(
                 "local",
                 "unix",
                 "mac",
                 "win",
-                "share",
-            });
+                "share"
+            );
             ArrayList<String> choices = new ArrayList<String>();
             //Order choices so that the current one is first in the list
             //This is required in order for tests to work, unfortunately
@@ -1643,7 +1641,7 @@ public class PerforceSCM extends SCM {
 
     static String substituteParameters(String string, Map<String,String> subst) {
         if(string == null) return null;
-        String newString = new String(string);
+        String newString = string;
         for (Map.Entry<String,String> entry : subst.entrySet()){
             newString = newString.replace("${" + entry.getKey() + "}", entry.getValue());
         }
