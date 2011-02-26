@@ -885,7 +885,7 @@ public class PerforceSCM extends SCM {
             }
 
             int highestSelectedChangeNumber;
-            List<Integer> changeNumbers = null;
+            List<Integer> changeNumbers;
 
             if (p4Counter != null && !updateCounterValue) {
 
@@ -966,7 +966,7 @@ public class PerforceSCM extends SCM {
             }
 
             // no literal match, try regex
-            Matcher matcher = null;
+            Matcher matcher;
             
             for (String regex : users) 
             {
