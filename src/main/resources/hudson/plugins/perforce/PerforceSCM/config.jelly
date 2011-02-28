@@ -43,6 +43,10 @@
       <f:entry title="Clean Workspace Before Each Build" help="/plugin/perforce/help/wipeBeforeBuild.html">
         <f:checkbox field="wipeBeforeBuild" default="false" value="False"/>
       </f:entry>
+      
+      <f:entry title="Clean .repository Before Build" help="/plugin/perforce/help/wipeRepoBeforeBuild.html">
+        <f:checkbox field="wipeRepoBeforeBuild" default="false" value="False"/>
+      </f:entry>
 
       <f:entry title="View" help="/plugin/perforce/help/projectPath.html">
         <f:textarea field="projectPath"/>

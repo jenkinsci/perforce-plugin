@@ -1,0 +1,15 @@
+<div>
+  <p>
+    <b>Clean .repository before build</b>: This option will cause the plugin to delete all files in the workspace including the .repository (relevant to Maven builds only).<br>
+    As of perforce-plugin 1.1.1 .repository is skipped<br>
+    If you wish to remain the default Cleanup behaviour and clean the entire workspace use this option.<br>
+    This option will also cause the plugin to perform a force sync to retrieve clean files from the perforce server.<br>
+  </p>
+  <p><b>Please note</b>:
+  <ul>
+      <ol>This option will only be set if "Clean Workspace Before Build" above is available.</ol>
+      <ol>This option can also be triggered by creating a Boolean parameter on the build called "P4CLEANREPOINWORKSPACE"<br>
+          Considering the "P4CLEANWORKSPACE" is also instantiated.</ol>
+  </ul>
+  </p>
+</div>

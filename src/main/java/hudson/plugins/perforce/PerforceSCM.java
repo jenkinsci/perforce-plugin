@@ -161,6 +161,11 @@ public class PerforceSCM extends SCM {
     boolean wipeBeforeBuild = false;
 
     /**
+     * If true, the ,repository will be deleted before the checkout commences in addition to the workspace.
+     */
+    boolean wipeRepoBeforeBuild = false;
+    
+    /**
      * If > 0, then will override the changelist we sync to for the first build.
      */
     int firstChange = -1;
@@ -239,6 +244,7 @@ public class PerforceSCM extends SCM {
             boolean disableAutoSync,
             boolean disableSyncOnly,
             boolean wipeBeforeBuild,
+            boolean wipeRepoBeforeBuild,
             boolean dontUpdateClient,
             boolean exposeP4Passwd,
             String slaveClientNameFormat,
@@ -321,6 +327,7 @@ public class PerforceSCM extends SCM {
         this.disableSyncOnly = disableSyncOnly;
         this.browser = browser;
         this.wipeBeforeBuild = wipeBeforeBuild;
+        this.wipeRepoBeforeBuild = wipeRepoBeforeBuild;
         this.updateView = updateView;
         this.dontUpdateClient = dontUpdateClient;
         this.slaveClientNameFormat = slaveClientNameFormat;
@@ -484,6 +491,7 @@ public class PerforceSCM extends SCM {
         changelogFilename = changelogFile.getAbsolutePath();
 
         boolean wipeBeforeBuild = this.wipeBeforeBuild;
+        boolean wipeRepoBeforeBuild = this.wipeRepoBeforeBuild;
         boolean forceSync = this.forceSync;
 
         if(build.getBuildVariables() != null){
@@ -494,6 +502,18 @@ public class PerforceSCM extends SCM {
                     wipeBeforeBuild = true;
                 } else {
                     wipeBeforeBuild = false;
+                }
+            }
+            /**
+             * Add a system var which instantiate .repository cleanup
+             */
+            Object p4repoclean;
+            if((p4repoclean = build.getBuildVariables().get("P4CLEANREPOINWORKSPACE")) != null){
+                String p4repocleanString = p4repoclean.toString();
+                if(p4repocleanString.toUpperCase().equals("TRUE") || p4repocleanString.equals("1")){
+                    wipeRepoBeforeBuild = true;
+                } else {
+                    wipeRepoBeforeBuild = false;
                 }
             }
             Object p4force;
@@ -508,19 +528,31 @@ public class PerforceSCM extends SCM {
         }
 
         if(wipeBeforeBuild){
+        	if(wipeRepoBeforeBuild){
             log.println("Clearing workspace...");
-            if(processWorkspaceBeforeDeletion(build.getProject(), workspace, build.getBuiltOn())){
-                List<FilePath> workspaceDirs = workspace.list(new WipeWorkspaceFilter());
-                for(FilePath dir : workspaceDirs){
-                    dir.deleteRecursive();
-                }
-                log.println("Cleared workspace.");
-            } else {
-                log.println("Could not clear workspace. See hudson.perforce.PerforceSCM logger for details.");
-            }
+            log.println("Clear workspace includes .repository ...");
+            	if(processWorkspaceBeforeDeletion(build.getProject(), workspace, build.getBuiltOn())){
+            		workspace.deleteContents();
+            		log.println("Cleared workspace.");
+            	} else {
+            		log.println("Could not clear workspace. See hudson.perforce.PerforceSCM logger for details.");
+            	}
 				forceSync = true;
+        	} else {
+	        	if(processWorkspaceBeforeDeletion(build.getProject(), workspace, build.getBuiltOn())){
+	            	List<FilePath> workspaceDirs = workspace.list(new WipeWorkspaceFilter());
+	                for(FilePath dir : workspaceDirs){
+	                    dir.deleteRecursive();
+	                }
+	                log.println("Cleared workspace.");
+	                log.println("Note: .repository direcotry in workspace (if exists) is skipped ...");
+	            } else {
+	                log.println("Could not clear workspace. See hudson.perforce.PerforceSCM logger for details.");
+	            }
+					forceSync = true;
+	        	} 
         }
-
+      
         //keep projectPath local so any modifications for slaves don't get saved
         String projectPath = substituteParameters(this.projectPath, build);
         String p4Label = substituteParameters(this.p4Label, build);
@@ -1950,6 +1982,13 @@ public class PerforceSCM extends SCM {
      */
     public boolean isWipeBeforeBuild() {
         return wipeBeforeBuild;
+    }
+
+    /**
+     * @return True if the plugin is to delete the workpsace including the.repository files before building.
+     */
+    public boolean isWipeRepoBeforeBuild() {
+        return wipeRepoBeforeBuild;
     }
 
     /**
