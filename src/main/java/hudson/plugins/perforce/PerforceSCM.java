@@ -24,9 +24,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
-import hudson.model.Descriptor.FormException;
 import hudson.model.Hudson;
-import hudson.model.JobProperty;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Node;
 import hudson.model.ParameterDefinition;
@@ -55,12 +53,9 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
-import java.io.Writer;
 import java.net.InetAddress;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -1229,7 +1224,7 @@ public class PerforceSCM extends SCM {
         String p4Client = this.p4Client;
         p4Client = substituteParameters(p4Client, build);
         try {
-            p4Client = getEffectiveClientName(p4Client, buildNode, workspace);
+            p4Client = getEffectiveClientName(p4Client, buildNode);
         } catch (Exception e){
             new StreamTaskListener(System.out).getLogger().println(
                     "Could not get effective client name: " + e.getMessage());
@@ -1240,25 +1235,24 @@ public class PerforceSCM extends SCM {
     private String getDefaultEffectiveClientName(AbstractProject project, Node buildNode, FilePath workspace)
             throws IOException, InterruptedException {
         String basename = substituteParameters(this.p4Client, getDefaultSubstitutions(project));
-        return getEffectiveClientName(basename, buildNode, workspace);
+        return getEffectiveClientName(basename, buildNode);
     }
 
-    private String getEffectiveClientName(String basename, Node buildNode, FilePath workspace)
+    private String getEffectiveClientName(String basename, Node buildNode)
             throws IOException, InterruptedException {
 
-        String nodeSuffix = "";
 		String p4Client = basename;
 
-        if (workspace == null){
-            workspace = buildNode.getRootPath();
-        }
-
         if (nodeIsRemote(buildNode) && !getSlaveClientNameFormat().equals("")) {
-            String host = "UNKNOWNHOST";
-            try{
-                host = workspace.act(new GetHostname());
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING,"Could not get hostname for slave " + buildNode.getDisplayName(),e);
+            String host=null;
+
+            Computer c = buildNode.toComputer();
+            if (c!=null)
+                host = c.getHostName();
+
+            if (host==null) {
+                LOGGER.log(Level.WARNING,"Could not get hostname for slave " + buildNode.getDisplayName());
+                host = "UNKNOWNHOST";
             }
 
             if (host.contains(".")) {
