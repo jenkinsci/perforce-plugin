@@ -1258,11 +1258,7 @@ public class PerforceSCM extends SCM {
             try{
                 host = workspace.act(new GetHostname());
             } catch (Exception e) {
-                LOGGER.warning("Could not get hostname for slave " + buildNode.getDisplayName());
-                Writer stackTrace = new StringWriter();
-                PrintWriter stackTracePrinter = new PrintWriter(stackTrace);
-                e.printStackTrace(stackTracePrinter);
-                LOGGER.info(stackTrace.toString());
+                LOGGER.log(Level.WARNING,"Could not get hostname for slave " + buildNode.getDisplayName(),e);
             }
 
             if (host.contains(".")) {
