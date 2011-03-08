@@ -21,8 +21,10 @@ import hudson.model.Hudson;
 import hudson.model.TaskListener;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
+import hudson.remoting.Channel.Listener;
 import hudson.remoting.FastPipedInputStream;
 import hudson.remoting.FastPipedOutputStream;
+import hudson.remoting.Future;
 import hudson.remoting.RemoteInputStream;
 import hudson.remoting.RemoteOutputStream;
 import hudson.remoting.VirtualChannel;
@@ -99,7 +101,15 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
 
             final OutputStream out = hudsonOut == null ? null : new RemoteOutputStream(hudsonOut);
             final InputStream  in  = hudsonIn ==null ? null : new RemoteInputStream(hudsonIn);
-            Proc proc = new RemoteProc(channel.callAsync(new RemoteCall(Arrays.asList(cmd), env, in, out, null, filePath.getRemote(), hudsonLauncher.getListener())));
+
+            String remotePath = filePath.getRemote();
+            TaskListener listener = hudsonLauncher.getListener();
+            RemoteCall remoteCall = new RemoteCall(
+                    Arrays.asList(cmd), env, in, out, null,
+                    remotePath,
+                    listener);
+            Future future = channel.callAsync(remoteCall);
+            Proc proc = new RemoteProc(future);
 
         } catch(IOException e) {
             //try to close all the pipes before throwing an exception

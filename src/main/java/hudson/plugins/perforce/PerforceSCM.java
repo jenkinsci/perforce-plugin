@@ -31,6 +31,7 @@ import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.model.TopLevelItem;
 import hudson.remoting.VirtualChannel;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.SCM;
@@ -805,32 +806,29 @@ public class PerforceSCM extends SCM {
         
         Hashtable<String, String> subst = getDefaultSubstitutions(project);
 
-        Depot depot = getDepot(launcher,workspace,project);
+        Depot depot;
         
         try {
+            //try to get an active node that the project is configured to use
             Node buildNode = project.getLastBuiltOn();
-            if (buildNode == null){
-                for(Node node : Hudson.getInstance().getNodes()){
-                    hudson.model.Label l = project.getAssignedLabel();
-                    if(l!=null && !l.contains(node)){
-                        continue;
-                    }
-                    if(l==null && node.getMode() == hudson.model.Node.Mode.EXCLUSIVE){
-                        continue;
-                    }
-                    buildNode = node;
-                    break;
-                }
+            if (!isNodeOnline(buildNode)){
+                buildNode = null;
             }
             if (buildNode == null){
-                logger.println("Could not find a node to use for polling! Aborting.");
-                return false;
+                buildNode = getOnlineConfiguredNode(project);
             }
-            logger.println("Using node: " + buildNode.getDisplayName());
+            if (buildNode == null){
+                depot = getDepot(launcher,workspace,project);
+                logger.println("Using master");
+            } else {
+                depot = getDepot(buildNode.createLauncher(listener),buildNode.getRootPath(),project);
+                logger.println("Using node: " + buildNode.getDisplayName());
+            }
+
             Workspace p4workspace = getPerforceWorkspace(project, substituteParameters(projectPath, subst), depot, buildNode, null, launcher, workspace, listener, false);
 
             saveWorkspaceIfDirty(depot, p4workspace, logger);
-            
+
             Boolean needToBuild = needToBuild(p4workspace, project, depot, logger);
             if (needToBuild == null) {
                 needToBuild = wouldSyncChangeWorkspace(project, depot, logger);
@@ -851,7 +849,31 @@ public class PerforceSCM extends SCM {
         }
     }
 
-    private Boolean needToBuild(Workspace p4workspace, AbstractProject project, Depot depot,
+    private Node getOnlineConfiguredNode(AbstractProject project) {
+        Node buildNode = null;
+        for (Node node : Hudson.getInstance().getNodes()) {
+            hudson.model.Label l = project.getAssignedLabel();
+            if (l != null && !l.contains(node)) {
+                continue;
+            }
+            if (l == null && node.getMode() == hudson.model.Node.Mode.EXCLUSIVE) {
+                continue;
+            }
+            if (!isNodeOnline(node)) {
+                continue;
+            }
+            buildNode = node;
+            break;
+        }
+        return buildNode;
+    }
+
+    private boolean isNodeOnline(Node node) {
+        return node != null && node.toComputer() != null && node.toComputer().isOnline();
+    }
+
+
+	private Boolean needToBuild(Workspace p4workspace, AbstractProject project, Depot depot,
             PrintStream logger) throws IOException, InterruptedException, PerforceException {
 
         /*
@@ -2172,16 +2194,10 @@ public class PerforceSCM extends SCM {
     }
 
     @Override public boolean requiresWorkspaceForPolling() {
-	// If slaveClientNameFormat is empty - not using a host specific name, so can always
-	// use 'master' to calculate poll changes without a local workspace
-	// This allows slaves to be thrown away and still allow polling to work
+	//nodes are allocated and used in the pollChanges() function if available,
+        //so we'll just tell jenkins to provide the master's launcher.
 
-	if(isSlaveClientNameStatic()) {
-		//Logger.getLogger(PerforceSCM.class.getName()).info(
-		//	"No SlaveClientName supplied - assuming shared clientname - so no Workspace required for Polling");
-		return false;
-	}
-      return true;
+	return false;
     }
 
     public boolean isSlaveClientNameStatic() {
