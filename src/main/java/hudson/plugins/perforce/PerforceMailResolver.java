@@ -28,11 +28,17 @@ public class PerforceMailResolver extends MailAddressResolver {
 
     @SuppressWarnings("unchecked")
     public String findMailAddressFor(User u) {
-    	LOGGER.fine("Email address for " + u.getId() + " requested.");
+        LOGGER.fine("Email address for " + u.getId() + " requested.");
+        String perforceId = u.getId();
+        PerforceUserProperty puprop = u.getProperty(PerforceUserProperty.class);
+        if (puprop != null){
+            LOGGER.fine("Using perforce user id '" + perforceId + "' from " + u.getId() + "'s properties.");
+            perforceId = puprop.getPerforceId();
+        }
         for (AbstractProject p : u.getProjects()) {
             if (p.isDisabled()) continue;
             if (p.getScm() instanceof PerforceSCM) {
-                LOGGER.finer("Checking " + p.getName() + "'s SCM for " + u.getId() + "'s address.");
+                LOGGER.finer("Checking " + p.getName() + "'s Perforce SCM for " + perforceId + "'s address.");
                 PerforceSCM pscm = (PerforceSCM) p.getScm();
                 TaskListener listener = new StreamTaskListener(System.out);
                 Node node = p.getLastBuiltOn();
@@ -54,14 +60,14 @@ public class PerforceMailResolver extends MailAddressResolver {
                     Launcher launcher = p.getLastBuiltOn().createLauncher(listener);
                     com.tek42.perforce.model.User pu = null;
                     try {
-                        LOGGER.finer("Trying to get email address from perforce for " + u.getId());
-                        pu = pscm.getDepot(launcher, workspace, p).getUsers().getUser(u.getId());
+                        LOGGER.finer("Trying to get email address from perforce for " + perforceId);
+                        pu = pscm.getDepot(launcher, workspace, p).getUsers().getUser(perforceId);
                     } catch (Exception e) {
                         LOGGER.fine("Could not get email address from Perforce: " + e.getMessage());
                         e.printStackTrace(listener.getLogger());
                     }
                     if (pu != null && pu.getEmail() != null && !pu.getEmail().equals("")) {
-                        LOGGER.fine("Got email (" + pu.getEmail() + ") from perforce for " + u.getId());
+                        LOGGER.fine("Got email (" + pu.getEmail() + ") from perforce for " + perforceId);
                         return pu.getEmail();
                     }
                     try {

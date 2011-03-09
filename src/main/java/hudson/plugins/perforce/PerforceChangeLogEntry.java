@@ -1,6 +1,9 @@
 package hudson.plugins.perforce;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.kohsuke.stapler.export.Exported;
 
@@ -29,7 +32,21 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
     @Override
     @Exported
     public User getAuthor() {
-        return User.get(change.getUser());
+        User author = User.get(change.getUser());
+        // Need to store the actual perforce user id for later retrieval
+        // because Jenkins does not support all the same characters that
+        // perforce does in the userID.
+        PerforceUserProperty puprop = author.getProperty(PerforceUserProperty.class);
+        if ( puprop == null || puprop.getPerforceId() == null || puprop.getPerforceId().equals("")){
+            puprop = new PerforceUserProperty();
+            try {
+                author.addProperty(puprop);
+            } catch (IOException ex) {
+                Logger.getLogger(PerforceChangeLogEntry.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        puprop.setPerforceId(change.getUser());
+        return author;
     }
 
     @Override
