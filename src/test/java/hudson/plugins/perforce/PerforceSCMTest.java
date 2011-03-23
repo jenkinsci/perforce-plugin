@@ -22,7 +22,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", "pass", "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+                        false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         project.setScm(scm);
 
         // config roundtrip
@@ -43,7 +43,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+                        false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         project.setScm(scm);
 
         // config roundtrip
@@ -67,7 +67,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+                        false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
 
         project.setScm(scm);
         
@@ -81,7 +81,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "path", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+                        false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         project.setScm(scm);
 
         // config roundtrip

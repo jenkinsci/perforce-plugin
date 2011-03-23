@@ -73,6 +73,10 @@
         <f:checkbox field="disableSyncOnly" value="False"/>
       </f:entry>
 
+      <f:entry title="Poll Only on Master" help="/plugin/perforce/help/pollOnlyOnMaster.html">
+        <f:checkbox field="pollOnlyOnMaster" value="False"/>
+      </f:entry>
+
       <f:entry title="First Changelist to Track" help="/plugin/perforce/help/firstChange.html">
         <f:textbox field="firstChange"
                 checkUrl="'${rootURL}/scm/PerforceSCM/checkChangeList?port='+escape(document.forms[1].p4Port.value)+'&amp;exe='+escape(document.forms[1].p4Exe.value)+'&amp;user='+escape(document.forms[1].p4User.value)+'&amp;pass='+escape(document.forms[1].p4Passwd.value)+'&amp;change='+escape(this.value)"/>

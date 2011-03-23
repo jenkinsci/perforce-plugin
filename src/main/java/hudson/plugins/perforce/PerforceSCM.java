@@ -212,6 +212,11 @@ public class PerforceSCM extends SCM {
     private boolean useViewMaskForSyncing = false;
 
     /**
+     * Sync only on master option.
+     */
+    private boolean pollOnlyOnMaster = false;
+
+    /**
      * charset options
      */
     private String p4Charset = null;
@@ -243,6 +248,7 @@ public class PerforceSCM extends SCM {
             boolean wipeRepoBeforeBuild,
             boolean dontUpdateClient,
             boolean exposeP4Passwd,
+            boolean pollOnlyOnMaster,
             String slaveClientNameFormat,
             int firstChange,
             PerforceRepositoryBrowser browser,
@@ -255,6 +261,7 @@ public class PerforceSCM extends SCM {
         this.exposeP4Passwd = exposeP4Passwd;
         this.p4Client = p4Client;
         this.p4Port = p4Port;
+        this.pollOnlyOnMaster = pollOnlyOnMaster;
         this.projectOptions = (projectOptions != null)
                 ? projectOptions
                 : "noallwrite clobber nocompress unlocked nomodtime rmdir";
@@ -809,13 +816,22 @@ public class PerforceSCM extends SCM {
         Depot depot;
         
         try {
-            //try to get an active node that the project is configured to use
             Node buildNode = project.getLastBuiltOn();
-            if (!isNodeOnline(buildNode)){
+            if (pollOnlyOnMaster){
                 buildNode = null;
-            }
-            if (buildNode == null){
-                buildNode = getOnlineConfiguredNode(project);
+            } else {
+                //try to get an active node that the project is configured to use
+                buildNode = project.getLastBuiltOn();
+
+                if (!isNodeOnline(buildNode)){
+                    buildNode = null;
+                }
+                if (buildNode == null && !pollOnlyOnMaster){
+                    buildNode = getOnlineConfiguredNode(project);
+                }
+                if (pollOnlyOnMaster){
+                    buildNode = null;
+                }
             }
             if (buildNode == null){
                 depot = getDepot(launcher,workspace,project);
@@ -2103,6 +2119,14 @@ public class PerforceSCM extends SCM {
 
     public void setExcludedFiles(String files) {
         excludedFiles = files;
+    }
+
+    public boolean isPollOnlyOnMaster() {
+        return pollOnlyOnMaster;
+    }
+
+    public void setPollOnlyOnMaster(boolean pollOnlyOnMaster) {
+        this.pollOnlyOnMaster = pollOnlyOnMaster;
     }
 
     public List<String> getAllLineEndChoices(){
