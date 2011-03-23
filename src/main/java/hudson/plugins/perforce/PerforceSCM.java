@@ -2193,8 +2193,9 @@ public class PerforceSCM extends SCM {
         Logger perforceLogger = Logger.getLogger(PerforceSCM.class.getName());
         perforceLogger.info(
             "Workspace is being deleted; enabling one-time force sync.");
-        TaskListener listener = new LogTaskListener(perforceLogger,Level.INFO);
-        PrintStream log = listener.getLogger();
+        TaskListener loglistener = new LogTaskListener(perforceLogger,Level.INFO);
+        PrintStream log = loglistener.getLogger();
+        TaskListener listener = new StreamTaskListener(log);
         Launcher launcher = node.createLauncher(listener);
         Depot depot = getDepot(launcher, workspace, project);
         try {
