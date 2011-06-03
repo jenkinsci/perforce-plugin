@@ -49,7 +49,14 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
         return author;
     }
 
-    @Override
+    public String getUser() {
+        return getAuthor().getDisplayName();
+    }
+
+    public Collection<Changelist.FileEntry> getAffectedFiles() {
+        return change.getFiles();
+    }
+
     @Exported
     public Collection<String> getAffectedPaths() {
         List<String> paths = new ArrayList<String>(change.getFiles().size());
@@ -74,6 +81,13 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
     public String getChangeTime() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return sdf.format(getChange().getDate());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public String getCurrentRevision() {
+        return getChangeNumber();
     }
 
     /**
