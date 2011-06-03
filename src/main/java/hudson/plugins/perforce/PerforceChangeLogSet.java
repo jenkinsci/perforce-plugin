@@ -7,6 +7,7 @@ import hudson.scm.ChangeLogSet;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
@@ -43,6 +44,10 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
     @Override
     public boolean isEmptySet() {
         return history.size() == 0;
+    }
+
+    public Collection<PerforceChangeLogEntry> getLogs() {
+        return history;
     }
 
     /*

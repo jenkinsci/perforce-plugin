@@ -27,9 +27,13 @@
 
 package com.tek42.perforce.model;
 
+import hudson.scm.ChangeLogSet;
+import hudson.scm.EditType;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
 
 /**
  * Represents a changelist in Perforce.
@@ -81,10 +85,10 @@ public class Changelist implements java.io.Serializable {
 	/**
 	 * Perforce has multiple files per change. This class represents a single file within a change which includes the
 	 * action, filename, and revision.
-	 * 
+	 * Implements AffectedFile interface in order to unify SCM logic
 	 * @author Mike Wille
 	 */
-	public static class FileEntry implements java.io.Serializable {
+	public static class FileEntry implements java.io.Serializable, ChangeLogSet.AffectedFile {
 		public static enum Action {
 			ADD,
                         EDIT,
@@ -101,6 +105,20 @@ public class Changelist implements java.io.Serializable {
 		String filename;
 		String revision;
                 Changelist changelist;
+
+        private static Map<Action, EditType> registry = new HashMap<Action, EditType>();
+
+        public FileEntry() {
+            registry.put(Action.ADD, EditType.ADD);
+            registry.put(Action.DELETE, EditType.DELETE);
+            registry.put(Action.EDIT, EditType.EDIT);
+            registry.put(Action.INTEGRATE, new EditType("integrate", "The file was integrated"));
+            registry.put(Action.BRANCH, new EditType("branch", "The file was branched"));
+            registry.put(Action.PURGE, new EditType("purge","The file was purged"));
+            registry.put(Action.MOVE_DELETE, new EditType("move_delete","File was moved and deleted"));
+            registry.put(Action.MOVE_ADD, new EditType("move_add", "File was moved and added"));
+            registry.put(Action.IMPORT, new EditType("import", "The file was imported"));
+        }
 
 		public String toString() {
 			StringBuilder sb = new StringBuilder();
@@ -160,7 +178,15 @@ public class Changelist implements java.io.Serializable {
                 public Changelist getChangelist() {
                     return this.changelist;
                 }
-	}
+
+        public String getPath() {
+            return getFilename();
+        }
+
+        public EditType getEditType() {
+            return registry.get(getAction());
+        }
+    }
 
 	/**
 	 * Perforce links issues to changes via jobs. This represents a job attached to a change.
