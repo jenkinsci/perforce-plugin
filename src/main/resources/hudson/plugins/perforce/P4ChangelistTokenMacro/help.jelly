@@ -1,0 +1,6 @@
+<j:jelly xmlns:j="jelly:core">
+  <dt>$${P4_CHANGELIST}</dt>
+  <dd>
+    Expands to the Perforce changelist ID that points to the commit that was built.
+  </dd>
+</j:jelly>
