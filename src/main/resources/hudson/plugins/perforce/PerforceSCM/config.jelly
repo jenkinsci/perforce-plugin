@@ -112,7 +112,9 @@
     <f:entry title="Don't update client workspace" help="/plugin/perforce/help/dontUpdateClient.html">
       <f:checkbox field="dontUpdateClient" default="false" />
     </f:entry>
-
+    <f:entry title="Don't update server database on sync (-p)" help="/plugin/perforce/help/dontUpdateServer.html">
+      <f:checkbox field="dontUpdateServer" default="false" />
+    </f:entry>
     <f:entry title="Client name format for slaves" help="/plugin/perforce/help/clientNameFormat.html">
       <f:textbox field="slaveClientNameFormat"/>
     </f:entry>

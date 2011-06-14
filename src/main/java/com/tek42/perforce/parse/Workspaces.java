@@ -30,6 +30,7 @@ package com.tek42.perforce.parse;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Workspace;
+import java.util.ArrayList;
 
 /**
  * Base API object for interacting with workspaces.
@@ -95,7 +96,7 @@ public class Workspaces extends AbstractPerforceTemplate {
 		if(!path.endsWith("#head")) {
 			path += "#head";
 		}
-		return syncTo(path, forceSync);
+		return syncTo(path, forceSync, false);
 	}
 	
 	/**
@@ -112,7 +113,7 @@ public class Workspaces extends AbstractPerforceTemplate {
 	 * 			A StringBuilder that contains the output of the p4 execution.
 	 * @throws PerforceException
 	 */
-	public StringBuilder syncTo(String path, boolean forceSync) throws PerforceException {
+	public StringBuilder syncTo(String path, boolean forceSync, boolean populateOnly) throws PerforceException {
                 //Error handling and output filtering
                 final StringBuilder errors = new StringBuilder();
                 ResponseFilter filter = new ResponseFilter(){
@@ -139,26 +140,25 @@ public class Workspaces extends AbstractPerforceTemplate {
                 };
                 //remove all quotes from the path, because perforce doesn't like extra ones very much.
                 path = path.replaceAll("\"", "");
-		if(forceSync){
-                    StringBuilder response = getPerforceResponse(new String[] { getP4Exe(), "-s", "sync", "-f", path }, filter);
-                    if(hitMax(response)){
-                        throw new PerforceException("Hit perforce server limit while force syncing: " + response);
-                    }
-                    if(errors.length()>0){
-                        throw new PerforceException("Errors encountered while force syncing: \n" + errors.toString());
-                    }
-                    return response;
+                ArrayList<String> cmdLineList = new ArrayList<String>();
+                cmdLineList.add(getP4Exe());
+                cmdLineList.add("-s");
+                cmdLineList.add("sync");
+                if(forceSync)
+                    cmdLineList.add("-f");
+                if(populateOnly)
+                    cmdLineList.add("-p");
+                cmdLineList.add(path);
+                String[] cmdLine = cmdLineList.toArray(new String[cmdLineList.size()]);
+		
+                StringBuilder response = getPerforceResponse(cmdLine, filter);
+                if(hitMax(response)){
+                    throw new PerforceException("Hit perforce server limit while " + (forceSync?"force ":"") + "syncing: \n" + response);
                 }
-		else {
-                    StringBuilder response = getPerforceResponse(new String[] { getP4Exe(), "-s", "sync", path }, filter);
-                    if(hitMax(response)){
-                        throw new PerforceException("Hit perforce server limit while syncing: \n" + response);
-                    }
-                    if(errors.length()>0){
-                        throw new PerforceException("Errors encountered while syncing: " + errors.toString());
-                    }
-                    return response;
+                if(errors.length()>0){
+                    throw new PerforceException("Errors encountered while " + (forceSync?"force ":"") + "syncing: " + errors.toString());
                 }
+                return response;
 	}
 
         public StringBuilder flushTo(String path) throws PerforceException {

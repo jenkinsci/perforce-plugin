@@ -109,6 +109,10 @@ public class PerforceSCM extends SCM {
      */
     boolean alwaysForceSync = false;
     /**
+     * Don't update the 'have' database on the server when syncing.
+     */
+    boolean dontUpdateServer = false;
+    /**
      * Disable Workspace pre-build automatic sync and changelog retrieval
      * This should be renamed if we can implement upgrade logic to handle old configs
      */
@@ -240,6 +244,7 @@ public class PerforceSCM extends SCM {
             String p4CommandCharset,
             boolean updateCounterValue,
             boolean forceSync,
+            boolean dontUpdateServer,
             boolean alwaysForceSync,
             boolean updateView,
             boolean disableAutoSync,
@@ -325,6 +330,7 @@ public class PerforceSCM extends SCM {
 
         this.lineEndValue = lineEndValue;
         this.forceSync = forceSync;
+        this.dontUpdateServer = dontUpdateServer;
         this.alwaysForceSync = alwaysForceSync;
         this.disableAutoSync = disableAutoSync;
         this.disableSyncOnly = disableSyncOnly;
@@ -669,10 +675,10 @@ public class PerforceSCM extends SCM {
                             StringBuilder sbMaskPath = new StringBuilder(path);
                             sbMaskPath.append(sbSyncPathSuffix);
                             String maskPath = sbMaskPath.toString();
-                            depot.getWorkspaces().syncTo(maskPath, forceSync || alwaysForceSync);
+                            depot.getWorkspaces().syncTo(maskPath, forceSync || alwaysForceSync, dontUpdateServer);
                         }
                     } else {
-                        depot.getWorkspaces().syncTo(syncPath, forceSync || alwaysForceSync);
+                        depot.getWorkspaces().syncTo(syncPath, forceSync || alwaysForceSync, dontUpdateServer);
                     }
                     long endTime = System.currentTimeMillis();
                     long duration = endTime - startTime;
@@ -2135,6 +2141,14 @@ public class PerforceSCM extends SCM {
 
     public void setPollOnlyOnMaster(boolean pollOnlyOnMaster) {
         this.pollOnlyOnMaster = pollOnlyOnMaster;
+    }
+
+    public boolean isDontUpdateServer() {
+        return dontUpdateServer;
+    }
+
+    public void setDontUpdateServer(boolean dontUpdateServer) {
+        this.dontUpdateServer = dontUpdateServer;
     }
 
     public List<String> getAllLineEndChoices(){
