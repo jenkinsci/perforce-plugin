@@ -428,7 +428,7 @@ public class PerforceSCM extends SCM {
 
     private Hashtable<String, String> getDefaultSubstitutions(AbstractProject project) {
         Hashtable<String, String> subst = new Hashtable<String, String>();
-        subst.put("JOB_NAME", project.getFullName());
+        subst.put("JOB_NAME", getSafeJobName(project));
         ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) project.getProperty(hudson.model.ParametersDefinitionProperty.class);
         if(pdp != null) {
             for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
@@ -1689,7 +1689,7 @@ public class PerforceSCM extends SCM {
 
     static String substituteParameters(String string, AbstractBuild build) {
         Hashtable<String,String> subst = new Hashtable<String,String>();
-        subst.put("JOB_NAME", build.getProject().getFullName());
+        subst.put("JOB_NAME", getSafeJobName(build));
         String hudsonName = Hudson.getInstance().getDisplayName().toLowerCase();
         subst.put("BUILD_TAG", hudsonName + "-" + build.getProject().getName() + "-" + String.valueOf(build.getNumber()));
         subst.put("BUILD_ID", build.getId());
@@ -1697,6 +1697,14 @@ public class PerforceSCM extends SCM {
         String result = substituteParameters(string, build.getBuildVariables());
         result = substituteParameters(result, subst);
         return result;
+    }
+
+    static String getSafeJobName(AbstractBuild build){
+        return getSafeJobName(build.getProject());
+    }
+
+    static String getSafeJobName(AbstractProject project){
+        return project.getFullName().replace('/','-').replace('=','-').replace(',','-');
     }
 
     static String substituteParameters(String string, Map<String,String> subst) {
