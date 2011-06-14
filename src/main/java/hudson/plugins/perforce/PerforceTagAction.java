@@ -30,20 +30,23 @@ public class PerforceTagAction extends AbstractScmTagAction {
     private String tag;
     private String desc;
     private String view;
+    private String owner;
 
-    public PerforceTagAction(AbstractBuild build, Depot depot, int changeNumber, String views) {
+    public PerforceTagAction(AbstractBuild build, Depot depot, int changeNumber, String views, String owner) {
         super(build);
         this.depot = depot;
         this.changeNumber = changeNumber;
         this.view = views;
+        this.owner = owner;
     }
 
-    public PerforceTagAction(AbstractBuild build, Depot depot, String label, String views) {
+    public PerforceTagAction(AbstractBuild build, Depot depot, String label, String views, String owner) {
         super(build);
         this.depot = depot;
         this.changeNumber = -1;
         this.tag = label;
         this.view = views;
+        this.owner = owner;
     }
 
     public PerforceTagAction(PerforceTagAction tga) {
@@ -52,6 +55,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
         this.changeNumber = tga.changeNumber;
         this.tag = tga.tag;
         this.view = tga.view;
+        this.owner = tga.owner;
     }
 
     public int getChangeNumber() {
@@ -91,6 +95,14 @@ public class PerforceTagAction extends AbstractScmTagAction {
         this.desc = desc;
     }
 
+    public String getOwner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
+
     /**
      * Returns true if this build has already been tagged at least once.
      */
@@ -128,6 +140,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
 
         String tag = req.getParameter("name");
         String desc = req.getParameter("desc");
+        owner = req.getParameter("owner");
 
         tagBuild(tag, desc);
 
@@ -141,6 +154,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
         label.setName(tag);
         label.setDescription(desc);
         label.setRevision(new Integer(changeNumber).toString());
+        if(owner!=null && !owner.equals("")) label.setOwner(owner);
 
         //Only take the depot paths and add them to the view.
         List<String> viewPairs = PerforceSCM.parseProjectPath(view, "workspace");

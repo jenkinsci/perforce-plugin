@@ -50,6 +50,11 @@
 	        	<td><b>Description:</b> </td>
 	        	<td><textarea name="desc" rows="5" cols="50">Changelist: ${it.changeNumber}</textarea></td>
 	        </tr>
+                <tr>
+	        	<td><b>Owner:</b> </td>
+	        	<td><input type="text" name="owner"
+	                       	value="${it.owner}" style="width:300px" id="owner" /></td>
+	        </tr>
 	        <tr>
 	        	<td colspan="2"> </td>
 	        </tr>

@@ -709,13 +709,13 @@ public class PerforceSCM extends SCM {
                 // Add tagging action that indicates that the build is already
                 // tagged (you can't label a label).
                 build.addAction(new PerforceTagAction(
-                        build, depot, p4Label, projectPath));
+                        build, depot, p4Label, projectPath, p4User));
             }
             else {
                 // Add tagging action that enables the user to create a label
                 // for this build.
                 build.addAction(new PerforceTagAction(
-                        build, depot, newestChange, projectPath));
+                        build, depot, newestChange, projectPath, p4User));
             }
 
             if (p4Counter != null && updateCounterValue) {
