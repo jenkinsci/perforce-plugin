@@ -49,7 +49,16 @@ public class Users extends AbstractPerforceTemplate {
 	 */
 	public User getUser(String name) throws Exception {
 		UserBuilder builder = new UserBuilder();
+
+                //check if the user exists first.
+                if(!exists(name)) return null;
+
 		User user = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), name)));
 		return user;
 	}
+
+        private boolean exists(String name) throws Exception {
+            StringBuilder response = getPerforceResponse(new String[]{getP4Exe(), "users", name});
+            return !response.toString().contains("no such user");
+        }
 }

@@ -62,13 +62,16 @@ public class PerforceMailResolver extends MailAddressResolver {
                     try {
                         LOGGER.finer("Trying to get email address from perforce for " + perforceId);
                         pu = pscm.getDepot(launcher, workspace, p).getUsers().getUser(perforceId);
+                        if (pu != null && pu.getEmail() != null && !pu.getEmail().equals("")) {
+                            LOGGER.fine("Got email (" + pu.getEmail() + ") from perforce for " + perforceId);
+                            return pu.getEmail();
+                        } else {
+                            //operation succeeded, but no email address was found for this user
+                            return null;
+                        }
                     } catch (Exception e) {
                         LOGGER.fine("Could not get email address from Perforce: " + e.getMessage());
                         e.printStackTrace(listener.getLogger());
-                    }
-                    if (pu != null && pu.getEmail() != null && !pu.getEmail().equals("")) {
-                        LOGGER.fine("Got email (" + pu.getEmail() + ") from perforce for " + perforceId);
-                        return pu.getEmail();
                     }
                     try {
                         //gradually increase sleep time
