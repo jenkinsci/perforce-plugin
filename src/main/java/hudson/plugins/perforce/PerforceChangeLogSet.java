@@ -109,6 +109,11 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
                 for (Node fnode : fileNodes) {
                     Changelist.FileEntry file = new Changelist.FileEntry();
                     file.setFilename(fnode.selectSingleNode("name").getStringValue());
+                    try{
+                        file.setWorkspacePath(fnode.selectSingleNode("workspacePath").getStringValue());
+                    }catch(Exception e){
+                        //This field might not exist yet, so ignore it.
+                    }
                     file.setRevision(fnode.selectSingleNode("rev").getStringValue());
                     file.setAction(Changelist.FileEntry.Action.valueOf(fnode.selectSingleNode("action")
                             .getStringValue()));
@@ -165,6 +170,7 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
             for (Changelist.FileEntry entry : change.getFiles()) {
                 stream.println("\t\t\t<file>");
                 stream.println("\t\t\t\t<name>" + Util.xmlEscape(entry.getFilename()) + "</name>");
+                stream.println("\t\t\t\t<workspacePath>" + Util.xmlEscape(entry.getWorkspacePath()) + "</workspacePath>");
                 stream.println("\t\t\t\t<rev>" + Util.xmlEscape(entry.getRevision()) + "</rev>");
                 stream.println("\t\t\t\t<action>" + entry.getAction() + "</action>");
                 stream.println("\t\t\t</file>");
