@@ -38,6 +38,7 @@ import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Changelist;
 import com.tek42.perforce.model.Workspace;
+import hudson.plugins.perforce.PerforceSCMHelper;
 
 /**
  * Base API object for interacting with changelists.
@@ -63,8 +64,21 @@ public class Changes extends AbstractPerforceTemplate {
 		Changelist change = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), Integer.toString(number))));
 		if(change == null)
 			throw new PerforceException("Failed to retrieve changelist " + number);
+                calculateWorkspacePaths(change);
 		return change;
 	}
+
+        /**
+         * Calculates the workspace paths for every file in the changelist.
+         * @param change
+         */
+        private void calculateWorkspacePaths(Changelist change) throws PerforceException{
+            for(Changelist.FileEntry file :change.getFiles()){
+                StringBuilder response = getPerforceResponse(new String[]{getP4Exe(),"-G","where",file.getFilename()});
+                PerforceSCMHelper.WhereMapping map = PerforceSCMHelper.parseWhereMapping(response.toString().getBytes());
+                file.setWorkspacePath(map.getWorkspacePath().replaceAll("^//\\S+?/",""));
+            }
+        }
 
 	/**
 	 * Returns a list of changelists that match the parameters

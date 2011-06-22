@@ -104,6 +104,7 @@ public class Changelist implements java.io.Serializable {
 		Action action;
 		String filename;
 		String revision;
+                String workspacePath;
                 Changelist changelist;
 
         private static Map<Action, EditType> registry = new HashMap<Action, EditType>();
@@ -170,6 +171,14 @@ public class Changelist implements java.io.Serializable {
 		public void setRevision(String revision) {
 			this.revision = revision;
 		}
+
+                public String getWorkspacePath() {
+                    return workspacePath;
+                }
+
+                public void setWorkspacePath(String workspacePath) {
+                    this.workspacePath = workspacePath;
+                }
 
                 public void setChangelist(Changelist changelist) {
                     this.changelist = changelist;
