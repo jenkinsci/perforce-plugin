@@ -28,9 +28,16 @@ public final class FishEyePerforce extends PerforceRepositoryBrowser {
      */
     public final URL url;
 
+    /**
+     * This is the root 'module' of the FishEye repository.
+     * It is a path that is trimmed from the beginning of depot paths for files.
+     */
+    public final String rootModule;
+
     @DataBoundConstructor
-    public FishEyePerforce(URL url) {
+    public FishEyePerforce(URL url, String rootModule) {
         this.url = normalizeToEndWithSlash(url);
+        this.rootModule = trimHeadSlash(trimHeadSlash(rootModule));
     }
 
     @Override
@@ -47,17 +54,25 @@ public final class FishEyePerforce extends PerforceRepositoryBrowser {
         }
         if(r <= 1)
         	return null;
-        return new URL(url, trimHeadSlash(trimHeadSlash(file.getFilename())) + new QueryBuilder(url.getQuery()).add("r1=").add("r2=" + r));
+        return new URL(url, getRelativeFilename(file) + new QueryBuilder(url.getQuery()).add("r1=").add("r2=" + r));
     }
 
     @Override
     public URL getFileLink(Changelist.FileEntry file) throws IOException {
-        return new URL(url, trimHeadSlash(trimHeadSlash(file.getFilename())) + new QueryBuilder(url.getQuery()));
+        return new URL(url, getRelativeFilename(file) + new QueryBuilder(url.getQuery()));
     }
 
     @Override
     public URL getChangeSetLink(PerforceChangeLogEntry change) throws IOException {
         return new URL(url,"../../changelog/"+getProjectName()+"/?cs="+change.getChange().getChangeNumber());
+    }
+
+    private String getRelativeFilename(Changelist.FileEntry file) {
+        String path = trimHeadSlash(trimHeadSlash(file.getFilename()));
+        if(path.startsWith(getRootModule())){
+            path = path.substring(getRootModule().length());
+        }
+        return trimHeadSlash(path);
     }
 
     /**
@@ -69,6 +84,12 @@ public final class FishEyePerforce extends PerforceRepositoryBrowser {
 
         int idx = p.lastIndexOf('/');
         return p.substring(idx+1);
+    }
+
+    public String getRootModule() {
+        if(rootModule==null)
+            return "";
+        return rootModule;
     }
 
     @Extension
