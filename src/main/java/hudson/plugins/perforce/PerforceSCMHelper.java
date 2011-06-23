@@ -78,10 +78,10 @@ public final class PerforceSCMHelper {
         
     }
 
-    static private int readInt(byte[] bytes, int offset){
+    static public int readInt(byte[] bytes, int offset){
         int result=0;
         for (int i=offset; i<offset+4; i++) {
-            result += (int) bytes[i] << (8*(i-offset));
+            result += (int) (bytes[i]&0xff) << (8*(i-offset));
         }
         return result;
     }
@@ -120,7 +120,7 @@ public final class PerforceSCMHelper {
     }
 
     static private String readPythonString(byte[] bytes, int offset){
-        int length = readInt(bytes, offset);
+        int length = (int)readInt(bytes, offset);
         String result = new String(bytes, offset+4, length);
         return result;
     }

@@ -78,4 +78,10 @@ public class PerforceSCMHelperTest extends TestCase {
             assertEquals("/home/rpetti/workspace/Install/trunk/Installers/build.properties", map.getFilesystemPath());
         }
 
+        public void testReadIntNegativeByte() {
+            byte test[] = {(byte)-106,(byte)0,(byte)0,(byte)0};
+            int result = PerforceSCMHelper.readInt(test, 0);
+            assertEquals(150,result);
+        }
+
 }
