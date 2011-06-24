@@ -74,8 +74,8 @@ public class Changes extends AbstractPerforceTemplate {
          */
         private void calculateWorkspacePaths(Changelist change) throws PerforceException{
             for(Changelist.FileEntry file :change.getFiles()){
-                StringBuilder response = getPerforceResponse(new String[]{getP4Exe(),"-G","where",file.getFilename()});
-                PerforceSCMHelper.WhereMapping map = PerforceSCMHelper.parseWhereMapping(response.toString().getBytes());
+                byte[] bytes = getRawPerforceResponseBytes(new String[]{getP4Exe(),"-G","where",file.getFilename()});
+                PerforceSCMHelper.WhereMapping map = PerforceSCMHelper.parseWhereMapping(bytes);
                 file.setWorkspacePath(map.getWorkspacePath().replaceAll("^//\\S+?/",""));
             }
         }
