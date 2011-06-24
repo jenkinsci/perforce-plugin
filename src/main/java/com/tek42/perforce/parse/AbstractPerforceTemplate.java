@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.process.Executor;
+import java.io.InputStream;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -491,11 +492,11 @@ public abstract class AbstractPerforceTemplate {
 
         try
         {
-            char[] cbuf = new char[1024];
-            BufferedReader reader = p4.getReader();
+            byte[] cbuf = new byte[1024];
+            InputStream input = p4.getInputStream();
             p4.getWriter().close();
             int readCount = -1;
-            while((readCount = reader.read(cbuf, 0, 1024)) != -1) {
+            while((readCount = input.read(cbuf, 0, 1024)) != -1) {
                 for(int i=0; i<readCount; i++){
                     bytes.add(new Byte((byte)(cbuf[i]&0xff)));
                 }

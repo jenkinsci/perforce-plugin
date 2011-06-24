@@ -53,6 +53,9 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
     private BufferedReader reader;
     private BufferedWriter writer;
 
+    private InputStream input;
+    private OutputStream output;
+
     private Launcher hudsonLauncher;
     private String[] env;
     private FilePath filePath;
@@ -75,7 +78,7 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
         // Need to close writer
         // (reader gets closed by remote process)
         try {
-            writer.close();
+            output.close();
         } catch(IOException e) {
             // Do nothing
         }
@@ -92,12 +95,12 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
             // hudsonOut->p4in->reader
             FastPipedOutputStream hudsonOut = new FastPipedOutputStream();
             FastPipedInputStream p4in = new FastPipedInputStream(hudsonOut);
-            reader = new BufferedReader(new InputStreamReader(p4in));
+            input = p4in;
 
             // hudsonIn<-p4Out<-writer
             FastPipedInputStream hudsonIn = new FastPipedInputStream();
             FastPipedOutputStream p4out = new FastPipedOutputStream(hudsonIn);
-            writer = new BufferedWriter(new OutputStreamWriter(p4out));
+            output = p4out;
 
             final OutputStream out = hudsonOut == null ? null : new RemoteOutputStream(hudsonOut);
             final InputStream  in  = hudsonIn ==null ? null : new RemoteInputStream(hudsonIn);
@@ -117,6 +120,20 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
 
             throw new PerforceException("Could not run perforce command.", e);
         }
+    }
+
+    public BufferedWriter getWriter() {
+        if(writer==null){
+            writer = new BufferedWriter(new OutputStreamWriter(output));
+        }
+        return writer;
+    }
+
+    public BufferedReader getReader() {
+        if(reader==null){
+            reader = new BufferedReader(new InputStreamReader(input));
+        }
+        return reader;
     }
 
     private static class RemoteCall implements Callable<Integer,IOException> {
@@ -179,20 +196,20 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
         return result;
     }
 
-    public BufferedReader getReader() {
-        return reader;
+    public InputStream getInputStream() {
+        return input;
     }
 
-    public BufferedWriter getWriter() {
-        return writer;
+    public OutputStream getOutputStream() {
+        return output;
     }
 
     private void closeBuffers(){
         try {
-            reader.close();
+            input.close();
         } catch(IOException ignoredException) {};
         try {
-            writer.close();
+            output.close();
         } catch(IOException ignoredException) {};
     }
 

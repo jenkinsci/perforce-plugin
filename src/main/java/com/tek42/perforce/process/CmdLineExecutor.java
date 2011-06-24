@@ -141,4 +141,12 @@ public class CmdLineExecutor implements Executor {
 		return currentProcess;
 	}
 
+    public OutputStream getOutputStream() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public InputStream getInputStream() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
 }

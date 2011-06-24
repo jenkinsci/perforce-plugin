@@ -9,6 +9,8 @@ import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.process.Executor;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  *
@@ -20,8 +22,8 @@ public interface HudsonP4Executor extends Executor {
 
     void exec(String[] cmd) throws PerforceException;
 
-    BufferedReader getReader();
+    InputStream getInputStream();
 
-    BufferedWriter getWriter();
+    OutputStream getOutputStream();
 
 }
