@@ -135,11 +135,11 @@ public class HudsonP4DefaultExecutor implements HudsonP4Executor {
     }
 
     public InputStream getInputStream() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return input;
     }
 
     public OutputStream getOutputStream() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return output;
     }
 
 }
