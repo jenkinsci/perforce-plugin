@@ -171,7 +171,7 @@ public class ChangelistBuilder implements Builder<Changelist> {
 						Changelist.FileEntry file = new Changelist.FileEntry();
 						file.setFilename(filename);
 						file.setRevision(rev);
-                                                file.setChangelist(change);
+                                                file.setChangenumber(Integer.valueOf(change.getChangeNumber()).toString());
 						file.setAction(Changelist.FileEntry.Action.valueOf(action.toUpperCase(Locale.US)));
 						files.add(file);
 					}

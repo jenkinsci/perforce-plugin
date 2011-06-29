@@ -44,10 +44,10 @@ public final class FishEyePerforce extends PerforceRepositoryBrowser {
     public URL getDiffLink(Changelist.FileEntry file) throws IOException {
     	if(file.getAction() != Changelist.FileEntry.Action.EDIT && file.getAction() != Changelist.FileEntry.Action.INTEGRATE)
         	return null;
-        Changelist change = file.getChangelist();
+        String change = file.getChangenumber();
         int r=0;
         if(change != null){
-            r = new Integer(change.getChangeNumber());
+            r = new Integer(change);
         } else {
             //this is the old, incorrect behavior. New changes won't use this.
             r = new Integer(file.getRevision());

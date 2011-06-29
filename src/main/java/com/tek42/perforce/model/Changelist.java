@@ -104,6 +104,7 @@ public class Changelist implements java.io.Serializable {
 		Action action;
 		String filename;
 		String revision;
+                String changenumber;
                 String workspacePath;
                 Changelist changelist;
 
@@ -180,12 +181,12 @@ public class Changelist implements java.io.Serializable {
                     this.workspacePath = workspacePath;
                 }
 
-                public void setChangelist(Changelist changelist) {
-                    this.changelist = changelist;
+                public void setChangenumber(String changenumber) {
+                    this.changenumber = changenumber;
                 }
 
-                public Changelist getChangelist() {
-                    return this.changelist;
+                public String getChangenumber() {
+                    return this.changenumber;
                 }
 
         public String getPath() {
