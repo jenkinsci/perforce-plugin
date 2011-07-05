@@ -470,15 +470,6 @@ public class Depot {
 		if(null == exe)
 			return;
 		p4exe = exe;
-		if(null == fileSep) {
-			fileSep = System.getProperties().getProperty("file.separator", "\\");
-		}
-		if(-1 == (pos = exe.lastIndexOf(fileSep)))
-			return;
-		if(null == pathSep) {
-			pathSep = System.getProperties().getProperty("path.separator", ";");
-		}
-		appendPath(exe.substring(0, pos));
 	}
 
 	/**
