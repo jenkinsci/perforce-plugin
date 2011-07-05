@@ -89,12 +89,8 @@ public class Depot {
 
 	public Depot(ExecutorFactory factory) {
 		settings = new HashMap<String, String>();
-		setUser("robot"); // Specific to some prior developers environment, presumably
-        setClient("robot-client");
-		setPort("localhost:1666");
+
 		setPassword("");
-		setPath("C:\\Program Files\\Perforce");
-		setenv("CLASSPATH", "/usr/share/java/p4.jar");
 		setSystemDrive("C:");
 		setSystemRoot("C:\\WINDOWS");
 		setExecutable("p4");
@@ -107,10 +103,8 @@ public class Depot {
 		}
 
 		if(os.startsWith("Windows")) {
-			setenv("PATHEXT", ".COM;.EXE;.BAT;.CMD");
 			String windir = System.getProperty("com.ms.windir");
 			if(windir != null) {
-				appendPath(windir.substring(0, 1) + "\\Program Files\\Perforce");
 				setSystemDrive(windir.substring(0, 1));
 				setSystemRoot(windir);
 			}
