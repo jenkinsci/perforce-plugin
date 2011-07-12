@@ -99,20 +99,6 @@
     </dependency>
   </dependencies>
 
-  <repositories>
-    <repository>
-      <id>tek42.com</id>
-      <url>http://tek42.com/maven2</url>
-      <releases>
-        <enabled>true</enabled>
-        <updatePolicy>never</updatePolicy>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
-
   <distributionManagement>
     <repository>
       <id>java.net-m2-repository</id>
