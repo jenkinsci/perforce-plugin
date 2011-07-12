@@ -61,7 +61,10 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
     public Collection<String> getAffectedPaths() {
         List<String> paths = new ArrayList<String>(change.getFiles().size());
         for (Changelist.FileEntry entry : change.getFiles()) {
-            paths.add(entry.getWorkspacePath()==null?entry.getFilename():entry.getWorkspacePath());
+            //only report those files that are actually in the workspace
+            if(entry.getWorkspacePath()!=null && !entry.getWorkspacePath().equals("")){
+                paths.add(entry.getWorkspacePath());
+            }
         }
         return paths;
     }

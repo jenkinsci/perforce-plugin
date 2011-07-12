@@ -1,16 +1,22 @@
 package hudson.plugins.perforce;
 
+import com.tek42.perforce.PerforceException;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 
 /**
  * @author Brian Westrich
  */
 public final class PerforceSCMHelper {
 
+    private static final Logger LOGGER = Logger.getLogger(PerforceSCMHelper.class.getName());
     private static final String DEPOT_ROOT = "//";
     private static final String EXCLUSION_VIEW_PREFIX = "-";
 
@@ -107,8 +113,12 @@ public final class PerforceSCMHelper {
                     counter++;
                     value = readPythonString(dict,counter);
                     counter += value.length() + 4;
+                } else if(dict[counter] == 'i'){
+                    counter++;
+                    value = Integer.toString(readInt(dict, counter));
+                    counter +=  4;
                 } else {
-                    //don't know how to handle non-string objects yet
+                    // Don't know how to handle anything but ints and strings, so bail out
                     return null;
                 }
                 map.put(key, value);
@@ -125,11 +135,25 @@ public final class PerforceSCMHelper {
         return result;
     }
 
-    static public WhereMapping parseWhereMapping(byte[] whereOutput){
+    static public WhereMapping parseWhereMapping(byte[] whereOutput) throws PerforceException {
         String depot;
         String workspace;
         String filesystem;
         Map<String,String> map = readPythonDictionary(whereOutput);
+        if(map == null){
+            throw new PerforceException("Could not parse Where map.");
+        }
+        if(map.get("code").equals("error")){
+            //error handling
+            LOGGER.log(Level.FINE, "P4 Where Parsing Error: "+map.get("data"));
+            if(map.get("data")!=null){
+                if(map.get("data").contains("not in client view")){
+                    //this is non-fatal, but not sure what to do with it
+                } else {
+                    throw new PerforceException("P4 Where Parsing Error: "+map.get("data"));
+                }
+            }
+        }
         depot = map.get("depotFile");
         workspace = map.get("clientFile");
         filesystem = map.get("path");

@@ -39,6 +39,7 @@ import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Changelist;
 import com.tek42.perforce.model.Workspace;
 import hudson.plugins.perforce.PerforceSCMHelper;
+import java.io.IOException;
 
 /**
  * Base API object for interacting with changelists.
@@ -74,9 +75,27 @@ public class Changes extends AbstractPerforceTemplate {
          */
         private void calculateWorkspacePaths(Changelist change) throws PerforceException{
             for(Changelist.FileEntry file :change.getFiles()){
-                byte[] bytes = getRawPerforceResponseBytes(new String[]{getP4Exe(),"-G","where",file.getFilename()});
-                PerforceSCMHelper.WhereMapping map = PerforceSCMHelper.parseWhereMapping(bytes);
-                file.setWorkspacePath(map.getWorkspacePath().replaceAll("^//\\S+?/",""));
+                String workspacePath;
+                try {
+                    workspacePath = getWorkspacePathForFile(file.getFilename());
+                } catch (PerforceException e) {
+                    //Try again
+                    workspacePath = getWorkspacePathForFile(file.getFilename());
+                }
+                file.setWorkspacePath(workspacePath);
+            }
+        }
+
+        private String getWorkspacePathForFile(String file) throws PerforceException {
+            byte[] bytes = getRawPerforceResponseBytes(new String[]{getP4Exe(),"-G","where",file});
+            PerforceSCMHelper.WhereMapping map = PerforceSCMHelper.parseWhereMapping(bytes);
+            String workspacePath = map.getWorkspacePath();
+            if(workspacePath!=null){
+                //trim the head off of it, so it's a workspace-relative path.
+                return map.getWorkspacePath().replaceAll("^//\\S+?/", "");
+            } else {
+                //We didn't get a workspace path, likely because it's not in the workspace
+                return "";
             }
         }
 
