@@ -70,11 +70,11 @@ public abstract class AbstractPerforceTemplate {
     private transient String errors[];   // Obsolete field, present just to keep demarshaller happy
 
     private final Depot depot;
-	final String maxError = "Request too large";
+    final transient String maxError = "Request too large";
 
-	public AbstractPerforceTemplate(Depot depot) {
-		this.depot = depot;
-	}
+    public AbstractPerforceTemplate(Depot depot) {
+            this.depot = depot;
+    }
 
     public Logger getLogger()
     {
