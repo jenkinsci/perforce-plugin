@@ -31,11 +31,12 @@ import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.model.TopLevelItem;
 import hudson.remoting.VirtualChannel;
 import hudson.scm.ChangeLogParser;
+import hudson.scm.PollingResult;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
+import hudson.scm.SCMRevisionState;
 import hudson.util.FormValidation;
 import hudson.util.LogTaskListener;
 
@@ -452,6 +453,11 @@ public class PerforceSCM extends SCM {
         return subst;
     }
 
+    private int getLastBuildChangeset(AbstractProject project) {
+        Run lastBuild = project.getLastBuild();
+        return getLastChange(lastBuild);
+    }
+
     /**
      * Perform some manipulation on the workspace URI to get a valid local path
      * <p>
@@ -598,7 +604,7 @@ public class PerforceSCM extends SCM {
             {
                 List<Changelist> changes;
                 if (p4Label != null) {
-                    changes = new ArrayList<Changelist>(0);
+                    newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, p4Label, p4WorkspacePath);
                 } else {
                     String counterName;
                     if (p4Counter != null && !updateCounterValue)
@@ -608,26 +614,25 @@ public class PerforceSCM extends SCM {
 
                     Counter counter = depot.getCounters().getCounter(counterName);
                     newestChange = counter.getValue();
-
-                    if (lastChange == 0){
-                        lastChange = newestChange - MAX_CHANGESETS_ON_FIRST_BUILD;
-                        if (lastChange < 0){
-                            lastChange = 0;
-                        }
-                    }
-
-                    if (lastChange >= newestChange) {
-                        changes = new ArrayList<Changelist>(0);
-                    } else {
-                        List<Integer> changeNumbersTo;
-                        if(useViewMaskForSyncing && useViewMask){
-                            changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange, viewMask);
-                        } else {
-                            changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange);
-                        }
-                        changes = depot.getChanges().getChangelistsFromNumbers(changeNumbersTo);
+                }
+                if (lastChange == 0){
+                    lastChange = newestChange - MAX_CHANGESETS_ON_FIRST_BUILD;
+                    if (lastChange < 0){
+                        lastChange = 0;
                     }
                 }
+                if (lastChange >= newestChange) {
+                    changes = new ArrayList<Changelist>(0);
+                } else {
+                    List<Integer> changeNumbersTo;
+                    if(useViewMaskForSyncing && useViewMask){
+                        changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange, viewMask);
+                    } else {
+                        changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange);
+                    }
+                    changes = depot.getChanges().getChangelistsFromNumbers(changeNumbersTo);
+                }
+                
 
                 if (changes.size() > 0) {
                     // Save the changes we discovered.
@@ -704,19 +709,13 @@ public class PerforceSCM extends SCM {
             if(doSaveProject){
                 build.getParent().save();
             }
+            
+            // Add tagging action that enables the user to create a label
+            // for this build.
+            build.addAction(new PerforceTagAction(
+                build, depot, newestChange, projectPath, p4User));
 
-            if (p4Label != null) {
-                // Add tagging action that indicates that the build is already
-                // tagged (you can't label a label).
-                build.addAction(new PerforceTagAction(
-                        build, depot, p4Label, projectPath, p4User));
-            }
-            else {
-                // Add tagging action that enables the user to create a label
-                // for this build.
-                build.addAction(new PerforceTagAction(
-                        build, depot, newestChange, projectPath, p4User));
-            }
+            build.addAction(new PerforceSCMRevisionState(newestChange));
 
             if (p4Counter != null && updateCounterValue) {
                 // Set or create a counter to mark this change
@@ -771,74 +770,49 @@ public class PerforceSCM extends SCM {
     public ChangeLogParser createChangeLogParser() {
         return new PerforceChangeLogParser();
     }
-
-    /*
-     * @see hudson.scm.SCM#pollChanges(hudson.model.AbstractProject, hudson.Launcher, hudson.FilePath, hudson.model.TaskListener)
-     *
-     * When *should* this method return true?
-     *
-     * 1) When there is no previous build (might be the first, or all previous
-     *    builds might have been deleted).
-     *
-     * 2) When the previous build did not use Perforce, in which case we can't
-     *    be "sure" of the state of the files.
-     *
-     * 3) If the clientspec's views have changed since the last build; we don't currently
-     *    save that info, but we should!  I (James Synge) am not sure how to save it;
-     *    should it be:
-     *         a) in the build.xml file, and if so, how do we save it there?
-     *         b) in the change log file (which actually makes a fair amount of sense)?
-     *         c) in a separate file in the build directory (not workspace),
-     *            along side the change log file?
-     *
-     * 4) p4Label has changed since the last build (either from unset to set, or from
-     *    one label to another).
-     *
-     * 5) p4Label is set AND unchanged AND the set of file-revisions selected
-     *    by the label in the p4 workspace has changed.  Unfortunately, I don't
-     *    know of a cheap way to do this.
-     *
-     * There may or may not have been a previous build.  That build may or may not
-     * have been done using Perforce, and if with Perforce, may have been done
-     * using a label or latest, and may or may not be for the same view as currently
-     * defined.  If any change has occurred, we'll treat that as a reason to build.
-     *
-     * Note that the launcher and workspace may operate remotely (as of 2009-06-21,
-     * they correspond to the node where the last build occurred, if any; if none,
-     * then the master is used).
-     *
-     * Note also that this method won't be called while the workspace (not job)
-     * is in use for building or some other polling thread.
+    /**
+     * Part of the new polling routines. This determines the state of the build specified.
+     * @param ab
+     * @param lnchr
+     * @param tl
+     * @return
+     * @throws IOException
+     * @throws InterruptedException
      */
     @Override
-    public boolean pollChanges(AbstractProject project, Launcher launcher,
-            FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
+    public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> ab, Launcher lnchr, TaskListener tl) throws IOException, InterruptedException {
+        //This shouldn't be getting called, but in case it is, let's calculate the revision anyways.
+        PerforceTagAction action = (PerforceTagAction)ab.getAction(PerforceTagAction.class);
+        if(action==null){
+            //something went wrong...
+            return null;
+        }
+        return new PerforceSCMRevisionState(action.getChangeNumber());
+    }
 
+    /**
+     * Part of the new polling routines. This compares the specified revision state with the repository,
+     * and returns a polling result.
+     * @param ap
+     * @param lnchr
+     * @param fp
+     * @param tl
+     * @param scmrs
+     * @return
+     * @throws IOException
+     * @throws InterruptedException
+     */
+    @Override
+    protected PollingResult compareRemoteRevisionWith(AbstractProject<?, ?> project, Launcher launcher, FilePath workspace, TaskListener listener, SCMRevisionState scmrs) throws IOException, InterruptedException {
         PrintStream logger = listener.getLogger();
         logger.println("Looking for changes...");
-        
+
         Hashtable<String, String> subst = getDefaultSubstitutions(project);
 
         Depot depot;
-        
-        try {
-            Node buildNode = project.getLastBuiltOn();
-            if (pollOnlyOnMaster){
-                buildNode = null;
-            } else {
-                //try to get an active node that the project is configured to use
-                buildNode = project.getLastBuiltOn();
 
-                if (!isNodeOnline(buildNode)){
-                    buildNode = null;
-                }
-                if (buildNode == null && !pollOnlyOnMaster){
-                    buildNode = getOnlineConfiguredNode(project);
-                }
-                if (pollOnlyOnMaster){
-                    buildNode = null;
-                }
-            }
+        try {
+            Node buildNode = getPollingNode(project);
             if (buildNode == null){
                 depot = getDepot(launcher,workspace,project);
                 logger.println("Using master");
@@ -848,27 +822,45 @@ public class PerforceSCM extends SCM {
             }
 
             Workspace p4workspace = getPerforceWorkspace(project, substituteParameters(projectPath, subst), depot, buildNode, null, launcher, workspace, listener, false);
-
             saveWorkspaceIfDirty(depot, p4workspace, logger);
 
-            Boolean needToBuild = needToBuild(p4workspace, project, depot, logger);
-            if (needToBuild == null) {
-                needToBuild = wouldSyncChangeWorkspace(project, depot, logger);
+            int lastChangeNumber = ((PerforceSCMRevisionState)scmrs).getRevision();
+            SCMRevisionState repositoryState = getCurrentDepotRevisionState(p4workspace, project, depot, logger, lastChangeNumber);
+
+            PollingResult.Change change;
+            if(repositoryState.equals(scmrs)){
+                change = PollingResult.Change.NONE;
+            } else {
+                change = PollingResult.Change.SIGNIFICANT;
             }
 
-            if (needToBuild == Boolean.FALSE) {
-                return false;
-            }
-            else {
-                logger.println("Triggering a build.");
-                return true;
-            }
+            return new PollingResult(scmrs, repositoryState, change);
+            
         } catch (PerforceException e) {
             System.out.println("Problem: " + e.getMessage());
             logger.println("Caught Exception communicating with perforce." + e.getMessage());
-            e.printStackTrace();
             throw new IOException("Unable to communicate with perforce.  Check log file for: " + e.getMessage());
         }
+    }
+
+    private Node getPollingNode(AbstractProject project) {
+        Node buildNode = project.getLastBuiltOn();
+        if (pollOnlyOnMaster) {
+            buildNode = null;
+        } else {
+            //try to get an active node that the project is configured to use
+            buildNode = project.getLastBuiltOn();
+            if (!isNodeOnline(buildNode)) {
+                buildNode = null;
+            }
+            if (buildNode == null && !pollOnlyOnMaster) {
+                buildNode = getOnlineConfiguredNode(project);
+            }
+            if (pollOnlyOnMaster) {
+                buildNode = null;
+            }
+        }
+        return buildNode;
     }
 
     private Node getOnlineConfiguredNode(AbstractProject project) {
@@ -894,125 +886,72 @@ public class PerforceSCM extends SCM {
         return node != null && node.toComputer() != null && node.toComputer().isOnline();
     }
 
+    private SCMRevisionState getCurrentDepotRevisionState(Workspace p4workspace, AbstractProject project, Depot depot,
+        PrintStream logger, int lastChangeNumber) throws IOException, InterruptedException, PerforceException {
+      
+        int highestSelectedChangeNumber;
+        List<Integer> changeNumbers;
 
-	private Boolean needToBuild(Workspace p4workspace, AbstractProject project, Depot depot,
-            PrintStream logger) throws IOException, InterruptedException, PerforceException {
+        if (p4Counter != null && !updateCounterValue) {
 
-        /*
-         * Don't bother polling if we're already building, or soon will.
-         * Ideally this would be a policy exposed to the user, perhaps for all
-         * jobs with all types of scm, not just those using Perforce.
-         */
-//        if (project.isBuilding() || project.isInQueue()) {
-//            logger.println("Job is already building or in the queue; skipping polling.");
-//            return Boolean.FALSE;
-//        }
+            // If this is a downstream build that triggers by polling the set counter
+            // use the counter as the value for the newest change instead of the workspace view
 
-        Run lastBuild = project.getLastBuild();
-        if (lastBuild == null) {
-            logger.println("No previous build exists.");
-            //Don't trigger a build when the job has never run,
-            //this is to prevent the build from triggering while configuring
-            //a job that has been duplicated from another.
-            return Boolean.FALSE;
-        }
+            Counter counter = depot.getCounters().getCounter(p4Counter);
+            highestSelectedChangeNumber = counter.getValue();
+            logger.println("Latest submitted change selected by named counter is " + highestSelectedChangeNumber);
+            String root = "//" + p4workspace.getName() + "/...";
+            changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, highestSelectedChangeNumber, root); 
+        } else {
+            // General Case
 
-        PerforceTagAction action = lastBuild.getAction(PerforceTagAction.class);
-        if (action == null) {
-            logger.println("Previous build doesn't have Perforce info.");
-            return null;
-        }
+            // Has any new change been submitted since then (that is selected
+            // by this workspace).
 
-        int lastChangeNumber = action.getChangeNumber();
-        String lastLabelName = action.getTag();
-
-        if (lastChangeNumber <= 0 && lastLabelName != null) {
-            logger.println("Previous build was based on label " + lastLabelName);
-            // Last build was based on a label, so we want to know if:
-            //      the definition of the label was changed;
-            //      or the view has been changed;
-            //      or p4Label has been changed.
-            if (p4Label == null) {
-                logger.println("Job configuration changed to build from head, not a label.");
-                return Boolean.TRUE;
-            }
-
-            if (!lastLabelName.equals(p4Label)) {
-                logger.println("Job configuration changed to build from label " + p4Label + ", not from head");
-                return Boolean.TRUE;
-            }
-
-            // No change in job definition (w.r.t. p4Label).  Don't currently
-            // save enough info about the label to determine if it changed.
-            logger.println("Assuming that the workspace and label definitions have not changed.");
-            return Boolean.FALSE;
-        }
-
-        if (lastChangeNumber > 0) {
-            logger.println("Last sync'd change was " + lastChangeNumber);
+            Integer newestChange;
             if (p4Label != null) {
-                logger.println("Job configuration changed to build from label " + p4Label + ", not from head.");
-                return Boolean.TRUE;
-            }
-
-            int highestSelectedChangeNumber;
-            List<Integer> changeNumbers;
-
-            if (p4Counter != null && !updateCounterValue) {
-
-                // If this is a downstream build that triggers by polling the set counter
-                // use the counter as the value for the newest change instead of the workspace view
-
-                Counter counter = depot.getCounters().getCounter(p4Counter);
-                highestSelectedChangeNumber = counter.getValue();
-                logger.println("Latest submitted change selected by named counter is " + highestSelectedChangeNumber);
+                //In case where we are using a rolling label.
                 String root = "//" + p4workspace.getName() + "/...";
-                changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, highestSelectedChangeNumber, root);
+                newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, substituteParameters(p4Label, getDefaultSubstitutions(project)), root);
             } else {
-
-                // Has any new change been submitted since then (that is selected
-                // by this workspace).
-                Integer newestChange;
                 Counter counter = depot.getCounters().getCounter("change");
                 newestChange = counter.getValue();
-
-                if(useViewMaskForPolling && useViewMask){
-                    changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, substituteParameters(viewMask, getDefaultSubstitutions(project)));
-                } else {
-                    String root = "//" + p4workspace.getName() + "/...";
-                    changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, root);
-                }
-                if (changeNumbers.isEmpty()) {
-                    // Wierd, this shouldn't be!  I suppose it could happen if the
-                    // view selects no files (e.g. //depot/non-existent-branch/...).
-                    // This can also happen when using view masks with polling.
-                    logger.println("No changes found.");
-                    return Boolean.FALSE;
-                } else {
-                    highestSelectedChangeNumber = changeNumbers.get(0).intValue();
-                    logger.println("Latest submitted change selected by workspace is " + highestSelectedChangeNumber);
-                }
             }
 
-            if (lastChangeNumber >= highestSelectedChangeNumber) {
-                // Note, can't determine with currently saved info
-                // whether the workspace definition has changed.
-                logger.println("Assuming that the workspace definition has not changed.");
-                return Boolean.FALSE;
+            if(useViewMaskForPolling && useViewMask){
+                changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, substituteParameters(viewMask, getDefaultSubstitutions(project)));
+            } else {
+                String root = "//" + p4workspace.getName() + "/...";
+                changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, root);
             }
-            else {
-                for (int changeNumber : changeNumbers) {
-                    if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber), logger)) {
-                        logger.println("Changelist "+changeNumber+" is composed of file(s) and/or user(s) that are excluded.");
-                    } else {
-                        return Boolean.TRUE;
-                    }
-                }
-                return Boolean.FALSE;
+            if (changeNumbers.isEmpty()) {
+                // Wierd, this shouldn't be!  I suppose it could happen if the
+                // view selects no files (e.g. //depot/non-existent-branch/...).
+                // This can also happen when using view masks with polling.
+                logger.println("No changes found.");
+                return new PerforceSCMRevisionState(lastChangeNumber);
+            } else {
+                highestSelectedChangeNumber = changeNumbers.get(0).intValue();
+                logger.println("Latest submitted change selected by workspace is " + highestSelectedChangeNumber);
             }
         }
 
-        return null;
+        if (lastChangeNumber >= highestSelectedChangeNumber) {
+            // Note, can't determine with currently saved info
+            // whether the workspace definition has changed.
+            logger.println("Assuming that the workspace definition has not changed.");
+            return new PerforceSCMRevisionState(lastChangeNumber);
+        }
+        else {
+            for (int changeNumber : changeNumbers) {
+                if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber), logger)) {
+                    logger.println("Changelist "+changeNumber+" is composed of file(s) and/or user(s) that are excluded.");
+                } else {
+                    return new PerforceSCMRevisionState(changeNumber);
+                }
+            }
+            return new PerforceSCMRevisionState(lastChangeNumber);
+        }
     }
 
     /**
@@ -1071,7 +1010,7 @@ public class PerforceSCM extends SCM {
                     if (buff == null) {
                         buff = new StringBuffer("Exclude file(s) found:\n");
                     }
-                    buff.append("\t"+f.getFilename());
+                    buff.append("\t").append(f.getFilename());
                 }
 
                 logger.println(buff.toString());
@@ -2261,6 +2200,11 @@ public class PerforceSCM extends SCM {
         String result2 = substituteParameters(getSlaveClientNameFormat(), testSub2);
 
         return result1.equals(result2);
+    }
+
+    @Override
+    public boolean supportsPolling() {
+        return true;
     }
 
 }

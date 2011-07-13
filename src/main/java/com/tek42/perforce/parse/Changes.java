@@ -464,6 +464,39 @@ public class Changes extends AbstractPerforceTemplate {
         return numbers;
     }
 
+    public Integer getHighestLabelChangeNumber(Workspace workspace, String label, String path) throws PerforceException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(path.replaceAll("\"", ""));
+        sb.append("@");
+        sb.append(label);
+        
+        String fullPath = sb.toString();
+
+        String[] cmd = new String[] { getP4Exe(), "-s", "changes", "-m", "1", fullPath };
+
+        List<String> response = getRawPerforceResponseLines(cmd);
+        List<Integer> numbers = new ArrayList<Integer>(response.size());
+
+        // TODO Handle error cases, and "exit: <exit-code>" (currently just ignored,
+        // should really be parsing that line, and providing that value to the caller
+        // by some means).
+
+        for (String line : response) {
+            if (line.startsWith("info: Change ")) {
+                int offset = line.indexOf(' ', 13);
+                String s = line.substring(13, offset);
+                Integer n = Integer.valueOf(s);
+                numbers.add(n);
+                continue;
+            }
+        }
+        if(numbers.isEmpty()){
+            return -1;
+        } else {
+            return numbers.get(0);
+        }
+    }
+
     public List<Integer> getChangeNumbersInRangeForSinglePath(Workspace workspace, int first, int last, String path) throws PerforceException {
         StringBuilder sb = new StringBuilder();
         sb.append(path.replaceAll("\"", ""));
