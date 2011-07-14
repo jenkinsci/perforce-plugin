@@ -7,10 +7,12 @@
 <ul>
 <li>${basename} - The client name as configured in the above section</li>
 <li>${hostname} - The hostname of the slave</li>
+<li>${nodename} - The name of the slave in the CI server. <i>Use this with caution.</i></li>
 <li>${hash} - The hash code of the slave name</li>
 </ul>
   </p>
   <p>The recommended default value is "${basename}-${hash}" (without quotes).</p>
  <p> When set to the default ${basename} is used, and this also enables polling to occur on the master</p>
 <p>This allows polling to occur without the last slave to be online</p>
+<p><b>Important Note:</b> Take extra care when using the ${nodename} replacement, as the name may contain characters that Perforce does not support for it's client names.</p>
 </div>

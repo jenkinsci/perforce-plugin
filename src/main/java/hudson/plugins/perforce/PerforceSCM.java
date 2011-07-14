@@ -1306,6 +1306,7 @@ public class PerforceSCM extends SCM {
             String hash = String.valueOf(buildNode.getNodeName().hashCode());
 
             Map<String, String> substitutions = new Hashtable<String,String>();
+            substitutions.put("nodename", buildNode.getNodeName());
             substitutions.put("hostname", host);
             substitutions.put("hash", hash);
             substitutions.put("basename", basename);
@@ -2180,16 +2181,6 @@ public class PerforceSCM extends SCM {
     }
 
     /**
-     * Get the hostname of the client to use as the node suffix
-     */
-    private static final class GetHostname implements FileCallable<String> {
-        public String invoke(File f, VirtualChannel channel) throws IOException {
-            return InetAddress.getLocalHost().getHostName();
-        }
-        private static final long serialVersionUID = 1L;
-    }
-
-    /**
      * With Perforce the server keeps track of files in the workspace.  We never
      * want files deleted without the knowledge of the server so we disable the
      * cleanup process.
@@ -2250,12 +2241,14 @@ public class PerforceSCM extends SCM {
     public boolean isSlaveClientNameStatic() {
         Map<String,String> testSub1 = new Hashtable<String,String>();
         testSub1.put("hostname", "HOSTNAME1");
+        testSub1.put("nodename", "NODENAME1");
         testSub1.put("hash", "HASH1");
         testSub1.put("basename", this.p4Client);
         String result1 = substituteParameters(getSlaveClientNameFormat(), testSub1);
 
         Map<String,String> testSub2 = new Hashtable<String,String>();
         testSub2.put("hostname", "HOSTNAME2");
+        testSub2.put("nodename", "NODENAME2");
         testSub2.put("hash", "HASH2");
         testSub2.put("basename", this.p4Client);
         String result2 = substituteParameters(getSlaveClientNameFormat(), testSub2);
