@@ -9,4 +9,6 @@
 This option is typically used for workspaces used in processes (such as certain build or publication environments) where there is no need to track the state of the workspace after it has first been synced.</i>
 See the rest of the doc here: <a href="http://www.perforce.com/perforce/doc.current/manuals/cmdref/sync.html">here</a>.
   </p>
+  <p><b>Note:</b> For whatever reason, perforce has decided that the -p option needs to be mutually exclusive of the -f option (even though they are functionally unrelated). As a result, you can't force sync and use -p at the same time. If you need to do a full resync while using the -p option, it's recommended that you delete the perforce client and let the plugin recreate it (assuming you are allowing it to manage the client workspace).
+  </p>
 </div>
