@@ -806,6 +806,22 @@ public class PerforceSCM extends SCM {
     protected PollingResult compareRemoteRevisionWith(AbstractProject<?, ?> project, Launcher launcher, FilePath workspace, TaskListener listener, SCMRevisionState scmrs) throws IOException, InterruptedException {
         PrintStream logger = listener.getLogger();
         logger.println("Looking for changes...");
+        final PerforceSCMRevisionState baseline;
+
+        if (scmrs instanceof PerforceSCMRevisionState) {
+            baseline = (PerforceSCMRevisionState)scmrs;
+        }
+        else if (project.getLastBuild()!=null) {
+            baseline = (PerforceSCMRevisionState)calcRevisionsFromBuild(project.getLastBuild(), launcher, listener);
+        }
+        else {
+            baseline = new PerforceSCMRevisionState(-1);
+        }
+
+        if (project.getLastBuild() == null) {
+            listener.getLogger().println("No previous builds to use for comparison.");
+            return PollingResult.BUILD_NOW;
+        }
 
         Hashtable<String, String> subst = getDefaultSubstitutions(project);
 
@@ -824,17 +840,17 @@ public class PerforceSCM extends SCM {
             Workspace p4workspace = getPerforceWorkspace(project, substituteParameters(projectPath, subst), depot, buildNode, null, launcher, workspace, listener, false);
             saveWorkspaceIfDirty(depot, p4workspace, logger);
 
-            int lastChangeNumber = ((PerforceSCMRevisionState)scmrs).getRevision();
+            int lastChangeNumber = baseline.getRevision();
             SCMRevisionState repositoryState = getCurrentDepotRevisionState(p4workspace, project, depot, logger, lastChangeNumber);
 
             PollingResult.Change change;
-            if(repositoryState.equals(scmrs)){
+            if(repositoryState.equals(baseline)){
                 change = PollingResult.Change.NONE;
             } else {
                 change = PollingResult.Change.SIGNIFICANT;
             }
 
-            return new PollingResult(scmrs, repositoryState, change);
+            return new PollingResult(baseline, repositoryState, change);
             
         } catch (PerforceException e) {
             System.out.println("Problem: " + e.getMessage());
