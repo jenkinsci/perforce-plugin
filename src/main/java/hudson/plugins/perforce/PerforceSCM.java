@@ -615,6 +615,10 @@ public class PerforceSCM extends SCM {
                     Counter counter = depot.getCounters().getCounter(counterName);
                     newestChange = counter.getValue();
                 }
+                
+                if(build instanceof MatrixRun)
+                    lastChange = getOrSetMatrixChangeSet(build, depot, newestChange, projectPath);
+
                 if (lastChange == 0){
                     lastChange = newestChange - MAX_CHANGESETS_ON_FIRST_BUILD;
                     if (lastChange < 0){
@@ -745,6 +749,26 @@ public class PerforceSCM extends SCM {
             throw new IOException(
                     "Unable to get hostname from slave. " + e.getMessage());
         }
+    }
+
+    private synchronized int getOrSetMatrixChangeSet(AbstractBuild build, Depot depot, int newestChange, String projectPath) {
+        int lastChange = 0;
+        //special consideration for matrix builds
+        if (build instanceof MatrixRun) {
+            AbstractBuild parentBuild = ((MatrixRun) build).getParentBuild();
+            if (parentBuild != null) {
+                int parentChange = getLastChange(parentBuild);
+                if (parentChange > 0) {
+                    //use existing changeset from parent
+                    lastChange = parentChange;
+                } else {
+                    //no changeset on parent, set it for other
+                    //matrixruns to use
+                    parentBuild.addAction(new PerforceTagAction(build, depot, newestChange, projectPath, p4User));
+                }
+            }
+        }
+        return lastChange;
     }
 
     /**
