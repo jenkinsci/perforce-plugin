@@ -616,8 +616,9 @@ public class PerforceSCM extends SCM {
                     newestChange = counter.getValue();
                 }
                 
-                if(build instanceof MatrixRun)
-                    lastChange = getOrSetMatrixChangeSet(build, depot, newestChange, projectPath);
+                if(build instanceof MatrixRun) {
+                    newestChange = getOrSetMatrixChangeSet(build, depot, newestChange, projectPath, log);
+                }
 
                 if (lastChange == 0){
                     lastChange = newestChange - MAX_CHANGESETS_ON_FIRST_BUILD;
@@ -751,19 +752,22 @@ public class PerforceSCM extends SCM {
         }
     }
 
-    private synchronized int getOrSetMatrixChangeSet(AbstractBuild build, Depot depot, int newestChange, String projectPath) {
+    private synchronized int getOrSetMatrixChangeSet(AbstractBuild build, Depot depot, int newestChange, String projectPath, PrintStream log) {
         int lastChange = 0;
         //special consideration for matrix builds
         if (build instanceof MatrixRun) {
+            log.println("This is a matrix run, trying to use change number from parent/siblings...");
             AbstractBuild parentBuild = ((MatrixRun) build).getParentBuild();
             if (parentBuild != null) {
                 int parentChange = getLastChange(parentBuild);
                 if (parentChange > 0) {
                     //use existing changeset from parent
+                    log.println("Latest change from parent is: "+Integer.toString(lastChange));
                     lastChange = parentChange;
                 } else {
                     //no changeset on parent, set it for other
                     //matrixruns to use
+                    log.println("No change number has been set by parent/siblings. Using latest.");
                     parentBuild.addAction(new PerforceTagAction(build, depot, newestChange, projectPath, p4User));
                 }
             }
