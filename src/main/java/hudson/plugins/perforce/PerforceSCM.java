@@ -762,7 +762,7 @@ public class PerforceSCM extends SCM {
                 int parentChange = getLastChange(parentBuild);
                 if (parentChange > 0) {
                     //use existing changeset from parent
-                    log.println("Latest change from parent is: "+Integer.toString(lastChange));
+                    log.println("Latest change from parent is: "+Integer.toString(parentChange));
                     lastChange = parentChange;
                 } else {
                     //no changeset on parent, set it for other
