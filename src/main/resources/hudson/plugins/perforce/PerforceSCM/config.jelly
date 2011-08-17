@@ -48,8 +48,20 @@
         <f:checkbox field="wipeRepoBeforeBuild" default="false" value="False"/>
       </f:entry>
 
-      <f:entry title="View" help="/plugin/perforce/help/projectPath.html">
-        <f:textarea field="projectPath"/>
+      <f:entry title="View">
+        <table width="100%">
+          <f:radioBlock name="p4.view" title="ClientSpec" value="true" checked="${instance.useClientSpec}" help="/plugin/perforce/help/clientSpec.html">
+            <f:entry>
+              <f:textbox name="clientSpec" field="clientSpec"
+              checkUrl="'${rootURL}/scm/PerforceSCM/validateClientSpec?port='+escape(this.form.elements['p4Port'].value)+'&amp;exe='+escape(this.form.elements['p4Exe'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)+'&amp;client='+escape(this.form.elements['p4Client'].value)+'&amp;clientSpec='+escape(this.form.elements['clientSpec'].value)"/>
+            </f:entry>
+          </f:radioBlock>
+          <f:radioBlock name="p4.view" title="Mappings" value="false" checked="${!instance.useClientSpec}" help="/plugin/perforce/help/projectPath.html">
+            <f:entry>
+              <f:textarea name="projectPath" field="projectPath" />
+            </f:entry>
+          </f:radioBlock>
+        </table>
       </f:entry>
 
       <f:entry title="Options" help="/plugin/perforce/help/projectOptions.html">

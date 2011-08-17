@@ -20,9 +20,10 @@ public class PerforceSCMTest extends HudsonTestCase {
         FreeStyleProject project = createFreeStyleProject();
         P4Web browser = new P4Web(new URL("http://localhost/"));
         PerforceSCM scm = new PerforceSCM(
-        		"user", "pass", "client", "port", "path", "", "exe", "sysRoot",
+        		"user", "pass", "client", "port", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+        scm.setProjectPath("path");
         project.setScm(scm);
 
         // config roundtrip
@@ -41,9 +42,10 @@ public class PerforceSCMTest extends HudsonTestCase {
         P4Web browser = new P4Web(new URL("http://localhost/"));
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
-        		"user", password, "client", "port", "path", "", "exe", "sysRoot",
+        		"user", password, "client", "port", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+        scm.setProjectPath("path");
         project.setScm(scm);
 
         // config roundtrip
@@ -65,12 +67,12 @@ public class PerforceSCMTest extends HudsonTestCase {
         P4Web browser = new P4Web(new URL("http://localhost/"));
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
-        		"user", password, "client", "port", "path", "", "exe", "sysRoot",
+        		"user", password, "client", "port", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
-
+        scm.setProjectPath("path");
         project.setScm(scm);
-        
+
         assertEquals(password, ((PerforceSCM)project.getScm()).getDepot(null, null, null).getPassword());
     }
 
@@ -79,15 +81,16 @@ public class PerforceSCMTest extends HudsonTestCase {
         P4Web browser = new P4Web(new URL("http://localhost/"));
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
-        		"user", password, "client", "port", "path", "", "exe", "sysRoot",
+        		"user", password, "client", "port", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+        scm.setProjectPath("path");
         project.setScm(scm);
 
         // config roundtrip
         submit(new WebClient().getPage(project,"configure").getFormByName("config"));
         submit(new WebClient().getPage(project,"configure").getFormByName("config"));
-        
+
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
                 "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset");

@@ -228,6 +228,17 @@ public class Depot {
 	}
 
 	/**
+	 * Retrieves a file object to access a file in the depot.
+	 * <p>
+	 * E.g., depot.getFile().read() for reading a file from the depot.
+	 * 
+	 * @return Status object
+	 */
+	public File getFile(String file) {
+        return new File(this,file);
+    }
+	
+	/**
 	 * Returns the output created by "p4 info"
 	 * 
 	 * @return The string output of p4 info
