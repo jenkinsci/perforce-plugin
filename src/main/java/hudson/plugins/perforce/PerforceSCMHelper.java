@@ -175,20 +175,23 @@ public final class PerforceSCMHelper {
     }
 
     static public String mapToWorkspace(List<WhereMapping> maps, String depotPath) {
+        String result=null;
         for(WhereMapping map : maps){
-
+            if(doesPathMatchView(depotPath,map.getDepotPath())){
+                if(map.getDepotPath().startsWith("-"))
+                {
+                    result=null;
+                } else {
+                    result = doMapping(map.getDepotPath(), map.getWorkspacePath(), depotPath);
+                }
+            }
         }
-        return null;
+        return result;
     }
 
     static public boolean doesPathMatchView(String path, String view) {
-        view = view.trim();
-        path = path.trim();
-        view = view.replaceAll("\\*", "[^/]*");
-        view = view.replaceAll("^[-+]", "");
-        view = view.replaceAll("\\.\\.\\.", ".*");
-        view = view.replaceAll("%%[0-9]", "[^/]*");
-        Pattern pattern = Pattern.compile(view);
+        view = trimPlusMinus(view);
+        Pattern pattern = getTokenPattern(view);
         Matcher matcher = pattern.matcher(path);
         if(matcher.matches()){
             return true;
@@ -198,7 +201,7 @@ public final class PerforceSCMHelper {
     }
 
     static public String trimPlusMinus(String str) {
-        return str.replaceAll("^[-+]", "");
+        return str.replaceAll("^[-+]", "").trim();
     }
 
     static public Pattern getTokenPattern(String str) {
@@ -228,9 +231,7 @@ public final class PerforceSCMHelper {
         List<String> tripleDotTokens = new ArrayList<String>();
         List<String> asteriskTokens = new ArrayList<String>();
         //saving values
-        System.out.println(oldTokens.pattern().pattern());
         for(int i = 1; i<=oldTokens.groupCount(); i++){
-            System.out.println(oldTokens.group(i));
             if(oldTokens.group(i).equals("...")) {
                 tripleDotTokens.add(values.group(i));
             } else if(oldTokens.group(i).equals("*")) {

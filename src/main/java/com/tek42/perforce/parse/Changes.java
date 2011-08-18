@@ -49,6 +49,8 @@ import java.io.IOException;
  */
 public class Changes extends AbstractPerforceTemplate {
 
+        private transient List<PerforceSCMHelper.WhereMapping> whereMaps = null;
+    
 	public Changes(Depot depot) {
 		super(depot);
 	}
@@ -61,6 +63,7 @@ public class Changes extends AbstractPerforceTemplate {
 	 * @throws PerforceException
 	 */
 	public Changelist getChangelist(int number) throws PerforceException {
+
 		ChangelistBuilder builder = new ChangelistBuilder();
 		Changelist change = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), Integer.toString(number))));
 		if(change == null)
@@ -74,25 +77,25 @@ public class Changes extends AbstractPerforceTemplate {
          * @param change
          */
         private void calculateWorkspacePaths(Changelist change) throws PerforceException{
+            if(whereMaps == null){
+                byte[] bytes = getRawPerforceResponseBytes(new String[]{getP4Exe(),"-G","where","//..."});
+                whereMaps = PerforceSCMHelper.parseWhereMapping(bytes);
+                if(whereMaps == null) {
+                    whereMaps = new ArrayList<PerforceSCMHelper.WhereMapping>();
+                }
+            }
             for(Changelist.FileEntry file :change.getFiles()){
                 String workspacePath;
-                try {
-                    workspacePath = getWorkspacePathForFile(file.getFilename());
-                } catch (PerforceException e) {
-                    //Try again
-                    workspacePath = getWorkspacePathForFile(file.getFilename());
-                }
+                workspacePath = getWorkspacePathForFile(file.getFilename());
                 file.setWorkspacePath(workspacePath);
             }
         }
 
         private String getWorkspacePathForFile(String file) throws PerforceException {
-            byte[] bytes = getRawPerforceResponseBytes(new String[]{getP4Exe(),"-G","where",file});
-            List<PerforceSCMHelper.WhereMapping> maps = PerforceSCMHelper.parseWhereMapping(bytes);
-            String workspacePath = maps.get(0).getWorkspacePath();
+            String workspacePath = PerforceSCMHelper.mapToWorkspace(whereMaps, file);
             if(workspacePath!=null){
                 //trim the head off of it, so it's a workspace-relative path.
-                return maps.get(0).getWorkspacePath().replaceAll("^//\\S+?/", "");
+                return workspacePath.replaceAll("^//\\S+?/", "");
             } else {
                 //We didn't get a workspace path, likely because it's not in the workspace
                 return "";
