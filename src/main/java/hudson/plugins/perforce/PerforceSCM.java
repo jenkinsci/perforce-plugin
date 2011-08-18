@@ -616,7 +616,7 @@ public class PerforceSCM extends SCM {
                     newestChange = getOrSetMatrixChangeSet(build, depot, newestChange, projectPath, log);
                 }
 
-                if (lastChange == 0){
+                if (lastChange <= 0){
                     lastChange = newestChange - MAX_CHANGESETS_ON_FIRST_BUILD;
                     if (lastChange < 0){
                         lastChange = 0;
