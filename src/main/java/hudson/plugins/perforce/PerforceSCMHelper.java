@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
@@ -123,7 +124,7 @@ public final class PerforceSCMHelper {
                 map.put(key, value);
             }
         } else {
-            throw new IOException ("Not a dictionary.");
+            return null;
         }
         return map;
     }
@@ -136,35 +137,37 @@ public final class PerforceSCMHelper {
         return result;
     }
 
-    static public WhereMapping parseWhereMapping(byte[] whereOutput) throws PerforceException {
+    static public List<WhereMapping> parseWhereMapping(byte[] whereOutput) throws PerforceException {
         String depot;
         String workspace;
         String filesystem;
         ByteArrayInputStream stream = new ByteArrayInputStream(whereOutput);
+        ArrayList<WhereMapping> maps = new ArrayList<WhereMapping>();
         Map<String,String> map;
         try{
-            map = readPythonDictionary(stream);
+            while((map = readPythonDictionary(stream)) != null) {
+                if(map.get("code").equals("error")){
+                //error handling
+                LOGGER.log(Level.FINE, "P4 Where Parsing Error: "+map.get("data"));
+                if(map.get("data")!=null){
+                        if(map.get("data").contains("not in client view")){
+                            //this is non-fatal, but not sure what to do with it
+                        } else {
+                            throw new PerforceException("P4 Where Parsing Error: "+map.get("data"));
+                        }
+                    }
+                }
+                depot = map.get("depotFile");
+                workspace = map.get("clientFile");
+                filesystem = map.get("path");
+                maps.add(new WhereMapping(depot,workspace,filesystem));
+            }
         } catch (IOException e) {
             throw new PerforceException("Could not parse Where map.", e);
         }
-        if(map == null){
+        if(maps.isEmpty()){
             throw new PerforceException("Could not parse Where map.");
         }
-        if(map.get("code").equals("error")){
-            //error handling
-            LOGGER.log(Level.FINE, "P4 Where Parsing Error: "+map.get("data"));
-            if(map.get("data")!=null){
-                if(map.get("data").contains("not in client view")){
-                    //this is non-fatal, but not sure what to do with it
-                } else {
-                    throw new PerforceException("P4 Where Parsing Error: "+map.get("data"));
-                }
-            }
-        }
-        depot = map.get("depotFile");
-        workspace = map.get("clientFile");
-        filesystem = map.get("path");
-        return new WhereMapping(depot,workspace,filesystem);
+        return maps;
     }
-
 }

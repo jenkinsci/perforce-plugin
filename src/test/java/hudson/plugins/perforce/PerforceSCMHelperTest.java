@@ -78,11 +78,20 @@ public class PerforceSCMHelperTest extends TestCase {
                 (byte)0x6b, (byte)0x2f, (byte)0x49, (byte)0x6e, (byte)0x73, (byte)0x74, (byte)0x61, (byte)0x6c, (byte)0x6c, (byte)0x65, (byte)0x72, (byte)0x73, (byte)0x2f, (byte)0x62, (byte)0x75, (byte)0x69,
                 (byte)0x6c, (byte)0x64, (byte)0x2e, (byte)0x78, (byte)0x6d, (byte)0x6c, (byte)0x30
             };
-            PerforceSCMHelper.WhereMapping map;
-            map = PerforceSCMHelper.parseWhereMapping(testOutput);
-            assertEquals("//Install/trunk/Installers/build.properties", map.getDepotPath());
-            assertEquals("//rpetti/Install/trunk/Installers/build.properties", map.getWorkspacePath());
-            assertEquals("/home/rpetti/workspace/Install/trunk/Installers/build.properties", map.getFilesystemPath());
+            byte[] bigTestOutput = new byte[testOutput.length * 3];
+            System.arraycopy(testOutput, 0, bigTestOutput, 0, testOutput.length);
+            System.arraycopy(testOutput, 0, bigTestOutput, testOutput.length, testOutput.length);
+            System.arraycopy(testOutput, 0, bigTestOutput, testOutput.length*2, testOutput.length);
+            List<PerforceSCMHelper.WhereMapping> maps;
+            maps = PerforceSCMHelper.parseWhereMapping(bigTestOutput);
+            for(int i = 0; i<3; i++){
+                assertEquals("//Install/trunk/Installers/build.properties", maps.get(i*2).getDepotPath());
+                assertEquals("//rpetti/Install/trunk/Installers/build.properties", maps.get(i*2).getWorkspacePath());
+                assertEquals("/home/rpetti/workspace/Install/trunk/Installers/build.properties", maps.get(i*2).getFilesystemPath());
+                assertEquals("//Install/trunk/Installers/build.xml", maps.get(i*2+1).getDepotPath());
+                assertEquals("//rpetti/Install/trunk/Installers/build.xml", maps.get(i*2+1).getWorkspacePath());
+                assertEquals("/home/rpetti/workspace/Install/trunk/Installers/build.xml", maps.get(i*2+1).getFilesystemPath());
+            }
         }
 
         public void testReadIntNegativeByte() throws java.io.IOException {
@@ -90,76 +99,6 @@ public class PerforceSCMHelperTest extends TestCase {
             ByteArrayInputStream bais = new ByteArrayInputStream(test);
             int result = PerforceSCMHelper.readInt(bais);
             assertEquals(150,result);
-        }
-
-        public void disabledtestWhereData() throws java.io.FileNotFoundException, java.io.IOException, PerforceException{
-            File whereFile = new File("/home/rpetti/Downloads/whereData.dat");
-            InputStream input = new FileInputStream(whereFile);
-            int read=0;
-            byte data[] = new byte[1024];
-            ArrayList<Byte> bytes = new ArrayList<Byte>(1024);
-            while((read = input.read(data, 0, 1024))!=-1){
-                for(int i=0; i<read; i++){
-                    bytes.add(new Byte((byte)(data[i]&0xff)));
-                }
-            }
-            input.close();
-            byte[] byteArray = new byte[bytes.size()];
-            for(int i=0; i<bytes.size(); i++){
-                byteArray[i] = bytes.get(i).byteValue();
-            }
-            PerforceSCMHelper.WhereMapping map;
-            map = PerforceSCMHelper.parseWhereMapping(byteArray);
-            System.out.println(map.getDepotPath() + " " + map.getFilesystemPath() + " " + map.getWorkspacePath());
-        }
-
-        public void disabledtestMappingExtensively() throws IOException, PerforceException {
-            ArrayList<String> opts = new ArrayList<String>();
-            opts.add("-c");
-            opts.add("rpetti");
-            opts.add("-p");
-            opts.add("ratchet:1668");
-            ArrayList<String> command = new ArrayList<String>();
-            command.add("p4");
-            command.addAll(opts);
-            command.add("files");
-            command.add("//DSConsole/...");
-            Process p = Runtime.getRuntime().exec(command.toArray(new String[0]));
-            p.getOutputStream().close();
-            p.getErrorStream().close();
-            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String line=null;
-            while((line = br.readLine()) != null){
-                int hashLoc = line.indexOf("#");
-                String filename = line.substring(0, hashLoc);
-                System.out.println("Testing where on " + filename);
-                ArrayList<String> whereCommand = new ArrayList<String>();
-                whereCommand.add("p4");
-                whereCommand.addAll(opts);
-                whereCommand.add("-G");
-                whereCommand.add("where");
-                whereCommand.add(filename);
-                Process whereProc = Runtime.getRuntime().exec(whereCommand.toArray(new String[0]));
-                whereProc.getErrorStream().close();
-                whereProc.getOutputStream().close();
-                int read=0;
-                byte data[] = new byte[1024];
-                ArrayList<Byte> bytes = new ArrayList<Byte>(1024);
-                while((read = whereProc.getInputStream().read(data, 0, 1024))!=-1){
-                    for(int i=0; i<read; i++){
-                        bytes.add(new Byte((byte)(data[i]&0xff)));
-                    }
-                }
-                whereProc.getInputStream().close();
-                byte[] byteArray = new byte[bytes.size()];
-                for(int i=0; i<bytes.size(); i++){
-                    byteArray[i] = bytes.get(i).byteValue();
-                }
-                PerforceSCMHelper.WhereMapping map;
-                map = PerforceSCMHelper.parseWhereMapping(byteArray);
-                System.out.println(map.getDepotPath() + " " + map.getFilesystemPath() + " " + map.getWorkspacePath());
-            }
-            br.close();
         }
 
 }

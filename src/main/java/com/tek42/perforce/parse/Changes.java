@@ -88,11 +88,11 @@ public class Changes extends AbstractPerforceTemplate {
 
         private String getWorkspacePathForFile(String file) throws PerforceException {
             byte[] bytes = getRawPerforceResponseBytes(new String[]{getP4Exe(),"-G","where",file});
-            PerforceSCMHelper.WhereMapping map = PerforceSCMHelper.parseWhereMapping(bytes);
-            String workspacePath = map.getWorkspacePath();
+            List<PerforceSCMHelper.WhereMapping> maps = PerforceSCMHelper.parseWhereMapping(bytes);
+            String workspacePath = maps.get(0).getWorkspacePath();
             if(workspacePath!=null){
                 //trim the head off of it, so it's a workspace-relative path.
-                return map.getWorkspacePath().replaceAll("^//\\S+?/", "");
+                return maps.get(0).getWorkspacePath().replaceAll("^//\\S+?/", "");
             } else {
                 //We didn't get a workspace path, likely because it's not in the workspace
                 return "";
