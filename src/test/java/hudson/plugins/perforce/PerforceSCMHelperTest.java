@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 
 public class PerforceSCMHelperTest extends TestCase {
 
@@ -84,9 +85,10 @@ public class PerforceSCMHelperTest extends TestCase {
             assertEquals("/home/rpetti/workspace/Install/trunk/Installers/build.properties", map.getFilesystemPath());
         }
 
-        public void testReadIntNegativeByte() {
+        public void testReadIntNegativeByte() throws java.io.IOException {
             byte test[] = {(byte)-106,(byte)0,(byte)0,(byte)0};
-            int result = PerforceSCMHelper.readInt(test, 0);
+            ByteArrayInputStream bais = new ByteArrayInputStream(test);
+            int result = PerforceSCMHelper.readInt(bais);
             assertEquals(150,result);
         }
 

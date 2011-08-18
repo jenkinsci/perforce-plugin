@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 
 
 /**
@@ -84,54 +86,53 @@ public final class PerforceSCMHelper {
         
     }
 
-    static public int readInt(byte[] bytes, int offset){
+    static public int readInt(InputStream stream) throws IOException {
         int result=0;
-        for (int i=offset; i<offset+4; i++) {
-            result += (int) (bytes[i]&0xff) << (8*(i-offset));
+        for (int i=0; i<4; i++) {
+            result += (int) (stream.read()&0xff) << (8*(i));
         }
         return result;
     }
 
-    static private Map<String,String> readPythonDictionary(byte[] dict){
+    static private Map<String,String> readPythonDictionary(InputStream stream) throws IOException {
         int counter = 0;
         Map<String,String> map = new HashMap<String,String>();
-        if(dict[0] == '{' && dict[1] == 's'){
+        if(stream.read() == '{'){
             //good to go
-            counter = 1;
-            while(counter < dict.length && dict[counter] != 0x30){
+            int b = stream.read();
+            while(b != -1 && b != 0x30){
                 //read in pairs
                 String key,value;
-                if(dict[counter] == 's'){
-                    counter++;
-                    key = readPythonString(dict,counter);
-                    counter += key.length() + 4;
+                if(b == 's'){
+                    key = readPythonString(stream);
+                    b = stream.read();
                 } else {
                     //keys 'should' always be strings
-                    return null;
+                    throw new IOException ("Expected 's', but got '" + Integer.toString(b) + "'.");
                 }
-                if(dict[counter] == 's'){
-                    counter++;
-                    value = readPythonString(dict,counter);
-                    counter += value.length() + 4;
-                } else if(dict[counter] == 'i'){
-                    counter++;
-                    value = Integer.toString(readInt(dict, counter));
-                    counter +=  4;
+                if(b == 's'){
+                    value = readPythonString(stream);
+                    b = stream.read();
+                } else if(b == 'i'){
+                    value = Integer.toString(readInt(stream));
+                    b = stream.read();
                 } else {
                     // Don't know how to handle anything but ints and strings, so bail out
-                    return null;
+                    throw new IOException ("Expected 's' or 'i', but got '" + Integer.toString(b) + "'.");
                 }
                 map.put(key, value);
             }
         } else {
-            return null;
+            throw new IOException ("Not a dictionary.");
         }
         return map;
     }
 
-    static private String readPythonString(byte[] bytes, int offset){
-        int length = (int)readInt(bytes, offset);
-        String result = new String(bytes, offset+4, length);
+    static private String readPythonString(InputStream stream) throws IOException {
+        int length = (int)readInt(stream);
+        byte[] buf = new byte[length];
+        stream.read(buf, 0, length);
+        String result = new String(buf);
         return result;
     }
 
@@ -139,7 +140,13 @@ public final class PerforceSCMHelper {
         String depot;
         String workspace;
         String filesystem;
-        Map<String,String> map = readPythonDictionary(whereOutput);
+        ByteArrayInputStream stream = new ByteArrayInputStream(whereOutput);
+        Map<String,String> map;
+        try{
+            map = readPythonDictionary(stream);
+        } catch (IOException e) {
+            throw new PerforceException("Could not parse Where map.", e);
+        }
         if(map == null){
             throw new PerforceException("Could not parse Where map.");
         }
