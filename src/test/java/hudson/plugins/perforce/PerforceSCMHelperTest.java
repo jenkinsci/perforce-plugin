@@ -101,4 +101,32 @@ public class PerforceSCMHelperTest extends TestCase {
             assertEquals(150,result);
         }
 
+        public void testMappingImplementation() {
+            assertEquals("/home/jenkins/workspace/trunk/type/xml/test.xml",
+                    PerforceSCMHelper.doMapping(
+                    "//Install/.../*.%%1",
+                    "/home/jenkins/workspace/.../type/%%1/*.%%1",
+                    "//Install/trunk/test.xml"));
+            assertEquals("//workspace/Install/trunk/test.xml",
+                    PerforceSCMHelper.doMapping(
+                    "//Install/...",
+                    "//workspace/Install/...",
+                    "//Install/trunk/test.xml"));
+            assertEquals("/home/jenkins/workspace/trunk/test.xml",
+                    PerforceSCMHelper.doMapping(
+                    "//Install/...",
+                    "/home/jenkins/workspace/...",
+                    "//Install/trunk/test.xml"));
+            assertEquals("/home/jenkins/workspace/test/trunk.xml",
+                    PerforceSCMHelper.doMapping(
+                    "//Install/%%1/%%2.xml",
+                    "/home/jenkins/workspace/%%2/%%1.xml",
+                    "//Install/trunk/test.xml"));
+            assertEquals("/home/jenkins/workspace/trunk/test.xml",
+                    PerforceSCMHelper.doMapping(
+                    "//Install/.../*.xml",
+                    "/home/jenkins/workspace/.../*.xml",
+                    "//Install/trunk/test.xml"));
+        }
+
 }

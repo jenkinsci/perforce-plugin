@@ -12,7 +12,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-
+import java.util.regex.*;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Iterator;
 
 /**
  * @author Brian Westrich
@@ -170,4 +173,96 @@ public final class PerforceSCMHelper {
         }
         return maps;
     }
+
+    static public String mapToWorkspace(List<WhereMapping> maps, String depotPath) {
+        for(WhereMapping map : maps){
+
+        }
+        return null;
+    }
+
+    static public boolean doesPathMatchView(String path, String view) {
+        view = view.trim();
+        path = path.trim();
+        view = view.replaceAll("\\*", "[^/]*");
+        view = view.replaceAll("^[-+]", "");
+        view = view.replaceAll("\\.\\.\\.", ".*");
+        view = view.replaceAll("%%[0-9]", "[^/]*");
+        Pattern pattern = Pattern.compile(view);
+        Matcher matcher = pattern.matcher(path);
+        if(matcher.matches()){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    static public String trimPlusMinus(String str) {
+        return str.replaceAll("^[-+]", "");
+    }
+
+    static public Pattern getTokenPattern(String str) {
+        String regex;
+        regex = str.replaceAll("\\*", "([^/]*)");
+        regex = regex.replaceAll("([^\\.])\\.([^\\.])", "$1\\\\.$2");
+        regex = regex.replaceAll("\\.\\.\\.", "(.*)");
+        regex = regex.replaceAll("%%[0-9]", "([^/]*)");
+        Pattern pattern = Pattern.compile(regex);
+        return pattern;
+    }
+
+    static public String doMapping(String lhs, String rhs, String orig) {
+        lhs = trimPlusMinus(lhs);
+        rhs = trimPlusMinus(rhs);
+
+        Pattern pattern = getTokenPattern(lhs);
+        //getting the tokens
+        Matcher oldTokens = pattern.matcher(lhs);
+        oldTokens.matches();
+        Matcher values = pattern.matcher(orig);
+        values.matches();
+        if(oldTokens.groupCount() != values.groupCount()) {
+            return null;
+        }
+        Map<Integer,String> numberedTokenMap = new HashMap<Integer,String>();
+        List<String> tripleDotTokens = new ArrayList<String>();
+        List<String> asteriskTokens = new ArrayList<String>();
+        //saving values
+        System.out.println(oldTokens.pattern().pattern());
+        for(int i = 1; i<=oldTokens.groupCount(); i++){
+            System.out.println(oldTokens.group(i));
+            if(oldTokens.group(i).equals("...")) {
+                tripleDotTokens.add(values.group(i));
+            } else if(oldTokens.group(i).equals("*")) {
+                asteriskTokens.add(values.group(i));
+            } else if(oldTokens.group(i).startsWith("%%")) {
+                numberedTokenMap.put(Integer.valueOf(oldTokens.group(i).substring(2)), values.group(i));
+            }
+        }
+
+        Iterator<String> tripleDotIterator = tripleDotTokens.iterator();
+        Iterator<String> asteriskIterator = asteriskTokens.iterator();
+        Map<Integer,String> newGroupMap = new HashMap<Integer,String>();
+        String mappedPath = rhs;
+        while(true){
+            Matcher match = Pattern.compile("\\.\\.\\.").matcher(mappedPath);
+            if(match.find()){
+                mappedPath = match.replaceFirst(tripleDotIterator.next());
+                continue;
+            }
+            match = Pattern.compile("\\*").matcher(mappedPath);
+            if(match.find()){
+                mappedPath = match.replaceFirst(asteriskIterator.next());
+                continue;
+            }
+            match = Pattern.compile("%%([0-9])").matcher(mappedPath);
+            if(match.find()){
+                mappedPath = match.replaceFirst( numberedTokenMap.get(Integer.valueOf(match.group(1))) );
+                continue;
+            }
+            break;
+        }
+        return mappedPath;
+    }
+
 }
