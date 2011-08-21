@@ -150,9 +150,9 @@ public final class PerforceSCMHelper {
         try{
             while((map = readPythonDictionary(stream)) != null) {
                 if(map.get("code").equals("error")){
-                //error handling
-                LOGGER.log(Level.FINE, "P4 Where Parsing Error: "+map.get("data"));
-                if(map.get("data")!=null){
+                    //error handling
+                    LOGGER.log(Level.FINE, "P4 Where Parsing Error: "+map.get("data"));
+                    if(map.get("data")!=null){
                         if(map.get("data").contains("not in client view")){
                             //this is non-fatal, but not sure what to do with it
                         } else {
@@ -160,9 +160,16 @@ public final class PerforceSCMHelper {
                         }
                     }
                 }
+                if(map.get("depotFile") == null || map.get("clientFile") == null || map.get("path") == null){
+                    //not a valid mapping for some reason...
+                    //possibly because some versions of perforce return the wrong values
+                    LOGGER.log(Level.WARNING, "P4 Where returned unexpected output! Check to make sure your perforce client and server versions are up to date!");
+                    continue;
+                }
                 depot = map.get("depotFile");
                 workspace = map.get("clientFile");
                 filesystem = map.get("path");
+
                 maps.add(new WhereMapping(depot,workspace,filesystem));
             }
         } catch (IOException e) {
