@@ -175,9 +175,6 @@ public final class PerforceSCMHelper {
         } catch (IOException e) {
             throw new PerforceException("Could not parse Where map.", e);
         }
-        if(maps.isEmpty()){
-            throw new PerforceException("Could not parse Where map.");
-        }
         return maps;
     }
 
