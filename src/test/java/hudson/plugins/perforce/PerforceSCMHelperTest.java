@@ -127,6 +127,16 @@ public class PerforceSCMHelperTest extends TestCase {
                     "//Install/.../*.xml",
                     "/home/jenkins/workspace/.../*.xml",
                     "//Install/trunk/test.xml"));
+            assertEquals("/home/jenkins/workspace/trunk/SomeClass$Sub.class",
+                    PerforceSCMHelper.doMapping(
+                    "//Install/.../*.class",
+                    "/home/jenkins/workspace/.../*.class",
+                    "//Install/trunk/SomeClass$Sub.class"));
+            assertEquals("/home/jenkins/workspace/trunk/SomeClass$Sub.class",
+                    PerforceSCMHelper.doMapping(
+                    "//Install/.../*$Sub.class",
+                    "/home/jenkins/workspace/.../*$Sub.class",
+                    "//Install/trunk/SomeClass$Sub.class"));
         }
 
 }

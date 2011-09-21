@@ -214,6 +214,7 @@ public final class PerforceSCMHelper {
         regex = regex.replaceAll("([^\\.])\\.([^\\.])", "$1\\\\.$2");
         regex = regex.replaceAll("\\.\\.\\.", "(.*)");
         regex = regex.replaceAll("%%[0-9]", "([^/]*)");
+        regex = regex.replaceAll("\\$", Matcher.quoteReplacement("\\$"));
         Pattern pattern = Pattern.compile(regex);
         return pattern;
     }
@@ -252,17 +253,17 @@ public final class PerforceSCMHelper {
         while(true){
             Matcher match = Pattern.compile("\\.\\.\\.").matcher(mappedPath);
             if(match.find()){
-                mappedPath = match.replaceFirst(tripleDotIterator.next());
+                mappedPath = match.replaceFirst( Matcher.quoteReplacement(tripleDotIterator.next()) );
                 continue;
             }
             match = Pattern.compile("\\*").matcher(mappedPath);
             if(match.find()){
-                mappedPath = match.replaceFirst(asteriskIterator.next());
+                mappedPath = match.replaceFirst( Matcher.quoteReplacement(asteriskIterator.next()) );
                 continue;
             }
             match = Pattern.compile("%%([0-9])").matcher(mappedPath);
             if(match.find()){
-                mappedPath = match.replaceFirst( numberedTokenMap.get(Integer.valueOf(match.group(1))) );
+                mappedPath = match.replaceFirst( Matcher.quoteReplacement(numberedTokenMap.get(Integer.valueOf(match.group(1)))) );
                 continue;
             }
             break;
