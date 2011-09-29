@@ -411,7 +411,7 @@ public class PerforceSCM extends SCM {
         }
 
         env.put("P4CLIENT", getEffectiveClientName(build));
-        PerforceTagAction pta = getMostRecentTagAction(build);
+        PerforceTagAction pta = build.getAction(PerforceTagAction.class);
         if (pta != null) {
             if (pta.getChangeNumber() > 0) {
                 int lastChange = pta.getChangeNumber();
@@ -1128,7 +1128,7 @@ public class PerforceSCM extends SCM {
         // if build had no actions, keep going back until we find one that does.
         return getMostRecentTagAction(build.getPreviousBuild());
     }
-
+    
     private Workspace getPerforceWorkspace(AbstractProject project, String projectPath,
             Depot depot, Node buildNode, AbstractBuild build,
             Launcher launcher, FilePath workspace, TaskListener listener, boolean dontChangeRoot)
