@@ -1222,7 +1222,13 @@ public class PerforceSCM extends SCM {
         // we could copy from a master clientspec to the slaves.
 
         if (updateView || creatingNewWorkspace) {
-			if (useClientSpec) {
+            if (useClientSpec) {
+                String clientSpec;
+                if(build!=null){
+                    clientSpec = substituteParameters(this.clientSpec, build);
+                } else {
+                    clientSpec = substituteParameters(this.clientSpec, getDefaultSubstitutions(project));
+                }
                 log.println("Read ClientSpec from: " + clientSpec);
                 com.tek42.perforce.parse.File f = depot.getFile(clientSpec);
                 projectPath = f.read();
