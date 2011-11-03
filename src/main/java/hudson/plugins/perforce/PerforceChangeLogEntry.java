@@ -80,10 +80,20 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
         return new Integer(getChange().getChangeNumber()).toString();
     }
 
+    //used for email-ext
+    public String getRevision() {
+        return getChangeNumber();
+    }
+
     @Exported
     public String getChangeTime() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return sdf.format(getChange().getDate());
+    }
+
+    //used for email-ext
+    public String getDate() {
+        return getChangeTime();
     }
 
     /**
