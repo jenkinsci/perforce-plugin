@@ -599,8 +599,8 @@ public class PerforceSCM extends SCM {
             if(!disableAutoSync)
             {
                 List<Changelist> changes;
-                if (p4Label != null) {
-                    newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, p4Label, p4WorkspacePath);
+                if (p4Label != null && !p4Label.trim().isEmpty()) {
+                    newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, p4Label.trim(), p4WorkspacePath);
                 } else {
                     String counterName;
                     if (p4Counter != null && !updateCounterValue)
@@ -653,7 +653,7 @@ public class PerforceSCM extends SCM {
                     StringBuilder sbSyncPathSuffix = new StringBuilder();
                     sbSyncPathSuffix.append("@");
 
-                    if (p4Label != null) {
+                    if (p4Label != null && !p4Label.trim().isEmpty()) {
                         sbMessage.append("label ");
                         sbMessage.append(p4Label);
                         sbSyncPathSuffix.append(p4Label);
@@ -949,10 +949,11 @@ public class PerforceSCM extends SCM {
             // by this workspace).
 
             Integer newestChange;
-            if (p4Label != null) {
+            String p4Label = substituteParameters(this.p4Label, getDefaultSubstitutions(project));
+            if (p4Label != null && !p4Label.trim().isEmpty()) {
                 //In case where we are using a rolling label.
                 String root = "//" + p4workspace.getName() + "/...";
-                newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, substituteParameters(p4Label, getDefaultSubstitutions(project)), root);
+                newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, p4Label.trim(), root);
             } else {
                 Counter counter = depot.getCounters().getCounter("change");
                 newestChange = counter.getValue();
