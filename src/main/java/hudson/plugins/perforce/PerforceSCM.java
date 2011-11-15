@@ -449,6 +449,25 @@ public class PerforceSCM extends SCM {
         return subst;
     }
 
+    private String getEffectiveProjectPathFromFile(AbstractBuild build, AbstractProject project, PrintStream log, Depot depot) throws PerforceException {
+        String projectPath;
+        String clientSpec;
+        if(build!=null){
+            clientSpec = substituteParameters(this.clientSpec, build);
+        } else {
+            clientSpec = substituteParameters(this.clientSpec, getDefaultSubstitutions(project));
+        }
+        log.println("Read ClientSpec from: " + clientSpec);
+        com.tek42.perforce.parse.File f = depot.getFile(clientSpec);
+        projectPath = f.read();
+        if(build!=null){
+            projectPath = substituteParameters(projectPath, build);
+        } else {
+            projectPath = substituteParameters(projectPath, getDefaultSubstitutions(project));
+        }
+        return projectPath;
+    }
+
     private int getLastBuildChangeset(AbstractProject project) {
         Run lastBuild = project.getLastBuild();
         return getLastChange(lastBuild);
@@ -564,12 +583,13 @@ public class PerforceSCM extends SCM {
 	        	}
         }
 
-        //keep projectPath local so any modifications for slaves don't get saved
-        String projectPath = substituteParameters(this.projectPath, build);
+        
+        
         String p4Label = substituteParameters(this.p4Label, build);
         String viewMask = substituteParameters(this.viewMask, build);
         Depot depot = getDepot(launcher,workspace, build.getProject());
-
+        
+        
         //If we're doing a matrix build, we should always force sync.
         if((Object)build instanceof MatrixBuild || (Object)build instanceof MatrixRun){
             if(!alwaysForceSync && !wipeBeforeBuild)
@@ -579,6 +599,14 @@ public class PerforceSCM extends SCM {
         }
 
         try {
+            //keep projectPath local so any modifications for slaves don't get saved
+            String projectPath;
+            if(useClientSpec){
+                projectPath = getEffectiveProjectPathFromFile(build, build.getProject(), log, depot);
+            } else {
+                projectPath = substituteParameters(this.projectPath, build);
+            }
+        
             Workspace p4workspace = getPerforceWorkspace(build.getProject(), projectPath, depot, build.getBuiltOn(), build, launcher, workspace, listener, false);
 
             saveWorkspaceIfDirty(depot, p4workspace, log);
@@ -1224,15 +1252,7 @@ public class PerforceSCM extends SCM {
 
         if (updateView || creatingNewWorkspace) {
             if (useClientSpec) {
-                String clientSpec;
-                if(build!=null){
-                    clientSpec = substituteParameters(this.clientSpec, build);
-                } else {
-                    clientSpec = substituteParameters(this.clientSpec, getDefaultSubstitutions(project));
-                }
-                log.println("Read ClientSpec from: " + clientSpec);
-                com.tek42.perforce.parse.File f = depot.getFile(clientSpec);
-                projectPath = f.read();
+                projectPath = getEffectiveProjectPathFromFile(build, project, log, depot);
             }
             List<String> mappingPairs = parseProjectPath(projectPath, p4Client);
             if (!equalsProjectPath(mappingPairs, p4workspace.getViews())) {
