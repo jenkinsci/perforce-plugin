@@ -575,7 +575,7 @@ public class PerforceSCM extends SCM {
 	                    dir.deleteRecursive();
 	                }
 	                log.println("Cleared workspace.");
-	                log.println("Note: .repository direcotry in workspace (if exists) is skipped ...");
+	                log.println("Note: .repository directory in workspace (if exists) is skipped ...");
 	            } else {
 	                log.println("Could not clear workspace. See hudson.perforce.PerforceSCM logger for details.");
 	            }
