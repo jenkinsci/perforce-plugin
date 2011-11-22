@@ -358,21 +358,25 @@ public class PerforceSCM extends SCM {
      * Always create a new Depot to reflect any changes to the machines that
      * P4 actions will be performed on.
      */
-    protected Depot getDepot(Launcher launcher, FilePath workspace, AbstractProject project) {
+    protected Depot getDepot(Launcher launcher, FilePath workspace, AbstractProject project, AbstractBuild build) {
 
         HudsonP4ExecutorFactory p4Factory = new HudsonP4ExecutorFactory(launcher,workspace);
 
         Depot depot = new Depot(p4Factory);
         depot.setUser(p4User);
 
-        PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
-        depot.setPassword(encryptor.decryptString(p4Passwd));
-
         depot.setPort(p4Port);
-        if(project != null){
+        if(build != null){
+            depot.setClient(substituteParameters(p4Client, build));
+            depot.setPassword(getDecryptedP4Passwd(build));
+        }
+        else if(project != null)
+        {
             depot.setClient(substituteParameters(p4Client, getDefaultSubstitutions(project)));
+            depot.setPassword(getDecryptedP4Passwd(project));
         } else {
             depot.setClient(p4Client);
+            depot.setPassword(getDecryptedP4Passwd());
         }
 
         depot.setExecutable(p4Exe);
@@ -587,7 +591,7 @@ public class PerforceSCM extends SCM {
         
         String p4Label = substituteParameters(this.p4Label, build);
         String viewMask = substituteParameters(this.viewMask, build);
-        Depot depot = getDepot(launcher,workspace, build.getProject());
+        Depot depot = getDepot(launcher,workspace, build.getProject(), build);
         
         
         //If we're doing a matrix build, we should always force sync.
@@ -882,10 +886,10 @@ public class PerforceSCM extends SCM {
         try {
             Node buildNode = getPollingNode(project);
             if (buildNode == null){
-                depot = getDepot(launcher,workspace,project);
+                depot = getDepot(launcher,workspace,project,null);
                 logger.println("Using master");
             } else {
-                depot = getDepot(buildNode.createLauncher(listener),buildNode.getRootPath(),project);
+                depot = getDepot(buildNode.createLauncher(listener),buildNode.getRootPath(),project,null);
                 logger.println("Using node: " + buildNode.getDisplayName());
             }
 
@@ -1864,6 +1868,19 @@ public class PerforceSCM extends SCM {
         return p4Passwd;
     }
 
+    public String getDecryptedP4Passwd() {
+        PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+        return encryptor.decryptString(p4Passwd);
+    }
+
+    public String getDecryptedP4Passwd(AbstractBuild build) {
+        return substituteParameters(getDecryptedP4Passwd(), build);
+    }
+
+    public String getDecryptedP4Passwd(AbstractProject project) {
+        return substituteParameters(getDecryptedP4Passwd(), getDefaultSubstitutions(project));
+    }
+
     /**
      * @param passwd the p4Passwd to set
      */
@@ -2299,7 +2316,7 @@ public class PerforceSCM extends SCM {
         PrintStream log = loglistener.getLogger();
         TaskListener listener = new StreamTaskListener(log);
         Launcher launcher = node.createLauncher(listener);
-        Depot depot = getDepot(launcher, workspace, project);
+        Depot depot = getDepot(launcher, workspace, project, null);
         try {
             Workspace p4workspace = getPerforceWorkspace(
                 project,

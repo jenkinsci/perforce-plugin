@@ -156,6 +156,11 @@ public class PerforceTagAction extends AbstractScmTagAction {
         label.setRevision(new Integer(changeNumber).toString());
         if(owner!=null && !owner.equals("")) label.setOwner(owner);
 
+        if(this.getBuild().getProject().getScm() instanceof PerforceSCM){
+            PerforceSCM scm = (PerforceSCM)this.getBuild().getProject().getScm();
+            depot.setPassword(scm.getDecryptedP4Passwd(this.getBuild().getProject()));
+        }
+
         //Only take the depot paths and add them to the view.
         List<String> viewPairs = PerforceSCM.parseProjectPath(view, "workspace");
         for (int i=0; i < viewPairs.size(); i+=2){

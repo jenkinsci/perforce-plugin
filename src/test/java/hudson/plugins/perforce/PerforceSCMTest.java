@@ -73,7 +73,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         scm.setProjectPath("path");
         project.setScm(scm);
 
-        assertEquals(password, ((PerforceSCM)project.getScm()).getDepot(null, null, null).getPassword());
+        assertEquals(password, ((PerforceSCM)project.getScm()).getDepot(null, null, null, null).getPassword());
     }
 
     public void testConfigSaveReloadAndSaveDoesNotDoubleEncryptThePassword() throws Exception {
