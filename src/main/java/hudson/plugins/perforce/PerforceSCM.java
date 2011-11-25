@@ -1328,10 +1328,10 @@ public class PerforceSCM extends SCM {
             substitutions.put("hash", hash);
             substitutions.put("basename", basename);
 
-            p4Client = substituteParameters(getSlaveClientNameFormat(), substitutions);
-            //eliminate spaces, just in case
-            p4Client = p4Client.replaceAll(" ", "_");
+            p4Client = substituteParameters(getSlaveClientNameFormat(), substitutions);    
         }
+        //eliminate spaces, just in case
+        p4Client = p4Client.replaceAll(" ", "_");
         return p4Client;
     }
 
