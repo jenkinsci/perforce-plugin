@@ -874,7 +874,7 @@ public class PerforceSCM extends SCM {
             baseline = new PerforceSCMRevisionState(-1);
         }
 
-        if (project.getLastBuild() == null) {
+        if (project.getLastBuild() == null || baseline == null) {
             listener.getLogger().println("No previous builds to use for comparison.");
             return PollingResult.BUILD_NOW;
         }
