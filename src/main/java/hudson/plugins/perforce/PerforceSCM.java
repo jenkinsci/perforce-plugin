@@ -37,6 +37,8 @@ import hudson.scm.PollingResult;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import hudson.scm.SCMRevisionState;
+import hudson.slaves.EnvironmentVariablesNodeProperty;
+import hudson.slaves.NodeProperty;
 import hudson.util.FormValidation;
 import hudson.util.LogTaskListener;
 
@@ -448,6 +450,11 @@ public class PerforceSCM extends SCM {
                     }
                 } catch (Exception e) {
                 }
+            }
+        }
+        for (NodeProperty nodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
+            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
+                subst.putAll( ((EnvironmentVariablesNodeProperty)nodeProperty).getEnvVars() );
             }
         }
         return subst;
@@ -1761,6 +1768,19 @@ public class PerforceSCM extends SCM {
         subst.put("BUILD_TAG", hudsonName + "-" + build.getProject().getName() + "-" + String.valueOf(build.getNumber()));
         subst.put("BUILD_ID", build.getId());
         subst.put("BUILD_NUMBER", String.valueOf(build.getNumber()));
+        
+        //get global properties
+        for (NodeProperty nodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
+            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
+                subst.putAll( ((EnvironmentVariablesNodeProperty)nodeProperty).getEnvVars() );
+            }
+        }
+        //get node-specific global properties
+        for(NodeProperty nodeProperty : build.getBuiltOn().getNodeProperties()){
+            if(nodeProperty instanceof EnvironmentVariablesNodeProperty) {
+                subst.putAll( ((EnvironmentVariablesNodeProperty)nodeProperty).getEnvVars() );
+            }
+        }
         String result = substituteParameters(string, build.getBuildVariables());
         result = substituteParameters(result, subst);
         return result;
