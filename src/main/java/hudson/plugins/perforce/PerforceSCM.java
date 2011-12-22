@@ -1024,7 +1024,7 @@ public class PerforceSCM extends SCM {
         }
         else {
             for (int changeNumber : changeNumbers) {
-                if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber), logger)) {
+                if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber), project, logger)) {
                     logger.println("Changelist "+changeNumber+" is composed of file(s) and/or user(s) that are excluded.");
                 } else {
                     return new PerforceSCMRevisionState(changeNumber);
@@ -1041,14 +1041,14 @@ public class PerforceSCM extends SCM {
      * @param changelist the p4 changelist
      * @return  True if changelist only contains user(s) and/or file(s) that are denoted to be excluded
      */
-    private boolean isChangelistExcluded(Changelist changelist, PrintStream logger) {
+    private boolean isChangelistExcluded(Changelist changelist, AbstractProject project, PrintStream logger) {
         if (changelist == null){
             return false;
         }
 
         if (excludedUsers != null && !excludedUsers.trim().equals(""))
         {
-            List<String> users = Arrays.asList(excludedUsers.split("\n"));
+            List<String> users = Arrays.asList(substituteParameters(excludedUsers,getDefaultSubstitutions(project)).split("\n"));
 
             if ( users.contains(changelist.getUser()) ) {
                 logger.println("Excluded User ["+changelist.getUser()+"] found in changelist.");
@@ -1075,7 +1075,7 @@ public class PerforceSCM extends SCM {
 
         if (excludedFiles != null && !excludedFiles.trim().equals(""))
         {
-            List<String> files = Arrays.asList(excludedFiles.split("\n"));
+            List<String> files = Arrays.asList(substituteParameters(excludedFiles,getDefaultSubstitutions(project)).split("\n"));
             StringBuffer buff = null;
             Matcher matcher = null;
             boolean matchFound;
