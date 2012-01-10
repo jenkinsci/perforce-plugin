@@ -122,9 +122,9 @@ public class Changes extends AbstractPerforceTemplate {
 		String cmd[];
 
 		if(limit > 0)
-			cmd = new String[] { getP4Exe(), "changes", "-m", Integer.toString(limit), path };
+			cmd = new String[] { getP4Exe(), "changes", "-s", "submitted", "-m", Integer.toString(limit), path };
 		else
-			cmd = new String[] { getP4Exe(), "changes", path };
+			cmd = new String[] { getP4Exe(), "changes", "-s", "submitted", path };
 
 		StringBuilder response = getPerforceResponse(cmd);
 		List<String> ids = parseList(response, 1);
@@ -170,9 +170,9 @@ public class Changes extends AbstractPerforceTemplate {
 		String cmd[];
 
 		if(limit > 0)
-			cmd = new String[] { getP4Exe(), "changes", "-m", Integer.toString(limit), path };
+			cmd = new String[] { getP4Exe(), "changes", "-s", "submitted", "-m", Integer.toString(limit), path };
 		else
-			cmd = new String[] { getP4Exe(), "changes", path };
+			cmd = new String[] { getP4Exe(), "changes", "-s", "submitted", path };
 
 		StringBuilder response = getPerforceResponse(cmd);
                 if(hitMax(response)){
@@ -288,7 +288,7 @@ public class Changes extends AbstractPerforceTemplate {
 
 		List<String> cmdList = new ArrayList<String>();
 
-		addCommand(cmdList, getP4Exe(), "changes", "-m", "25");
+		addCommand(cmdList, getP4Exe(), "changes", "-s", "submitted", "-m", "25");
 		addCommandWorkspace(cmdList, workspace);
 		addCommand(cmdList, path);
 
@@ -342,7 +342,7 @@ public class Changes extends AbstractPerforceTemplate {
 			}
 			cmdList.clear();
 			getLogger().warn("running p4 changes for " + next + " until change is " + untilChange);
-			addCommand(cmdList, getP4Exe(), "changes", "-m", "25");
+			addCommand(cmdList, getP4Exe(), "changes", "-s", "submitted", "-m", "25");
 			addCommandWorkspace(cmdList, workspace);
 			addCommand(cmdList, path + "@" + next);
 		}
@@ -475,7 +475,7 @@ public class Changes extends AbstractPerforceTemplate {
         
         String fullPath = sb.toString();
 
-        String[] cmd = new String[] { getP4Exe(), "-s", "changes", "-m", "1", fullPath };
+        String[] cmd = new String[] { getP4Exe(), "-s", "changes", "-s", "submitted", "-m", "1", fullPath };
 
         List<String> response = getRawPerforceResponseLines(cmd);
         List<Integer> numbers = new ArrayList<Integer>(response.size());
@@ -509,7 +509,7 @@ public class Changes extends AbstractPerforceTemplate {
         sb.append(last);
         String fullPath = sb.toString();
 
-        String[] cmd = new String[] { getP4Exe(), "-s", "changes", fullPath };
+        String[] cmd = new String[] { getP4Exe(), "-s", "changes", "-s", "submitted", fullPath };
 
         List<String> response = getRawPerforceResponseLines(cmd);
         List<Integer> numbers = new ArrayList<Integer>(response.size());
