@@ -88,6 +88,7 @@ public class PerforceSCM extends SCM {
     String projectOptions;
     String p4Label;
     String p4Counter;
+    String p4Stream;
 
     String p4Exe = "C:\\Program Files\\Perforce\\p4.exe";
     String p4SysDrive = "C:";
@@ -103,6 +104,10 @@ public class PerforceSCM extends SCM {
      * Use ClientSpec text file from depot to prepare the workspace view
      */
     boolean useClientSpec = false;
+    /**
+     * True if stream depot is used, false otherwise
+     */
+    boolean useStreamDepot = true;
     /**
      * This is being removed, including it as transient to fix exceptions on startup.
      */
@@ -620,10 +625,20 @@ public class PerforceSCM extends SCM {
         
             Workspace p4workspace = getPerforceWorkspace(build.getProject(), projectPath, depot, build.getBuiltOn(), build, launcher, workspace, listener, false);
 
+            boolean dirtyWorkspace = p4workspace.isDirty();
             saveWorkspaceIfDirty(depot, p4workspace, log);
 
+            //In case of a stream depot, we want Perforce to handle the client views. So let's re-initialize
+            //the p4workspace object if it was changed since the last build. Also, populate projectPath with
+            //the current view from Perforce. We need it for labeling.
+            if (useStreamDepot) {
+                if (dirtyWorkspace) {
+                    p4workspace = depot.getWorkspaces().getWorkspace(getEffectiveClientName(build), p4Stream);
+                }
+                projectPath = p4workspace.getTrimmedViewsAsString();
+            }
             //If we're not managing the view, populate the projectPath with the current view from perforce
-            //This is both for convenience, and so the labelling mechanism can operate correctly
+            //This is both for convenience, and so the labeling mechanism can operate correctly
             if(!updateView){
                 projectPath = p4workspace.getTrimmedViewsAsString();
             }
@@ -1205,7 +1220,7 @@ public class PerforceSCM extends SCM {
 
         // Get the clientspec (workspace) from perforce
 
-        Workspace p4workspace = depot.getWorkspaces().getWorkspace(p4Client);
+        Workspace p4workspace = depot.getWorkspaces().getWorkspace(p4Client, p4Stream);
         assert p4workspace != null;
         boolean creatingNewWorkspace = p4workspace.isNew();
 
@@ -1213,7 +1228,7 @@ public class PerforceSCM extends SCM {
         // Then terminate the build with an error
         if(!updateView && creatingNewWorkspace){
             log.println("*** Perforce client workspace '" + p4Client +"' doesn't exist.");
-            log.println("*** Please create it, or allow hudson to manage clients on it's own.");
+            log.println("*** Please create it, or allow Jenkins to manage clients on it's own.");
             log.println("*** If the client name mentioned above is not what you expected, ");
             log.println("*** check your 'Client name format for slaves' advanced config option.");
             throw new AbortException("Error accessing perforce workspace.");
@@ -1255,26 +1270,31 @@ public class PerforceSCM extends SCM {
             p4workspace.setRoot(localPath);
         }
 
-        // If necessary, rewrite the views field in the clientspec;
-
-        // TODO If dontRenameClient==false, and updateView==false, user
-        // has a lot of work to do to maintain the clientspecs.  Seems like
-        // we could copy from a master clientspec to the slaves.
-
         if (updateView || creatingNewWorkspace) {
-            if (useClientSpec) {
-                projectPath = getEffectiveProjectPathFromFile(build, project, log, depot);
+            // Switch to another stream view if necessary
+            if (useStreamDepot) {
+                p4workspace.setStream(p4Stream);
             }
-            List<String> mappingPairs = parseProjectPath(projectPath, p4Client);
-            if (!equalsProjectPath(mappingPairs, p4workspace.getViews())) {
-                log.println("Changing P4 Client View from:\n" + p4workspace.getViewsAsString());
-                log.println("Changing P4 Client View to: ");
-                p4workspace.clearViews();
-                for (int i = 0; i < mappingPairs.size(); ) {
-                    String depotPath = mappingPairs.get(i++);
-                    String clientPath = mappingPairs.get(i++);
-                    p4workspace.addView(" " + depotPath + " " + clientPath);
-                    log.println("  " + depotPath + " " + clientPath);
+            // If necessary, rewrite the views field in the clientspec. Also, clear the stream.
+            // TODO If dontRenameClient==false, and updateView==false, user
+            // has a lot of work to do to maintain the clientspecs.  Seems like
+            // we could copy from a master clientspec to the slaves.
+            else {
+                p4workspace.setStream("");
+                if (useClientSpec) {
+                    projectPath = getEffectiveProjectPathFromFile(build, project, log, depot);
+                }
+                List<String> mappingPairs = parseProjectPath(projectPath, p4Client);
+                if (!equalsProjectPath(mappingPairs, p4workspace.getViews())) {
+                    log.println("Changing P4 Client View from:\n" + p4workspace.getViewsAsString());
+                    log.println("Changing P4 Client View to: ");
+                    p4workspace.clearViews();
+                    for (int i = 0; i < mappingPairs.size(); ) {
+                        String depotPath = mappingPairs.get(i++);
+                        String clientPath = mappingPairs.get(i++);
+                        p4workspace.addView(" " + depotPath + " " + clientPath);
+                        log.println("  " + depotPath + " " + clientPath);
+                    }
                 }
             }
         }
@@ -1388,13 +1408,20 @@ public class PerforceSCM extends SCM {
         @Override
         public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             PerforceSCM newInstance = (PerforceSCM)super.newInstance(req, formData);
-			boolean useClientSpec = Boolean.parseBoolean(req.getParameter("p4.view"));
-            newInstance.setUseClientSpec(useClientSpec);
-            if (useClientSpec) {
-                newInstance.setClientSpec(req.getParameter("clientSpec"));
+            boolean useStreamDepot = Boolean.parseBoolean(req.getParameter("p4.depotType"));
+            newInstance.setUseStreamDepot(useStreamDepot);
+            if (useStreamDepot) {
+                newInstance.setP4Stream(req.getParameter("p4Stream"));
             }
             else {
-                newInstance.setProjectPath(req.getParameter("projectPath"));
+                boolean useClientSpec = Boolean.parseBoolean(req.getParameter("p4.view"));
+                newInstance.setUseClientSpec(useClientSpec);
+                if (useClientSpec) {
+                    newInstance.setClientSpec(req.getParameter("clientSpec"));
+                }
+                else {
+                    newInstance.setProjectPath(req.getParameter("projectPath"));
+                }
             }
             newInstance.setUseViewMask(req.getParameter("p4.useViewMask") != null);
             newInstance.setViewMask(Util.fixEmptyAndTrim(req.getParameter("p4.viewMask")));
@@ -1475,7 +1502,7 @@ public class PerforceSCM extends SCM {
             }
             try {
                 Workspace p4Workspace =
-                    depot.getWorkspaces().getWorkspace(workspace);
+                    depot.getWorkspaces().getWorkspace(workspace, "");
 
                 if (p4Workspace.getAccess() == null ||
                         p4Workspace.getAccess().equals(""))
@@ -1555,14 +1582,68 @@ public class PerforceSCM extends SCM {
                 return FormValidation.error("Invalid depot path:" + clientspec);
             }
 
+            String workspace = Util.fixEmptyAndTrim(req.getParameter("client"));
             try {
                 if (!depot.getStatus().exists(clientspec)) {
                     return FormValidation.error("ClientSpec does not exist");
+                }
+
+                Workspace p4Workspace = depot.getWorkspaces().getWorkspace(workspace, "");
+                // Warn if workspace exists and is associated with a stream
+                if (p4Workspace.getAccess() != null && !p4Workspace.getAccess().equals("") &&
+                        p4Workspace.getStream() != null && !p4Workspace.getStream().equals("")) {
+                    return FormValidation.warning("Workspace '" + workspace + "' already exists and is associated with a stream. " +
+                        "If Jenkins is allowed to manage the workspace view, this workspace will be switched to a local workspace.");
                 }
             }
             catch (PerforceException e) {
                 return FormValidation.error(
                         "Error accessing perforce while checking ClientSpec: " + e.getLocalizedMessage());
+            }
+
+            return FormValidation.ok();
+        }
+
+	      /**
+         * Checks if the specified stream is valid.
+         */
+        public FormValidation doValidateStream(StaplerRequest req) throws IOException, ServletException {
+            Depot depot = getDepotFromRequest(req);
+            if (depot == null) {
+                return FormValidation.error(
+                        "Unable to check stream against depot");
+            }
+
+            String stream = Util.fixEmptyAndTrim(req.getParameter("stream"));
+            if (stream == null) {
+                return FormValidation.error("You must enter a stream");
+            }
+            if (!stream.endsWith("/...")) {
+                stream += "/...";
+            }
+
+            if (!DEPOT_ONLY.matcher(stream).matches() &&
+                !DEPOT_ONLY_QUOTED.matcher(stream).matches()){
+                return FormValidation.error("Invalid depot path:" + stream);
+            }
+
+            String workspace = Util.fixEmptyAndTrim(req.getParameter("client"));
+            try {
+                if (!depot.getStatus().exists(stream)) {
+                    return FormValidation.error("Stream does not exist");
+                }
+
+                Workspace p4Workspace = depot.getWorkspaces().getWorkspace(workspace, "");
+                // Warn if workspace exists and is not associated with a stream
+                if (p4Workspace.getAccess() != null && !p4Workspace.getAccess().equals("") &&
+                        (p4Workspace.getStream() == null || p4Workspace.getStream().equals(""))) {
+                    return FormValidation.warning("Workspace '" + workspace + "' already exists and is not associated with a stream. " +
+                        "If Jenkins is allowed to manage the workspace view, this workspace will be switched to a stream workspace.");
+                }
+            }
+            catch (PerforceException e) {
+                return FormValidation.error(
+                        "Error accessing perforce while checking stream: " + e.getLocalizedMessage());
             }
 
             return FormValidation.ok();
@@ -1846,6 +1927,42 @@ public class PerforceSCM extends SCM {
      */
     public void setUseClientSpec(boolean useClientSpec) {
         this.useClientSpec = useClientSpec;
+    }
+
+    /**
+     * Check if we are using a stream depot type or a classic depot type.
+     * 
+     * @return True if we are using a stream depot type, False otherwise
+     */
+    public boolean isUseStreamDepot() {
+        return useStreamDepot;
+    }
+
+    /**
+     * Control the usage of stream depot.
+     * 
+     * @param useStreamDepot True if stream depot is used, False otherwise
+     */
+    public void setUseStreamDepot(boolean useStreamDepot) {
+        this.useStreamDepot = useStreamDepot;
+    }
+
+    /**
+     * Get the stream name.
+     * 
+     * @return the p4Stream
+     */
+    public String getP4Stream() {
+        return p4Stream;
+    }
+
+    /**
+     * Set the stream name.
+     * 
+     * @param stream the stream name
+     */
+    public void setP4Stream(String stream) {
+        p4Stream = stream;
     }
 
     /**
