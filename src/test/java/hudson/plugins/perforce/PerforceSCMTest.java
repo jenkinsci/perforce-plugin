@@ -23,7 +23,6 @@ public class PerforceSCMTest extends HudsonTestCase {
         		"user", "pass", "client", "port", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
-        scm.setP4Stream("stream");
         scm.setProjectPath("path");
         project.setScm(scm);
 
@@ -38,6 +37,28 @@ public class PerforceSCMTest extends HudsonTestCase {
         //assertEqualBeans(scm.getBrowser(),p.getScm().getBrowser(),"URL");
     }
 
+    public void testConfigRoundtripWithStream() throws Exception {
+        FreeStyleProject project = createFreeStyleProject();
+        P4Web browser = new P4Web(new URL("http://localhost/"));
+        PerforceSCM scm = new PerforceSCM(
+        		"user", "pass", "client", "port", "", "exe", "sysRoot",
+        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
+                        false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+        scm.setP4Stream("stream");
+        scm.setUseStreamDepot(true);
+        project.setScm(scm);
+
+        // config roundtrip
+        submit(new WebClient().getPage(project,"configure").getFormByName("config"));
+
+        // verify that the data is intact
+        assertEqualBeans(scm, project.getScm(),
+                "p4User,p4Client,p4Port,p4Label,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset,p4Stream,useStreamDepot");
+        assertEquals("exclude_user", scm.getExcludedUsers());
+        assertEquals("exclude_file", scm.getExcludedFiles());
+        //assertEqualBeans(scm.getBrowser(),p.getScm().getBrowser(),"URL");
+    }
+
     public void testConfigPasswordEnctyptionAndDecription() throws Exception {
         FreeStyleProject project = createFreeStyleProject();
         P4Web browser = new P4Web(new URL("http://localhost/"));
@@ -46,7 +67,6 @@ public class PerforceSCMTest extends HudsonTestCase {
         		"user", password, "client", "port", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
-        scm.setP4Stream("stream");
         scm.setProjectPath("path");
         project.setScm(scm);
 
@@ -86,7 +106,6 @@ public class PerforceSCMTest extends HudsonTestCase {
         		"user", password, "client", "port", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
-        scm.setP4Stream("stream");
         scm.setProjectPath("path");
         project.setScm(scm);
 
