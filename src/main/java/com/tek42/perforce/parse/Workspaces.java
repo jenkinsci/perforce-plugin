@@ -43,17 +43,25 @@ public class Workspaces extends AbstractPerforceTemplate {
 	}
 
 	/**
-	 * Returns a workspace specified by name.
+	 * Returns a workspace specified by name. Stream name is required if a stream workspace is created, 
+	 * can be empty otherwise.
 	 * 
-	 * @param name
+	 * @param ws_name Workspace name
+	 * @param stream_name Stream name
 	 * @return
 	 * @throws PerforceException
 	 */
-	public Workspace getWorkspace(String name) throws PerforceException {
+	public Workspace getWorkspace(String ws_name, String stream_name) throws PerforceException {
 		WorkspaceBuilder builder = new WorkspaceBuilder();
-		Workspace workspace = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), name)));
+		Workspace workspace;
+		if (stream_name != null && !stream_name.equals("")) {
+		    workspace = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), ws_name, stream_name)));
+		}
+		else {
+		    workspace = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), ws_name)));
+		}
 		if(workspace == null)
-			throw new PerforceException("Failed to retrieve workspace: " + name);
+			throw new PerforceException("Failed to retrieve workspace: " + ws_name);
 
 		return workspace;
 	}
