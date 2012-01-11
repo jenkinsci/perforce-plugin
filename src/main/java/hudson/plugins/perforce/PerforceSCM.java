@@ -107,7 +107,7 @@ public class PerforceSCM extends SCM {
     /**
      * True if stream depot is used, false otherwise
      */
-    boolean useStreamDepot = true;
+    boolean useStreamDepot = false;
     /**
      * This is being removed, including it as transient to fix exceptions on startup.
      */
@@ -1408,13 +1408,14 @@ public class PerforceSCM extends SCM {
         @Override
         public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             PerforceSCM newInstance = (PerforceSCM)super.newInstance(req, formData);
-            boolean useStreamDepot = Boolean.parseBoolean(req.getParameter("p4.depotType"));
+            String depotType = req.getParameter("p4.depotType");
+            boolean useStreamDepot = depotType.equals("stream");
+            boolean useClientSpec = depotType.equals("file");
             newInstance.setUseStreamDepot(useStreamDepot);
             if (useStreamDepot) {
                 newInstance.setP4Stream(req.getParameter("p4Stream"));
             }
             else {
-                boolean useClientSpec = Boolean.parseBoolean(req.getParameter("p4.view"));
                 newInstance.setUseClientSpec(useClientSpec);
                 if (useClientSpec) {
                     newInstance.setClientSpec(req.getParameter("clientSpec"));
