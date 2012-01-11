@@ -24,6 +24,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         scm.setP4Stream("stream");
+        scm.setProjectPath("path");
         project.setScm(scm);
 
         // config roundtrip
@@ -46,6 +47,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         scm.setP4Stream("stream");
+        scm.setProjectPath("path");
         project.setScm(scm);
 
         // config roundtrip
@@ -85,6 +87,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         scm.setP4Stream("stream");
+        scm.setProjectPath("path");
         project.setScm(scm);
 
         // config roundtrip
