@@ -1,5 +1,12 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
+    <j:if test="${empty(instance)}">
+       <j:set var="streamDepotUsed" value="true"/>
+    </j:if>
+    <j:if test="${!empty(instance)}">
+       <j:set var="streamDepotUsed" value="${instance.useStreamDepot}"/>
+    </j:if>
+    
   <f:entry title="Setup" help="/plugin/perforce/help/setup.html">
     <table width="100%">
       <f:entry title="Path to p4 executable">
@@ -36,69 +43,79 @@
                 checkUrl="'${rootURL}/scm/PerforceSCM/validateP4Client?port='+escape(this.form.elements['p4Port'].value)+'&amp;exe='+escape(this.form.elements['p4Exe'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)+'&amp;client='+escape(this.form.elements['p4Client'].value)"/>
       </f:entry>
 
-      <f:entry title="Let ${descriptor['appName']} Manage Workspace View" help="/plugin/perforce/help/updateView.html">
-        <f:checkbox field="updateView" default="true" value="True"/>
-      </f:entry>
-
-      <f:entry title="Clean Workspace Before Each Build" help="/plugin/perforce/help/wipeBeforeBuild.html">
-        <f:checkbox field="wipeBeforeBuild" default="false" value="False"/>
-      </f:entry>
-      
-      <f:entry title="Clean .repository Before Build" help="/plugin/perforce/help/wipeRepoBeforeBuild.html">
-        <f:checkbox field="wipeRepoBeforeBuild" default="false" value="False"/>
-      </f:entry>
-
-      <f:entry title="View">
+      <f:entry title="Depot type">
         <table width="100%">
-          <f:radioBlock name="p4.view" title="ClientSpec" value="true" checked="${instance.useClientSpec}" help="/plugin/perforce/help/clientSpec.html">
-            <f:entry>
-              <f:textbox name="clientSpec" field="clientSpec"
-              checkUrl="'${rootURL}/scm/PerforceSCM/validateClientSpec?port='+escape(this.form.elements['p4Port'].value)+'&amp;exe='+escape(this.form.elements['p4Exe'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)+'&amp;client='+escape(this.form.elements['p4Client'].value)+'&amp;clientSpec='+escape(this.form.elements['clientSpec'].value)"/>
+          <f:entry title="Let ${descriptor['appName']} Manage Workspace View" help="/plugin/perforce/help/updateView.html">
+            <f:checkbox field="updateView" default="true" value="True"/>
+          </f:entry>
+          <f:radioBlock name="p4.depotType" title="Stream depot" value="true" checked="${streamDepotUsed}" help="/plugin/perforce/help/streamDepot.html">
+            <f:entry title="Stream" help="/plugin/perforce/help/p4Stream.html">
+              <f:textbox name="p4Stream" field="p4Stream"
+              checkUrl="'${rootURL}/scm/PerforceSCM/validateStream?port='+escape(this.form.elements['p4Port'].value)+'&amp;exe='+escape(this.form.elements['p4Exe'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)+'&amp;client='+escape(this.form.elements['p4Client'].value)+'&amp;stream='+escape(this.form.elements['p4Stream'].value)"/>
             </f:entry>
           </f:radioBlock>
-          <f:radioBlock name="p4.view" title="Mappings" value="false" checked="${!instance.useClientSpec}" help="/plugin/perforce/help/projectPath.html">
-            <f:entry>
-              <f:textarea name="projectPath" field="projectPath" />
+          <f:radioBlock name="p4.depotType" title="Local depot" value="false" checked="${!streamDepotUsed}" help="/plugin/perforce/help/localDepot.html">
+            <f:entry title="View">
+              <table width="100%">
+                <f:radioBlock name="p4.view" title="ClientSpec" value="true" checked="${instance.useClientSpec}" help="/plugin/perforce/help/clientSpec.html">
+                  <f:entry>
+                    <f:textbox name="clientSpec" field="clientSpec"
+                    checkUrl="'${rootURL}/scm/PerforceSCM/validateClientSpec?port='+escape(this.form.elements['p4Port'].value)+'&amp;exe='+escape(this.form.elements['p4Exe'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)+'&amp;client='+escape(this.form.elements['p4Client'].value)+'&amp;clientSpec='+escape(this.form.elements['clientSpec'].value)"/>
+                  </f:entry>
+                </f:radioBlock>
+                <f:radioBlock name="p4.view" title="Mappings" value="false" checked="${!instance.useClientSpec}" help="/plugin/perforce/help/projectPath.html">
+                  <f:entry>
+                    <f:textarea name="projectPath" field="projectPath" />
+                  </f:entry>
+                </f:radioBlock>
+              </table>
             </f:entry>
           </f:radioBlock>
         </table>
       </f:entry>
 
-      <f:entry title="Options" help="/plugin/perforce/help/projectOptions.html">
-        <f:textbox field="projectOptions" default="noallwrite clobber nocompress unlocked nomodtime rmdir"
-             value="${instance.projectOptions}" />
-      </f:entry>
-
-      <f:entry title="One Time Force Sync" help="/plugin/perforce/help/forceSync.html">
-        <f:checkbox field="forceSync" value="True"/>
-      </f:entry>
-
-      <f:entry title="Always Force Sync" help="/plugin/perforce/help/alwaysForceSync.html">
-        <f:checkbox field="alwaysForceSync" value="True"/>
-      </f:entry>
-
-      <f:entry title="Disable Sync and Changelog" help="/plugin/perforce/help/disableAutoSync.html">
-        <f:checkbox field="disableAutoSync" value="False"/>
-      </f:entry>
-
-      <f:entry title="Disable Syncing Only" help="/plugin/perforce/help/disableSyncOnly.html">
-        <f:checkbox field="disableSyncOnly" value="False"/>
-      </f:entry>
-
-      <f:entry title="Poll Only on Master" help="/plugin/perforce/help/pollOnlyOnMaster.html">
-        <f:checkbox field="pollOnlyOnMaster" value="False"/>
-      </f:entry>
-
-      <f:entry title="First Changelist to Track" help="/plugin/perforce/help/firstChange.html">
-        <f:textbox field="firstChange"
-                checkUrl="'${rootURL}/scm/PerforceSCM/checkChangeList?port='+escape(this.form.elements['p4Port'].value)+'&amp;exe='+escape(this.form.elements['p4Exe'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)+'&amp;change='+escape(this.value)"/>
-      </f:entry>
     </table>
   </f:entry>
 
-  <t:listScmBrowsers name="browser" />
-
   <f:advanced>
+    <f:entry title="Clean Workspace Before Each Build" help="/plugin/perforce/help/wipeBeforeBuild.html">
+      <f:checkbox field="wipeBeforeBuild" default="false" value="False"/>
+    </f:entry>
+    
+    <f:entry title="Clean .repository Before Build" help="/plugin/perforce/help/wipeRepoBeforeBuild.html">
+      <f:checkbox field="wipeRepoBeforeBuild" default="false" value="False"/>
+    </f:entry>
+  
+    <f:entry title="Options" help="/plugin/perforce/help/projectOptions.html">
+      <f:textbox field="projectOptions" default="noallwrite clobber nocompress unlocked nomodtime rmdir"
+           value="${instance.projectOptions}" />
+    </f:entry>
+  
+    <f:entry title="One Time Force Sync" help="/plugin/perforce/help/forceSync.html">
+      <f:checkbox field="forceSync" value="True"/>
+    </f:entry>
+  
+    <f:entry title="Always Force Sync" help="/plugin/perforce/help/alwaysForceSync.html">
+      <f:checkbox field="alwaysForceSync" value="True"/>
+    </f:entry>
+  
+    <f:entry title="Disable Sync and Changelog" help="/plugin/perforce/help/disableAutoSync.html">
+      <f:checkbox field="disableAutoSync" value="False"/>
+    </f:entry>
+  
+    <f:entry title="Disable Syncing Only" help="/plugin/perforce/help/disableSyncOnly.html">
+      <f:checkbox field="disableSyncOnly" value="False"/>
+    </f:entry>
+  
+    <f:entry title="Poll Only on Master" help="/plugin/perforce/help/pollOnlyOnMaster.html">
+      <f:checkbox field="pollOnlyOnMaster" value="False"/>
+    </f:entry>
+  
+    <f:entry title="First Changelist to Track" help="/plugin/perforce/help/firstChange.html">
+      <f:textbox field="firstChange"
+              checkUrl="'${rootURL}/scm/PerforceSCM/checkChangeList?port='+escape(this.form.elements['p4Port'].value)+'&amp;exe='+escape(this.form.elements['p4Exe'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)+'&amp;change='+escape(this.value)"/>
+    </f:entry>
+
     <f:entry title="Client Line Endings" help="/plugin/perforce/help/lineEnd.html">
         <select name="lineEndValue" id="lineEndValue">
             <j:forEach var="value" items="${instance==null?descriptor['allLineEndChoices']:instance['allLineEndChoices']}">
@@ -175,7 +192,8 @@
             <f:checkbox name="p4.useViewMaskForSyncing" checked="${instance.useViewMaskForSyncing}"/>
         </f:entry>
     </f:optionalBlock>
-
   </f:advanced>
+
+  <t:listScmBrowsers name="browser" />
 
 </j:jelly>

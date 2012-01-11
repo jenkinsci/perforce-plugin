@@ -49,6 +49,7 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 	String submitOptions;
 	String update;
 	String access;
+	String stream;
 
 	public Workspace() {
 		super();
@@ -63,6 +64,7 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 		this.submitOptions = "";
 		this.update = "";
 		this.access = "";
+		this.stream = "";
 	}
 
 	@Override
@@ -80,6 +82,7 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 		sb.append("Options: " + getOptions() + "\n");
 		sb.append("SubmitOptions: " + getSubmitOptions() + "\n");
 		sb.append("LineEnd: " + getLineEnd() + "\n");
+	    sb.append("Stream: " + getStream() + "\n");
 		sb.append("Views: \n");
 		for(String view : views) {
 			sb.append("\t" + view + "\n");
@@ -285,6 +288,24 @@ public class Workspace extends AbstractViewsSupport implements java.io.Serializa
 		this.access = access;
         markDirty();
 	}
+
+   /**
+     * @return the stream
+     */
+    public String getStream() {
+        return stream;
+    }
+
+    /**
+     * @param stream
+     *            the stream to set
+     */
+    public void setStream(String stream) {
+        if (safeEquals(this.stream, stream))
+            return;
+        this.stream = stream;
+        markDirty();
+    }
 
 	/**
 	 * Is this workspace new (i.e. never saved)?
