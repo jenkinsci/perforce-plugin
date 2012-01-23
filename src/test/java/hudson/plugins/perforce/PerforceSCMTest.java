@@ -21,7 +21,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         P4Web browser = new P4Web(new URL("http://localhost/"));
         PerforceSCM scm = new PerforceSCM(
         		"user", "pass", "client", "port", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
+        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         scm.setProjectPath("path");
         project.setScm(scm);
@@ -31,7 +31,7 @@ public class PerforceSCMTest extends HudsonTestCase {
 
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
-                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset,p4Stream,useStreamDepot");
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,createWorkspace,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset,p4Stream,useStreamDepot");
         assertEquals("exclude_user", scm.getExcludedUsers());
         assertEquals("exclude_file", scm.getExcludedFiles());
         //assertEqualBeans(scm.getBrowser(),p.getScm().getBrowser(),"URL");
@@ -42,7 +42,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         P4Web browser = new P4Web(new URL("http://localhost/"));
         PerforceSCM scm = new PerforceSCM(
         		"user", "pass", "client", "port", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
+        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         scm.setP4Stream("stream");
         scm.setUseStreamDepot(true);
@@ -53,7 +53,7 @@ public class PerforceSCMTest extends HudsonTestCase {
 
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
-                "p4User,p4Client,p4Port,p4Label,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset,p4Stream,useStreamDepot");
+                "p4User,p4Client,p4Port,p4Label,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,createWorkspace,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset,p4Stream,useStreamDepot");
         assertEquals("exclude_user", scm.getExcludedUsers());
         assertEquals("exclude_file", scm.getExcludedFiles());
         //assertEqualBeans(scm.getBrowser(),p.getScm().getBrowser(),"URL");
@@ -65,7 +65,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
+        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         scm.setProjectPath("path");
         project.setScm(scm);
@@ -75,7 +75,7 @@ public class PerforceSCMTest extends HudsonTestCase {
 
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
-                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset,p4Stream,useStreamDepot");
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,createWorkspace,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset,p4Stream,useStreamDepot");
         assertEquals("exclude_user", scm.getExcludedUsers());
         assertEquals("exclude_file", scm.getExcludedFiles());
 
@@ -90,7 +90,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
+        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         scm.setProjectPath("path");
         project.setScm(scm);
@@ -104,7 +104,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, false,
+        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, true, false,
                         false, true, false, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
         scm.setProjectPath("path");
         project.setScm(scm);
@@ -115,7 +115,7 @@ public class PerforceSCMTest extends HudsonTestCase {
 
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
-                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset,p4Stream,useStreamDepot");
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,createWorkspace,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset,p4Stream,useStreamDepot");
         assertEquals("exclude_user", scm.getExcludedUsers());
         assertEquals("exclude_file", scm.getExcludedFiles());
 
