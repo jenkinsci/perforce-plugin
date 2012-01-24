@@ -141,6 +141,10 @@ public class PerforceSCM extends SCM {
     @Deprecated
     boolean useOldClientName = false;
     /**
+     * If true, we will create the workspace view within the plugin.  If false, we will not.
+     */
+    boolean createWorkspace = true;
+    /**
      * If true, we will manage the workspace view within the plugin.  If false, we will leave the
      * view alone.
      */
@@ -258,6 +262,7 @@ public class PerforceSCM extends SCM {
             boolean forceSync,
             boolean dontUpdateServer,
             boolean alwaysForceSync,
+            boolean createWorkspace,
             boolean updateView,
             boolean disableAutoSync,
             boolean disableSyncOnly,
@@ -341,6 +346,7 @@ public class PerforceSCM extends SCM {
         this.browser = browser;
         this.wipeBeforeBuild = wipeBeforeBuild;
         this.wipeRepoBeforeBuild = wipeRepoBeforeBuild;
+        this.createWorkspace = createWorkspace;
         this.updateView = updateView;
         this.dontUpdateClient = dontUpdateClient;
         this.slaveClientNameFormat = slaveClientNameFormat;
@@ -1226,7 +1232,7 @@ public class PerforceSCM extends SCM {
 
         // If the client workspace doesn't exist, and we're not managing the clients,
         // Then terminate the build with an error
-        if(!updateView && creatingNewWorkspace){
+        if(!createWorkspace && creatingNewWorkspace){
             log.println("*** Perforce client workspace '" + p4Client +"' doesn't exist.");
             log.println("*** Please create it, or allow Jenkins to manage clients on it's own.");
             log.println("*** If the client name mentioned above is not what you expected, ");
@@ -2172,6 +2178,20 @@ public class PerforceSCM extends SCM {
      */
     public void setProjectOptions(String projectOptions) {
         this.projectOptions = projectOptions;
+    }
+
+    /**
+     * @param createWorkspace    True to let the plugin create the workspace, false to let the user manage it
+     */
+    public void setCreateWorkspace(boolean val) {
+        this.createWorkspace = val;
+    }
+
+    /**
+     * @return  True if the plugin manages the view, false if the user does.
+     */
+    public boolean isCreateWorkspace() {
+        return createWorkspace;
     }
 
     /**
