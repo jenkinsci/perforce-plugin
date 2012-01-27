@@ -1725,6 +1725,7 @@ public class PerforceSCM extends SCM {
                 if(regex.equals("")) continue;
 
                 try {
+                    regex = regex.replaceAll("\\$\\{[^\\}]*\\}","SOMEVARIABLE");
                     Pattern.compile(regex);
                 }
                 catch (PatternSyntaxException pse) {
@@ -1753,6 +1754,7 @@ public class PerforceSCM extends SCM {
                 // check to make sure the globbing regex will work
                 // (ie, in case there are special characters that the user hasn't escaped properly)
                 try {
+                    file = file.replaceAll("\\$\\{[^\\}]*\\}","SOMEVARIABLE");
                     doesFilenameMatchP4Pattern("somefile", file);
                 }
                 catch (PatternSyntaxException pse) {
