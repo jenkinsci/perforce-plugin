@@ -35,7 +35,7 @@ public class PerforceMailResolver extends MailAddressResolver {
             LOGGER.fine("Using perforce user id '" + perforceId + "' from " + u.getId() + "'s properties.");
             perforceId = puprop.getPerforceId();
         }
-        for (AbstractProject p : u.getProjects()) {
+        for (AbstractProject p : Hudson.getInstance().getProjects()) {
             if (p.isDisabled()) continue;
             if (p.getScm() instanceof PerforceSCM) {
                 LOGGER.finer("Checking " + p.getName() + "'s Perforce SCM for " + perforceId + "'s address.");
