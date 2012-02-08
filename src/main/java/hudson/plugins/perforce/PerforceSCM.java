@@ -1514,7 +1514,7 @@ public class PerforceSCM extends SCM {
                 if (p4Workspace.getAccess() == null ||
                         p4Workspace.getAccess().equals(""))
                     return FormValidation.warning("Workspace does not exist. " +
-                            "If \"Let Hudson Manage Workspace View\" is check" +
+                            "If \"Let Hudson/Jenkins Manage Workspace View\" is check" +
                             " the workspace will be automatically created.");
             } catch (PerforceException e) {
                 return FormValidation.error(
