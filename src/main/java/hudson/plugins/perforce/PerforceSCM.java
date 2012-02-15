@@ -664,7 +664,7 @@ public class PerforceSCM extends SCM {
                 } else {
                     String counterName;
                     if (p4Counter != null && !updateCounterValue)
-                        counterName = p4Counter;
+                    	counterName = substituteParameters(this.p4Counter, build);
                     else
                         counterName = "change";
 
