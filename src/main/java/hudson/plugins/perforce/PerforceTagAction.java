@@ -103,6 +103,10 @@ public class PerforceTagAction extends AbstractScmTagAction {
         this.owner = owner;
     }
 
+    public Depot getDepot() {
+        return depot;
+    }
+
     /**
      * Returns true if this build has already been tagged at least once.
      */
