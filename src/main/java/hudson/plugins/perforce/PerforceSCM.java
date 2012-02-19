@@ -1809,7 +1809,7 @@ public class PerforceSCM extends SCM {
      * This parser can handle quoted or non-quoted mappings, normal two-part mappings, or one-part
      * mappings with an implied right part. It can also deal with +// or -// mapping forms.
      */
-    static List<String> parseProjectPath(String projectPath, String p4Client) {
+    public static List<String> parseProjectPath(String projectPath, String p4Client) {
         List<String> parsed = new ArrayList<String>();
         for (String line : projectPath.split("\n")) {
             Matcher depotOnly = DEPOT_ONLY.matcher(line);
