@@ -1853,6 +1853,26 @@ public class PerforceSCM extends SCM {
 
     static String substituteParameters(String string, AbstractBuild build) {
         Hashtable<String,String> subst = new Hashtable<String,String>();
+        
+        boolean useEnvironment = true;
+        //get full environment for build from jenkins
+        for(StackTraceElement ste : (new Throwable()).getStackTrace()){
+            if(ste.getMethodName().equals("buildEnvVars") &&
+                    ste.getClassName().equals(PerforceSCM.class.getName())){
+                useEnvironment = false;
+            }
+        }
+        if(useEnvironment){
+            try {
+                EnvVars vars = build.getEnvironment(TaskListener.NULL);
+                subst.putAll(vars);
+            } catch (IOException ex) {
+                Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
         subst.put("JOB_NAME", getSafeJobName(build));
         String hudsonName = Hudson.getInstance().getDisplayName().toLowerCase();
         subst.put("BUILD_TAG", hudsonName + "-" + build.getProject().getName() + "-" + String.valueOf(build.getNumber()));
