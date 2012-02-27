@@ -90,7 +90,11 @@ public class PerforceSCM extends SCM {
     String p4Counter;
     String p4Stream;
 
-    String p4Exe = "C:\\Program Files\\Perforce\\p4.exe";
+    /**
+     * Transient so that old XML data will be read but not saved.
+     * @deprecated Replaced by {@link #p4Tool}
+     */
+    transient String p4Exe;
     String p4SysDrive = "C:";
     String p4SysRoot = "C:\\WINDOWS";
 
@@ -99,6 +103,11 @@ public class PerforceSCM extends SCM {
     private static final Logger LOGGER = Logger.getLogger(PerforceSCM.class.getName());
 
     private static final int MAX_CHANGESETS_ON_FIRST_BUILD = 50;
+
+    /**
+     * Name of the p4 tool installation
+     */
+    String p4Tool;
 
 	/**
      * Use ClientSpec text file from depot to prepare the workspace view
@@ -250,7 +259,7 @@ public class PerforceSCM extends SCM {
             String p4Client,
             String p4Port,
             String projectOptions,
-            String p4Exe,
+            String p4Tool,
             String p4SysRoot,
             String p4SysDrive,
             String p4Label,
@@ -283,6 +292,7 @@ public class PerforceSCM extends SCM {
         this.exposeP4Passwd = exposeP4Passwd;
         this.p4Client = p4Client;
         this.p4Port = p4Port;
+        this.p4Tool = p4Tool;
         this.pollOnlyOnMaster = pollOnlyOnMaster;
         this.projectOptions = (projectOptions != null)
                 ? projectOptions
@@ -299,9 +309,6 @@ public class PerforceSCM extends SCM {
         this.updateCounterValue = updateCounterValue;
 
         this.projectPath = Util.fixEmptyAndTrim(projectPath);
-
-        if (p4Exe != null)
-            this.p4Exe = Util.fixEmptyAndTrim(p4Exe);
 
         if (p4SysRoot != null && p4SysRoot.length() != 0)
             this.p4SysRoot = Util.fixEmptyAndTrim(p4SysRoot);
@@ -392,7 +399,7 @@ public class PerforceSCM extends SCM {
             depot.setPassword(getDecryptedP4Passwd());
         }
 
-        depot.setExecutable(p4Exe);
+        depot.setExecutable(getP4Executable(p4Tool));
         depot.setSystemDrive(p4SysDrive);
         depot.setSystemRoot(p4SysRoot);
 
@@ -446,6 +453,38 @@ public class PerforceSCM extends SCM {
         }
     }
 
+    /**
+     * Get the path to p4 executable from a Perforce tool installation. 
+     * 
+     * @param tool the p4 tool installation
+     * @return path to p4 executable or empty string if there are no tool installations
+     */
+    public String getP4Executable(String tool) {
+        PerforceToolInstallation[] installations = ((hudson.plugins.perforce.PerforceToolInstallation.DescriptorImpl)Hudson.getInstance().
+                getDescriptorByType(PerforceToolInstallation.DescriptorImpl.class)).getInstallations();
+        for(PerforceToolInstallation i : installations) {
+            if(i.getName().equals(tool)) {
+                return i.getP4Exe();
+            }
+        }
+        return "";
+    }
+    
+    /**
+     * Use the old job configuration data. This method is called after the object is read by XStream.
+     * We want to create tool installations for each individual "p4Exe" path as field "p4Exe" has been removed.
+     * 
+     * @return the new object which is an instance of PerforceSCM
+     */
+    public Object readResolve() {
+        if (p4Exe != null)
+        {
+            PerforceToolInstallation.migrateOldData(p4Exe);
+            p4Tool = p4Exe;
+        }
+        return this;
+    }
+    
     private Hashtable<String, String> getDefaultSubstitutions(AbstractProject project) {
         Hashtable<String, String> subst = new Hashtable<String, String>();
         subst.put("JOB_NAME", getSafeJobName(project));
@@ -1437,6 +1476,16 @@ public class PerforceSCM extends SCM {
             return newInstance;
         }
 
+        /**
+         * List available tool installations.
+         * 
+         * @return list of available p4 tool installations
+         */
+        public List<PerforceToolInstallation> getP4Tools() {
+            PerforceToolInstallation[] p4ToolInstallations = Hudson.getInstance().getDescriptorByType(PerforceToolInstallation.DescriptorImpl.class).getInstallations();
+            return Arrays.asList(p4ToolInstallations);
+        }
+
         public String isValidProjectPath(String path) {
             if (!path.startsWith("//")) {
                 return "Path must start with '//' (Example: //depot/ProjectName/...)";
@@ -1451,11 +1500,11 @@ public class PerforceSCM extends SCM {
 
         protected Depot getDepotFromRequest(StaplerRequest request) {
             String port = fixNull(request.getParameter("port")).trim();
-            String exe = fixNull(request.getParameter("exe")).trim();
+            String tool = fixNull(request.getParameter("tool")).trim();
             String user = fixNull(request.getParameter("user")).trim();
             String pass = fixNull(request.getParameter("pass")).trim();
 
-            if (port.length() == 0 || exe.length() == 0) { // Not enough entered yet
+            if (port.length() == 0 || tool.length() == 0) { // Not enough entered yet
                 return null;
             }
             Depot depot = new Depot();
@@ -1468,7 +1517,17 @@ public class PerforceSCM extends SCM {
                 depot.setPassword(pass);
             }
             depot.setPort(port);
+
+            String exe = "";
+            PerforceToolInstallation[] installations = ((hudson.plugins.perforce.PerforceToolInstallation.DescriptorImpl)Hudson.getInstance().
+                    getDescriptorByType(PerforceToolInstallation.DescriptorImpl.class)).getInstallations();
+            for(PerforceToolInstallation i : installations) {
+                if(i.getName().equals(tool)) {
+                    exe = i.getP4Exe();
+                }
+            }
             depot.setExecutable(exe);
+
             try {
                 Counter counter = depot.getCounters().getCounter("change");
                 if (counter != null)
@@ -2117,17 +2176,31 @@ public class PerforceSCM extends SCM {
     }
 
     /**
-     * @return the p4Exe
+     * @deprecated Replaced by {@link #getP4Tool()}
      */
     public String getP4Exe() {
         return p4Exe;
     }
 
     /**
-     * @param exe the p4Exe to set
+     * @deprecated Replaced by {@link #setP4Tool(String)}
      */
     public void setP4Exe(String exe) {
         p4Exe = exe;
+    }
+    
+    /**
+     * @return the p4Tool
+     */
+    public String getP4Tool() {
+        return p4Tool;
+    }
+    
+    /**
+     * @param tool the p4 tool installation to set
+     */
+    public void setP4Tool(String tool) {
+        p4Tool = tool;
     }
 
     /**
