@@ -152,7 +152,7 @@ public class PerforceSCM extends SCM {
     /**
      * If true, we will create the workspace view within the plugin.  If false, we will not.
      */
-    boolean createWorkspace = true;
+    Boolean createWorkspace = true;
     /**
      * If true, we will manage the workspace view within the plugin.  If false, we will leave the
      * view alone.
@@ -353,7 +353,7 @@ public class PerforceSCM extends SCM {
         this.browser = browser;
         this.wipeBeforeBuild = wipeBeforeBuild;
         this.wipeRepoBeforeBuild = wipeRepoBeforeBuild;
-        this.createWorkspace = createWorkspace;
+        this.createWorkspace = Boolean.valueOf(createWorkspace);
         this.updateView = updateView;
         this.dontUpdateClient = dontUpdateClient;
         this.slaveClientNameFormat = slaveClientNameFormat;
@@ -477,6 +477,11 @@ public class PerforceSCM extends SCM {
      * @return the new object which is an instance of PerforceSCM
      */
     public Object readResolve() {
+        if (createWorkspace == null)
+        {
+            createWorkspace = Boolean.TRUE;
+        }
+        
         if (p4Exe != null)
         {
             PerforceToolInstallation.migrateOldData(p4Exe);
@@ -2279,14 +2284,14 @@ public class PerforceSCM extends SCM {
      * @param createWorkspace    True to let the plugin create the workspace, false to let the user manage it
      */
     public void setCreateWorkspace(boolean val) {
-        this.createWorkspace = val;
+        this.createWorkspace = Boolean.valueOf(val);
     }
 
     /**
      * @return  True if the plugin manages the view, false if the user does.
      */
     public boolean isCreateWorkspace() {
-        return createWorkspace;
+        return createWorkspace.booleanValue();
     }
 
     /**
