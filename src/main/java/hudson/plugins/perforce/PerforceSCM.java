@@ -576,6 +576,22 @@ public class PerforceSCM extends SCM {
         }
     }
 
+    private static boolean overrideWithBooleanParameter(String paramName, AbstractBuild build, boolean dflt) {
+        boolean value = dflt;
+        Object param;
+        if(build.getBuildVariables() != null){
+            if((param = build.getBuildVariables().get(paramName)) != null){
+                String paramString = param.toString();
+                if(paramString.toUpperCase().equals("TRUE") || paramString.equals("1")){
+                    value = true;
+                } else {
+                    value = false;
+                }
+            }
+        }
+        return value;
+    }
+    
     /*
      * @see hudson.scm.SCM#checkout(hudson.model.AbstractBuild, hudson.Launcher, hudson.FilePath, hudson.model.BuildListener, java.io.File)
      */
@@ -586,42 +602,17 @@ public class PerforceSCM extends SCM {
         PrintStream log = listener.getLogger();
         changelogFilename = changelogFile.getAbsolutePath();
 
-        boolean wipeBeforeBuild = this.wipeBeforeBuild;
-        boolean wipeRepoBeforeBuild = this.wipeRepoBeforeBuild;
-        boolean forceSync = this.forceSync;
+        boolean wipeBeforeBuild = overrideWithBooleanParameter(
+                "P4CLEANWORKSPACE", build, this.wipeBeforeBuild);
+        boolean wipeRepoBeforeBuild = overrideWithBooleanParameter(
+                "P4CLEANREPOINWORKSPACE", build, this.wipeRepoBeforeBuild);
+        boolean forceSync = overrideWithBooleanParameter(
+                "P4FORCESYNC", build, this.forceSync);
+        boolean disableAutoSync = overrideWithBooleanParameter(
+                "P4DISABLESYNC", build, this.disableAutoSync);
+        boolean disableSyncOnly = overrideWithBooleanParameter(
+                "P4DISABLESYNCONLY", build, this.disableSyncOnly);
 
-        if(build.getBuildVariables() != null){
-            Object p4clean;
-            if((p4clean = build.getBuildVariables().get("P4CLEANWORKSPACE")) != null){
-                String p4cleanString = p4clean.toString();
-                if(p4cleanString.toUpperCase().equals("TRUE") || p4cleanString.equals("1")){
-                    wipeBeforeBuild = true;
-                } else {
-                    wipeBeforeBuild = false;
-                }
-            }
-            /**
-             * Add a system var which instantiate .repository cleanup
-             */
-            Object p4repoclean;
-            if((p4repoclean = build.getBuildVariables().get("P4CLEANREPOINWORKSPACE")) != null){
-                String p4repocleanString = p4repoclean.toString();
-                if(p4repocleanString.toUpperCase().equals("TRUE") || p4repocleanString.equals("1")){
-                    wipeRepoBeforeBuild = true;
-                } else {
-                    wipeRepoBeforeBuild = false;
-                }
-            }
-            Object p4force;
-            if((p4force = build.getBuildVariables().get("P4FORCESYNC")) != null){
-                String p4forceString = p4force.toString();
-                if(p4forceString.toUpperCase().equals("TRUE") || p4forceString.equals("1")){
-                    forceSync = true;
-                } else {
-                    forceSync = false;
-                }
-            }
-        }
 
         if(wipeBeforeBuild){
         	if(wipeRepoBeforeBuild){
