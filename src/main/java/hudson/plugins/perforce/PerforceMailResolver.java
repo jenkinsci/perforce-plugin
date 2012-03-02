@@ -34,6 +34,10 @@ public class PerforceMailResolver extends MailAddressResolver {
         if (puprop != null){
             LOGGER.fine("Using perforce user id '" + perforceId + "' from " + u.getId() + "'s properties.");
             perforceId = puprop.getPerforceId();
+            if(puprop.getPerforceEmail() != null){
+                LOGGER.fine("Got email ("+puprop.getPerforceEmail()+") from " + u.getId() +"'s P4 properties.");
+                return puprop.getPerforceEmail();
+            }
         }
         for (AbstractProject p : Hudson.getInstance().getProjects()) {
             if (p.isDisabled()) continue;
