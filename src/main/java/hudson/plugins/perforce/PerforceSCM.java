@@ -641,10 +641,11 @@ public class PerforceSCM extends SCM {
         }
 
         
-        
+        //Use local variables so that substitutions are not saved
         String p4Label = substituteParameters(this.p4Label, build);
         String viewMask = substituteParameters(this.viewMask, build);
         Depot depot = getDepot(launcher,workspace, build.getProject(), build);
+        String p4Stream = substituteParameters(this.p4Stream, build);
         
         
         //If we're doing a matrix build, we should always force sync.
@@ -1258,6 +1259,7 @@ public class PerforceSCM extends SCM {
 
 
         depot.setClient(p4Client);
+        String p4Stream = (build == null ? substituteParameters(this.p4Stream, getDefaultSubstitutions(project)) : substituteParameters(this.p4Stream, build));
 
         // Get the clientspec (workspace) from perforce
 
