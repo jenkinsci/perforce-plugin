@@ -20,17 +20,7 @@ import hudson.Launcher;
 import static hudson.Util.fixNull;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixRun;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.Hudson;
-import hudson.model.ParametersDefinitionProperty;
-import hudson.model.Node;
-import hudson.model.ParameterDefinition;
-import hudson.model.ParameterValue;
-import hudson.model.Run;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.remoting.VirtualChannel;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.PollingResult;
@@ -58,12 +48,7 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -567,6 +552,37 @@ public class PerforceSCM extends SCM {
         return pathName;
     }
 
+    private static void retrieveUserInformation(Depot depot, List<Changelist> changes) throws PerforceException {
+        // uniqify in order to reduce number of calls to P4.
+        HashSet<String> users = new HashSet<String>();
+        for(Changelist change : changes){
+            users.add(change.getUser());
+        }
+        for(String user : users){
+            com.tek42.perforce.model.User pu;
+            try{
+                 pu = depot.getUsers().getUser(user);
+            }catch(Exception e){
+                throw new PerforceException("Problem getting user information for " + user,e);
+            }
+            User author = User.get(user);
+            // Need to store the actual perforce user id for later retrieval
+            // because Jenkins does not support all the same characters that
+            // perforce does in the userID.
+            PerforceUserProperty puprop = author.getProperty(PerforceUserProperty.class);
+            if ( puprop == null || puprop.getPerforceId() == null || puprop.getPerforceId().equals("")){
+                puprop = new PerforceUserProperty();
+                try {
+                    author.addProperty(puprop);
+                } catch (IOException ex) {
+                    LOGGER.log(Level.SEVERE, null, ex);
+                }
+            }
+            puprop.setPerforceEmail(pu.getEmail());
+            puprop.setPerforceId(user);
+        }
+    }
+
     private static class WipeWorkspaceFilter implements FileFilter, Serializable {
         public boolean accept(File arg0) {
             if(arg0.getName().equals(".repository")){
@@ -736,6 +752,8 @@ public class PerforceSCM extends SCM {
                     PerforceChangeLogSet.saveToChangeLog(
                             new FileOutputStream(changelogFile), changes);
                     newestChange = changes.get(0).getChangeNumber();
+                    // Get and store information about committers
+                    retrieveUserInformation(depot, changes);
                 }
                 else {
                     // No new changes discovered (though the definition of the workspace or label may have changed).

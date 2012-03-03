@@ -33,19 +33,6 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
     @Exported
     public User getAuthor() {
         User author = User.get(change.getUser());
-        // Need to store the actual perforce user id for later retrieval
-        // because Jenkins does not support all the same characters that
-        // perforce does in the userID.
-        PerforceUserProperty puprop = author.getProperty(PerforceUserProperty.class);
-        if ( puprop == null || puprop.getPerforceId() == null || puprop.getPerforceId().equals("")){
-            puprop = new PerforceUserProperty();
-            try {
-                author.addProperty(puprop);
-            } catch (IOException ex) {
-                Logger.getLogger(PerforceChangeLogEntry.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        puprop.setPerforceId(change.getUser());
         return author;
     }
 
