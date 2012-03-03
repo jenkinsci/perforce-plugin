@@ -48,12 +48,7 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -557,15 +552,20 @@ public class PerforceSCM extends SCM {
         return pathName;
     }
 
-    private static void saveUserInformation(Depot depot, List<Changelist> changes) throws PerforceException {
+    private static void retrieveUserInformation(Depot depot, List<Changelist> changes) throws PerforceException {
+        // uniqify in order to reduce number of calls to P4.
+        HashSet<String> users = new HashSet<String>();
         for(Changelist change : changes){
+            users.add(change.getUser());
+        }
+        for(String user : users){
             com.tek42.perforce.model.User pu;
             try{
-                 pu = depot.getUsers().getUser(change.getUser());
+                 pu = depot.getUsers().getUser(user);
             }catch(Exception e){
-                throw new PerforceException("Problem getting user information for " + change.getUser(),e);
+                throw new PerforceException("Problem getting user information for " + user,e);
             }
-            User author = User.get(change.getUser());
+            User author = User.get(user);
             // Need to store the actual perforce user id for later retrieval
             // because Jenkins does not support all the same characters that
             // perforce does in the userID.
@@ -579,7 +579,7 @@ public class PerforceSCM extends SCM {
                 }
             }
             puprop.setPerforceEmail(pu.getEmail());
-            puprop.setPerforceId(change.getUser());
+            puprop.setPerforceId(user);
         }
     }
 
@@ -753,7 +753,7 @@ public class PerforceSCM extends SCM {
                             new FileOutputStream(changelogFile), changes);
                     newestChange = changes.get(0).getChangeNumber();
                     // Get and store information about committers
-                    saveUserInformation(depot, changes);
+                    retrieveUserInformation(depot, changes);
                 }
                 else {
                     // No new changes discovered (though the definition of the workspace or label may have changed).
