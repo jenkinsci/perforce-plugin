@@ -461,6 +461,7 @@ public class PerforceSCM extends SCM {
      * 
      * @return the new object which is an instance of PerforceSCM
      */
+    @SuppressWarnings( "deprecation" )
     public Object readResolve() {
         if (createWorkspace == null)
         {
