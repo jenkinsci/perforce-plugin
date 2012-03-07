@@ -97,11 +97,11 @@
     </f:entry>
   
     <f:entry title="One Time Force Sync" help="/plugin/perforce/help/forceSync.html">
-      <f:checkbox field="forceSync" value="True"/>
+      <f:checkbox field="forceSync" value="True" id="forceSync" onchange="this.form.elements['dontUpdateServer'].changed();"/>
     </f:entry>
   
     <f:entry title="Always Force Sync" help="/plugin/perforce/help/alwaysForceSync.html">
-      <f:checkbox field="alwaysForceSync" value="True"/>
+      <f:checkbox field="alwaysForceSync" value="True" id="alwaysForceSync" />
     </f:entry>
   
     <f:entry title="Disable Sync and Changelog" help="/plugin/perforce/help/disableAutoSync.html">
@@ -147,7 +147,8 @@
       <f:checkbox field="dontUpdateClient" default="false" />
     </f:entry>
     <f:entry title="Don't update server database on sync (-p)" help="/plugin/perforce/help/dontUpdateServer.html">
-      <f:checkbox field="dontUpdateServer" default="false" />
+      <f:checkbox field="dontUpdateServer" default="false" id="dontUpdateServer"
+          checkUrl="'${rootURL}/scm/PerforceSCM/validateForceSync?dontUpdateServer='+escape(this.form.elements['dontUpdateServer'].checked)+'&amp;forceSync='+escape(this.form.elements['forceSync'].checked)+'&amp;alwaysForceSync='+escape(this.form.elements['alwaysForceSync'].checked)"/>
     </f:entry>
     <f:entry title="Client name format for slaves" help="/plugin/perforce/help/clientNameFormat.html">
       <f:textbox field="slaveClientNameFormat"/>
@@ -200,5 +201,9 @@
   </f:advanced>
 
   <t:listScmBrowsers name="browser" />
+  <script language="javascript">
+      this.document.getElementById('alwaysForceSync').onchange= function () {this.form.elements["dontUpdateServer"].onchange();};
+      this.document.getElementById('forceSync').onchange= function () {this.form.elements["dontUpdateServer"].onchange();};
+  </script>
 
 </j:jelly>

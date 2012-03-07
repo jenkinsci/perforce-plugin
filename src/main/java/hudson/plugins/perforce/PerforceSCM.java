@@ -1839,6 +1839,17 @@ public class PerforceSCM extends SCM {
             return FormValidation.ok();
         }
 
+        public FormValidation doValidateForceSync(StaplerRequest req) {
+            Boolean forceSync = Boolean.valueOf(fixNull(req.getParameter("forceSync")).trim());
+            Boolean alwaysForceSync = Boolean.valueOf(fixNull(req.getParameter("alwaysForceSync")).trim());
+            Boolean dontUpdateServer = Boolean.valueOf(fixNull(req.getParameter("dontUpdateServer")).trim());
+            
+            if((forceSync || alwaysForceSync) && dontUpdateServer){
+                return FormValidation.error("Don't Update Server Database (-p) option is incompatible with force syncing! Either disable -p, or disable force syncing.");
+            }
+            return FormValidation.ok();
+        }
+        
         public List<String> getAllLineEndChoices(){
             List<String> allChoices = Arrays.asList(
                 "local",
