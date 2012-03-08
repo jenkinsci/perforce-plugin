@@ -362,8 +362,10 @@ public class PerforceSCM extends SCM {
      *
      * Always create a new Depot to reflect any changes to the machines that
      * P4 actions will be performed on.
+     *
+     * @param node the value of node
      */
-    protected Depot getDepot(Launcher launcher, FilePath workspace, AbstractProject project, AbstractBuild build) {
+    protected Depot getDepot(Launcher launcher, FilePath workspace, AbstractProject project, AbstractBuild build, Node node) {
 
         HudsonP4ExecutorFactory p4Factory = new HudsonP4ExecutorFactory(launcher,workspace);
 
@@ -384,7 +386,10 @@ public class PerforceSCM extends SCM {
             depot.setPassword(getDecryptedP4Passwd());
         }
 
-        depot.setExecutable(getP4Executable(p4Tool));
+        if(node == null)
+            depot.setExecutable(getP4Executable(p4Tool));
+        else
+            depot.setExecutable(getP4Executable(p4Tool,node,TaskListener.NULL));
         depot.setSystemDrive(p4SysDrive);
         depot.setSystemRoot(p4SysRoot);
 
@@ -441,18 +446,46 @@ public class PerforceSCM extends SCM {
     /**
      * Get the path to p4 executable from a Perforce tool installation. 
      * 
-     * @param tool the p4 tool installation
-     * @return path to p4 executable or empty string if there are no tool installations
+     * @param tool the p4 tool installation name
+     * @return path to p4 tool path or an empty string if none is found
      */
     public String getP4Executable(String tool) {
+        PerforceToolInstallation toolInstallation = getP4Tool(tool);
+        if(toolInstallation == null)
+            return "";
+        return toolInstallation.getP4Exe();
+    }
+    
+    public String getP4Executable(String tool, Node node, TaskListener listener) {
+        PerforceToolInstallation toolInstallation = getP4Tool(tool);
+        if(toolInstallation == null)
+            return "";
+        String p4Exe="";
+        try {
+            p4Exe = toolInstallation.forNode(node, listener).getP4Exe();
+        }catch(IOException e){
+            listener.getLogger().println(e);
+        }catch(InterruptedException e){
+            listener.getLogger().println(e);
+        }
+        return p4Exe;
+    }
+    
+    /**
+     * Get the path to p4 executable from a Perforce tool installation. 
+     * 
+     * @param tool the p4 tool installation name
+     * @return path to p4 tool installation or null
+     */
+    public PerforceToolInstallation getP4Tool(String tool) {
         PerforceToolInstallation[] installations = ((hudson.plugins.perforce.PerforceToolInstallation.DescriptorImpl)Hudson.getInstance().
                 getDescriptorByType(PerforceToolInstallation.DescriptorImpl.class)).getInstallations();
         for(PerforceToolInstallation i : installations) {
             if(i.getName().equals(tool)) {
-                return i.getP4Exe();
+                return i;
             }
         }
-        return "";
+        return null;
     }
     
     /**
@@ -661,7 +694,7 @@ public class PerforceSCM extends SCM {
         //Use local variables so that substitutions are not saved
         String p4Label = substituteParameters(this.p4Label, build);
         String viewMask = substituteParameters(this.viewMask, build);
-        Depot depot = getDepot(launcher,workspace, build.getProject(), build);
+        Depot depot = getDepot(launcher,workspace, build.getProject(), build, build.getBuiltOn());
         String p4Stream = substituteParameters(this.p4Stream, build);
         
         
@@ -969,10 +1002,10 @@ public class PerforceSCM extends SCM {
         try {
             Node buildNode = getPollingNode(project);
             if (buildNode == null){
-                depot = getDepot(launcher,workspace,project,null);
+                depot = getDepot(launcher,workspace,project,null,buildNode);
                 logger.println("Using master");
             } else {
-                depot = getDepot(buildNode.createLauncher(listener),buildNode.getRootPath(),project,null);
+                depot = getDepot(buildNode.createLauncher(listener),buildNode.getRootPath(),project,null, buildNode);
                 logger.println("Using node: " + buildNode.getDisplayName());
             }
 
@@ -2599,7 +2632,7 @@ public class PerforceSCM extends SCM {
         PrintStream log = loglistener.getLogger();
         TaskListener listener = new StreamTaskListener(log);
         Launcher launcher = node.createLauncher(listener);
-        Depot depot = getDepot(launcher, workspace, project, null);
+        Depot depot = getDepot(launcher, workspace, project, null, node);
         try {
             Workspace p4workspace = getPerforceWorkspace(
                 project,

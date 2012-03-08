@@ -65,7 +65,7 @@ public class PerforceMailResolver extends MailAddressResolver {
                     com.tek42.perforce.model.User pu = null;
                     try {
                         LOGGER.finer("Trying to get email address from perforce for " + perforceId);
-                        pu = pscm.getDepot(launcher, workspace, p, null).getUsers().getUser(perforceId);
+                        pu = pscm.getDepot(launcher, workspace, p, null, node).getUsers().getUser(perforceId);
                         if (pu != null && pu.getEmail() != null && !pu.getEmail().equals("")) {
                             LOGGER.fine("Got email (" + pu.getEmail() + ") from perforce for " + perforceId);
                             return pu.getEmail();
