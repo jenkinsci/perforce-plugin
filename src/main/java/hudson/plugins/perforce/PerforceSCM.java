@@ -64,6 +64,8 @@ import java.util.regex.PatternSyntaxException;
  */
 public class PerforceSCM extends SCM {
 
+    private Long configVersion;
+    
     String p4User;
     String p4Passwd;
     String p4Port;
@@ -272,6 +274,8 @@ public class PerforceSCM extends SCM {
             String excludedFiles
             ) {
 
+        this.configVersion = 0L;
+        
         this.p4User = p4User;
         this.setP4Passwd(p4Passwd);
         this.exposeP4Passwd = exposeP4Passwd;
@@ -496,16 +500,19 @@ public class PerforceSCM extends SCM {
      */
     @SuppressWarnings( "deprecation" )
     public Object readResolve() {
-        if (createWorkspace == null)
-        {
+        if(createWorkspace == null) {
             createWorkspace = Boolean.TRUE;
         }
         
-        if (p4Exe != null)
-        {
+        if(p4Exe != null) {
             PerforceToolInstallation.migrateOldData(p4Exe);
             p4Tool = p4Exe;
         }
+        
+        if(configVersion == null) {
+            configVersion = 0L;
+        }
+        
         return this;
     }
     
