@@ -81,7 +81,7 @@ public final class PerforceToolInstallation extends ToolInstallation implements 
      * 
      * @param exe The path to p4 executable
      */
-    public static void migrateOldData(String exe) {
+    public static synchronized void migrateOldData(String exe) {
         for (PerforceToolInstallation tool : p4Tools) {
             //Tool installation already exists, Unix case
             if (File.separatorChar == '/' && tool.getName().equals(exe)) {
