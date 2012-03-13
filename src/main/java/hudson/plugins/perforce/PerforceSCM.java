@@ -2635,7 +2635,7 @@ public class PerforceSCM extends SCM {
     public boolean processWorkspaceBeforeDeletion(AbstractProject<?,?> project, FilePath workspace, Node node) {
         Logger perforceLogger = Logger.getLogger(PerforceSCM.class.getName());
         perforceLogger.info(
-            "Workspace is being deleted; enabling one-time force sync.");
+            "Workspace '"+workspace.getRemote()+"' is being deleted; flushing workspace to revision 0.");
         TaskListener loglistener = new LogTaskListener(perforceLogger,Level.INFO);
         PrintStream log = loglistener.getLogger();
         TaskListener listener = new StreamTaskListener(log);
