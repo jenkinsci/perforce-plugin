@@ -456,15 +456,15 @@ public class PerforceSCM extends SCM {
     public String getP4Executable(String tool) {
         PerforceToolInstallation toolInstallation = getP4Tool(tool);
         if(toolInstallation == null)
-            return "";
+            return "p4";
         return toolInstallation.getP4Exe();
     }
     
     public String getP4Executable(String tool, Node node, TaskListener listener) {
         PerforceToolInstallation toolInstallation = getP4Tool(tool);
         if(toolInstallation == null)
-            return "";
-        String p4Exe="";
+            return "p4";
+        String p4Exe="p4";
         try {
             p4Exe = toolInstallation.forNode(node, listener).getP4Exe();
         }catch(IOException e){
