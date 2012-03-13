@@ -519,6 +519,11 @@ public class PerforceSCM extends SCM {
     private Hashtable<String, String> getDefaultSubstitutions(AbstractProject project) {
         Hashtable<String, String> subst = new Hashtable<String, String>();
         subst.put("JOB_NAME", getSafeJobName(project));
+        for (NodeProperty nodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
+            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
+                subst.putAll( ((EnvironmentVariablesNodeProperty)nodeProperty).getEnvVars() );
+            }
+        }
         ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) project.getProperty(hudson.model.ParametersDefinitionProperty.class);
         if(pdp != null) {
             for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
@@ -533,11 +538,7 @@ public class PerforceSCM extends SCM {
                 }
             }
         }
-        for (NodeProperty nodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
-            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                subst.putAll( ((EnvironmentVariablesNodeProperty)nodeProperty).getEnvVars() );
-            }
-        }
+
         return subst;
     }
 
@@ -2018,8 +2019,8 @@ public class PerforceSCM extends SCM {
                 subst.putAll( ((EnvironmentVariablesNodeProperty)nodeProperty).getEnvVars() );
             }
         }
-        String result = substituteParameters(string, build.getBuildVariables());
-        result = substituteParameters(result, subst);
+        String result = substituteParameters(string, subst);
+        result = substituteParameters(result, build.getBuildVariables());
         return result;
     }
 
