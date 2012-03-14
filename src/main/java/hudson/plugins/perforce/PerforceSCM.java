@@ -671,33 +671,6 @@ public class PerforceSCM extends SCM {
         boolean disableSyncOnly = overrideWithBooleanParameter(
                 "P4DISABLESYNCONLY", build, this.disableSyncOnly);
 
-
-        if(wipeBeforeBuild){
-        	if(wipeRepoBeforeBuild){
-            log.println("Clearing workspace...");
-            log.println("Clear workspace includes .repository ...");
-            	if(processWorkspaceBeforeDeletion(build.getProject(), workspace, build.getBuiltOn())){
-            		workspace.deleteContents();
-            		log.println("Cleared workspace.");
-            	} else {
-            		log.println("Could not clear workspace. See hudson.perforce.PerforceSCM logger for details.");
-            	}
-				forceSync = true;
-        	} else {
-	        	if(processWorkspaceBeforeDeletion(build.getProject(), workspace, build.getBuiltOn())){
-	            	List<FilePath> workspaceDirs = workspace.list(new WipeWorkspaceFilter());
-	                for(FilePath dir : workspaceDirs){
-	                    dir.deleteRecursive();
-	                }
-	                log.println("Cleared workspace.");
-	                log.println("Note: .repository directory in workspace (if exists) is skipped ...");
-	            } else {
-	                log.println("Could not clear workspace. See hudson.perforce.PerforceSCM logger for details.");
-	            }
-					forceSync = true;
-	        	}
-        }
-
         
         //Use local variables so that substitutions are not saved
         String p4Label = substituteParameters(this.p4Label, build);
@@ -728,6 +701,24 @@ public class PerforceSCM extends SCM {
             boolean dirtyWorkspace = p4workspace.isDirty();
             saveWorkspaceIfDirty(depot, p4workspace, log);
 
+            if(wipeBeforeBuild){
+                log.println("Clearing workspace...");
+        	if(wipeRepoBeforeBuild){
+                    log.println("Clear workspace includes .repository ...");
+                    flushWorkspaceTo0(depot, p4workspace, log);
+                    workspace.deleteContents();
+                } else {
+                    log.println("Note: .repository directory in workspace (if exists) is skipped.");
+                    flushWorkspaceTo0(depot, p4workspace, log);
+                    List<FilePath> workspaceDirs = workspace.list(new WipeWorkspaceFilter());
+                    for(FilePath dir : workspaceDirs){
+                        dir.deleteRecursive();
+                    }
+                }
+                log.println("Cleared workspace.");
+                forceSync = true;
+            }
+            
             //In case of a stream depot, we want Perforce to handle the client views. So let's re-initialize
             //the p4workspace object if it was changed since the last build. Also, populate projectPath with
             //the current view from Perforce. We need it for labeling.
@@ -1240,6 +1231,11 @@ public class PerforceSCM extends SCM {
         } else {
             return false;
         }
+    }
+
+    private void flushWorkspaceTo0(Depot depot, Workspace p4workspace, PrintStream log) throws PerforceException {
+        saveWorkspaceIfDirty(depot, p4workspace, log);
+        depot.getWorkspaces().flushTo("//" + p4workspace.getName() + "/...#0");
     }
 
     // TODO Handle the case where p4Label is set.
@@ -2652,8 +2648,7 @@ public class PerforceSCM extends SCM {
                 workspace,
                 listener,
                 dontRenameClient);
-            saveWorkspaceIfDirty(depot, p4workspace, log);
-            depot.getWorkspaces().flushTo("//" + p4workspace.getName() + "/...#0");
+            flushWorkspaceTo0(depot, p4workspace, log);
         } catch (Exception ex) {
             Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
             return false;
