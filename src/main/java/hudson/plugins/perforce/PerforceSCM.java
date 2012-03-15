@@ -1381,7 +1381,7 @@ public class PerforceSCM extends SCM {
                 if (useClientSpec) {
                     projectPath = getEffectiveProjectPathFromFile(build, project, log, depot);
                 }
-                List<String> mappingPairs = parseProjectPath(projectPath, p4Client);
+                List<String> mappingPairs = parseProjectPath(projectPath, p4Client, log);
                 if (!equalsProjectPath(mappingPairs, p4workspace.getViews())) {
                     log.println("Changing P4 Client View from:\n" + p4workspace.getViewsAsString());
                     log.println("Changing P4 Client View to: ");
@@ -1932,6 +1932,11 @@ public class PerforceSCM extends SCM {
      * mappings with an implied right part. It can also deal with +// or -// mapping forms.
      */
     public static List<String> parseProjectPath(String projectPath, String p4Client) {
+        PrintStream log = (new LogTaskListener(LOGGER, Level.WARNING)).getLogger();
+        return parseProjectPath(projectPath, p4Client, log);
+    }
+    
+    public static List<String> parseProjectPath(String projectPath, String p4Client, PrintStream log) {
         List<String> parsed = new ArrayList<String>();
         for (String line : projectPath.split("\n")) {
             Matcher depotOnly = DEPOT_ONLY.matcher(line);
@@ -1963,9 +1968,12 @@ public class PerforceSCM extends SCM {
                                 // add the found depot path and the clientname-tweaked client path
                                 parsed.add(depotAndQuotedWorkspace.group(1));
                                 parsed.add("\"//" + p4Client + depotAndQuotedWorkspace.group(2) + "\"");
+                            } else {
+                                // Assume anything else is a comment and ignore it
+                                // Throw a warning anyways.
+                                log.println("Warning: Client Spec line invalid, ignoring. ("+line+")");
                             }
                         }
-                        // Assume anything else is a comment and ignore it
                     }
                 }
             }
