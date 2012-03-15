@@ -705,11 +705,9 @@ public class PerforceSCM extends SCM {
                 log.println("Clearing workspace...");
         	if(wipeRepoBeforeBuild){
                     log.println("Clear workspace includes .repository ...");
-                    flushWorkspaceTo0(depot, p4workspace, log);
                     workspace.deleteContents();
                 } else {
                     log.println("Note: .repository directory in workspace (if exists) is skipped.");
-                    flushWorkspaceTo0(depot, p4workspace, log);
                     List<FilePath> workspaceDirs = workspace.list(new WipeWorkspaceFilter());
                     for(FilePath dir : workspaceDirs){
                         dir.deleteRecursive();
