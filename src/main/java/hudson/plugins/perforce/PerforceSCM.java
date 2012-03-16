@@ -722,7 +722,9 @@ public class PerforceSCM extends SCM {
             //the current view from Perforce. We need it for labeling.
             if (useStreamDepot) {
                 if (dirtyWorkspace) {
-                    p4workspace = depot.getWorkspaces().getWorkspace(getEffectiveClientName(build), p4Stream);
+                    //Support for concurrent builds
+                    String p4Client = getConcurrentClientName(workspace, getEffectiveClientName(build));
+                    p4workspace = depot.getWorkspaces().getWorkspace(p4Client, p4Stream);
                 }
                 projectPath = p4workspace.getTrimmedViewsAsString();
             }
@@ -1299,6 +1301,11 @@ public class PerforceSCM extends SCM {
             p4Client = getDefaultEffectiveClientName(project, buildNode, workspace);
         }
 
+        // If we are running concurrent builds, the Jenkins workspace path is different
+        // for each concurrent build. Append Perforce workspace name with Jenkins
+        // workspace identifier suffix.
+        p4Client = getConcurrentClientName(workspace, p4Client);
+
         if (!nodeIsRemote(buildNode)) {
             log.print("Using master perforce client: ");
             log.println(p4Client);
@@ -1311,12 +1318,10 @@ public class PerforceSCM extends SCM {
             log.println("Using remote perforce client: " + p4Client);
         }
 
-
         depot.setClient(p4Client);
         String p4Stream = (build == null ? substituteParameters(this.p4Stream, getDefaultSubstitutions(project)) : substituteParameters(this.p4Stream, build));
 
         // Get the clientspec (workspace) from perforce
-
         Workspace p4workspace = depot.getWorkspaces().getWorkspace(p4Client, p4Stream);
         assert p4workspace != null;
         boolean creatingNewWorkspace = p4workspace.isNew();
@@ -1489,6 +1494,25 @@ public class PerforceSCM extends SCM {
             log.println("Saving modified client " + p4workspace.getName());
             depot.getWorkspaces().saveWorkspace(p4workspace);
         }
+    }
+
+    /**
+     * Append Perforce workspace name with a Jenkins workspace identifier, if this
+     * is a concurrent build job.
+     * 
+     * @param workspace Workspace of the current build
+     * @param p4Client User defined client name
+     * @return The new client name. If this is a concurrent build with, append the 
+     * client name with a Jenkins workspace identifier.
+     */
+    private String getConcurrentClientName(FilePath workspace, String p4Client) {
+        if (workspace != null) {
+            int suffix_index = workspace.getRemote().lastIndexOf("@");
+            if (suffix_index > -1) {
+                p4Client += "_" + workspace.getRemote().substring(suffix_index+1);
+            }
+        }
+        return p4Client;
     }
 
     @Extension
