@@ -58,7 +58,7 @@ public class Users extends AbstractPerforceTemplate {
 	}
 
         private boolean exists(String name) throws Exception {
-            StringBuilder response = getPerforceResponse(new String[]{getP4Exe(), "users", name});
+            StringBuilder response = getPerforceResponse(new String[]{getP4Exe(), "-s", "users", name});
             return !response.toString().contains("no such user");
         }
 }
