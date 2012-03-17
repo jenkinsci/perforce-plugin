@@ -625,10 +625,25 @@ public class PerforceSCM extends SCM {
         }
     }
 
-    private static class WipeWorkspaceFilter implements FileFilter, Serializable {
+    private static class WipeWorkspaceExcludeFilter implements FileFilter, Serializable {
+        
+        private List<String> excluded = new ArrayList<String>();
+        
+        public WipeWorkspaceExcludeFilter(String... args){
+            for(String arg : args){
+                excluded.add(arg);
+            }
+        }
+        
+        public void exclude(String arg){
+            excluded.add(arg);
+        }
+        
         public boolean accept(File arg0) {
-            if(arg0.getName().equals(".repository")){
-                return false;
+            for(String exclude : excluded){
+                if(arg0.getName().equals(exclude)){
+                    return false;
+                }
             }
             return true;
         }
@@ -703,15 +718,17 @@ public class PerforceSCM extends SCM {
 
             if(wipeBeforeBuild){
                 log.println("Clearing workspace...");
+                String p4config = substituteParameters("${P4CONFIG}", build);
+                WipeWorkspaceExcludeFilter wipeFilter = new WipeWorkspaceExcludeFilter(".p4config",p4config);
         	if(wipeRepoBeforeBuild){
-                    log.println("Clear workspace includes .repository ...");
-                    workspace.deleteContents();
+                    log.println("Clear workspace includes .repository ...");                    
                 } else {
                     log.println("Note: .repository directory in workspace (if exists) is skipped.");
-                    List<FilePath> workspaceDirs = workspace.list(new WipeWorkspaceFilter());
-                    for(FilePath dir : workspaceDirs){
-                        dir.deleteRecursive();
-                    }
+                    wipeFilter.exclude(".repository");
+                }
+                List<FilePath> workspaceDirs = workspace.list(wipeFilter);
+                for(FilePath dir : workspaceDirs){
+                    dir.deleteRecursive();
                 }
                 log.println("Cleared workspace.");
                 forceSync = true;
