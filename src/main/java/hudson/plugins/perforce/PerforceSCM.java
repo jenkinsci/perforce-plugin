@@ -1393,6 +1393,8 @@ public class PerforceSCM extends SCM {
         else if (localPath.trim().equals(""))
                 localPath = project.getRootDir().getAbsolutePath();
 
+        localPath = localPath.replace("@","%40");
+        
         if (!localPath.equals(p4workspace.getRoot()) && !dontChangeRoot && !dontUpdateClient) {
             log.println("Changing P4 Client Root to: " + localPath);
             forceSync = true;
