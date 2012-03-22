@@ -1541,9 +1541,11 @@ public class PerforceSCM extends SCM {
      */
     private String getConcurrentClientName(FilePath workspace, String p4Client) {
         if (workspace != null) {
-            int suffix_index = workspace.getRemote().lastIndexOf("@");
-            if (suffix_index > -1) {
-                p4Client += "_" + workspace.getRemote().substring(suffix_index+1);
+            //Match @ followed by an integer at the end of the workspace path
+            Pattern p = Pattern.compile(".*@(\\d+)$");
+            Matcher matcher = p.matcher(workspace.getRemote());
+            if (matcher.find()) {
+                p4Client += "_" + matcher.group(1);
             }
         }
         return p4Client;
