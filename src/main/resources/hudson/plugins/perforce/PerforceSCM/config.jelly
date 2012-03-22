@@ -184,6 +184,11 @@
     <f:entry title="Poll Exclude File(s)" help="/plugin/perforce/help/excludeFiles.html">
         <f:textarea field="excludedFiles" id="excludedFiles"
               checkUrl="'${rootURL}/scm/PerforceSCM/validateExcludedFiles?excludedFiles='+escape(this.value)" />
+        <table width="100%">
+        <f:entry title="Case Sensitive File Matching">
+            <f:checkbox field="excludedFilesCaseSensitivity" id="excludedFilesCaseSensitivity" default="true"/>
+        </f:entry>
+        </table>
     </f:entry>
 
     <f:optionalBlock name="p4.useViewMask" title="Use View Mask" help="/plugin/perforce/help/useViewMask.html" checked="${instance.useViewMask}">

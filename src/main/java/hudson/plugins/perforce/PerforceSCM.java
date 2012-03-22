@@ -195,6 +195,11 @@ public class PerforceSCM extends SCM {
     String excludedFiles;
 
     /**
+     * Use Case sensitive matching on excludedFiles.
+     */
+    Boolean excludedFilesCaseSensitivity;
+    
+    /**
      * If a ticket was issued we can use it instead of the password in the environment.
      */
     private String p4Ticket = null;
@@ -255,7 +260,7 @@ public class PerforceSCM extends SCM {
             String p4Charset,
             String p4CommandCharset,
             boolean updateCounterValue,
-            boolean forceSync,
+            boolean forceSync, 
             boolean dontUpdateServer,
             boolean alwaysForceSync,
             boolean createWorkspace,
@@ -271,8 +276,8 @@ public class PerforceSCM extends SCM {
             int firstChange,
             PerforceRepositoryBrowser browser,
             String excludedUsers,
-            String excludedFiles
-            ) {
+            String excludedFiles,
+            boolean excludedFilesCaseSensitivity) {
 
         this.configVersion = 0L;
         
@@ -353,6 +358,7 @@ public class PerforceSCM extends SCM {
         this.p4CommandCharset = Util.fixEmptyAndTrim(p4CommandCharset);
         this.excludedUsers = Util.fixEmptyAndTrim(excludedUsers);
         this.excludedFiles = Util.fixEmptyAndTrim(excludedFiles);
+        this.excludedFilesCaseSensitivity = excludedFilesCaseSensitivity;
     }
 
     /**
@@ -509,6 +515,10 @@ public class PerforceSCM extends SCM {
             p4Tool = p4Exe;
         }
         
+        if(excludedFilesCaseSensitivity == null) {
+            excludedFilesCaseSensitivity = Boolean.TRUE;
+        }
+        
         if(configVersion == null) {
             configVersion = 0L;
         }
@@ -625,10 +635,25 @@ public class PerforceSCM extends SCM {
         }
     }
 
-    private static class WipeWorkspaceFilter implements FileFilter, Serializable {
+    private static class WipeWorkspaceExcludeFilter implements FileFilter, Serializable {
+        
+        private List<String> excluded = new ArrayList<String>();
+        
+        public WipeWorkspaceExcludeFilter(String... args){
+            for(String arg : args){
+                excluded.add(arg);
+            }
+        }
+        
+        public void exclude(String arg){
+            excluded.add(arg);
+        }
+        
         public boolean accept(File arg0) {
-            if(arg0.getName().equals(".repository")){
-                return false;
+            for(String exclude : excluded){
+                if(arg0.getName().equals(exclude)){
+                    return false;
+                }
             }
             return true;
         }
@@ -703,15 +728,17 @@ public class PerforceSCM extends SCM {
 
             if(wipeBeforeBuild){
                 log.println("Clearing workspace...");
+                String p4config = substituteParameters("${P4CONFIG}", build);
+                WipeWorkspaceExcludeFilter wipeFilter = new WipeWorkspaceExcludeFilter(".p4config",p4config);
         	if(wipeRepoBeforeBuild){
-                    log.println("Clear workspace includes .repository ...");
-                    workspace.deleteContents();
+                    log.println("Clear workspace includes .repository ...");                    
                 } else {
                     log.println("Note: .repository directory in workspace (if exists) is skipped.");
-                    List<FilePath> workspaceDirs = workspace.list(new WipeWorkspaceFilter());
-                    for(FilePath dir : workspaceDirs){
-                        dir.deleteRecursive();
-                    }
+                    wipeFilter.exclude(".repository");
+                }
+                List<FilePath> workspaceDirs = workspace.list(wipeFilter);
+                for(FilePath dir : workspaceDirs){
+                    dir.deleteRecursive();
                 }
                 log.println("Cleared workspace.");
                 forceSync = true;
@@ -1191,7 +1218,7 @@ public class PerforceSCM extends SCM {
             if (files.size() > 0 && changelist.getFiles().size() > 0)
             {
                 for (FileEntry f : changelist.getFiles()) {
-                    if (!doesFilenameMatchAnyP4Pattern(f.getFilename(),files)) {
+                    if (!doesFilenameMatchAnyP4Pattern(f.getFilename(),files,excludedFilesCaseSensitivity)) {
                         return false;
                     }
 
@@ -1209,22 +1236,27 @@ public class PerforceSCM extends SCM {
         return false;
     }
 
-    private static boolean doesFilenameMatchAnyP4Pattern(String filename, List<String> patternStrings){
+    private static boolean doesFilenameMatchAnyP4Pattern(String filename, List<String> patternStrings, boolean caseSensitive){
         for(String patternString : patternStrings){
             if(patternString.trim().equals("")) continue;
-            if(doesFilenameMatchP4Pattern(filename, patternString)){
+            if(doesFilenameMatchP4Pattern(filename, patternString, caseSensitive)){
                 return true;
             }
         }
         return false;
     }
 
-    public static boolean doesFilenameMatchP4Pattern(String filename, String patternString) throws PatternSyntaxException {
+    public static boolean doesFilenameMatchP4Pattern(String filename, String patternString, boolean caseSensitive) throws PatternSyntaxException {
         patternString = patternString.trim();
         filename = filename.trim();
         patternString = patternString.replaceAll("\\*", "[^/]*");
         patternString = patternString.replaceAll("\\.\\.\\.", ".*");
-        Pattern pattern = Pattern.compile(patternString);
+        Pattern pattern;
+        if(!caseSensitive){
+            pattern = Pattern.compile(patternString,Pattern.CASE_INSENSITIVE);
+        } else {
+            pattern = Pattern.compile(patternString);
+        }
         Matcher matcher = pattern.matcher(filename);
         if(matcher.matches()){
             return true;
@@ -1366,6 +1398,8 @@ public class PerforceSCM extends SCM {
         else if (localPath.trim().equals(""))
                 localPath = project.getRootDir().getAbsolutePath();
 
+        localPath = localPath.replace("@","%40");
+        
         if (!localPath.equals(p4workspace.getRoot()) && !dontChangeRoot && !dontUpdateClient) {
             log.println("Changing P4 Client Root to: " + localPath);
             forceSync = true;
@@ -1875,6 +1909,7 @@ public class PerforceSCM extends SCM {
          */
         public FormValidation doValidateExcludedFiles(StaplerRequest req) {
             String excludedFiles = fixNull(req.getParameter("excludedFiles")).trim();
+            Boolean excludedFilesCaseSensitivity = Boolean.valueOf(fixNull(req.getParameter("excludedFilesCaseSensitivity")).trim());
             List<String> files = Arrays.asList(excludedFiles.split("\n"));
             for (String file : files) {
                 // splitting with \n can still leave \r on some OS/browsers
@@ -1890,7 +1925,7 @@ public class PerforceSCM extends SCM {
                 // (ie, in case there are special characters that the user hasn't escaped properly)
                 try {
                     file = file.replaceAll("\\$\\{[^\\}]*\\}","SOMEVARIABLE");
-                    doesFilenameMatchP4Pattern("somefile", file);
+                    doesFilenameMatchP4Pattern("somefile", file, excludedFilesCaseSensitivity);
                 }
                 catch (PatternSyntaxException pse) {
                     return FormValidation.error("Invalid file spec ["+file+"]: " + pse.getMessage());
@@ -2606,6 +2641,14 @@ public class PerforceSCM extends SCM {
 
     public void setDontUpdateServer(boolean dontUpdateServer) {
         this.dontUpdateServer = dontUpdateServer;
+    }
+
+    public boolean getExcludedFilesCaseSensitivity() {
+        return excludedFilesCaseSensitivity;
+    }
+
+    public void setExcludedFilesCaseSensitivity(boolean excludedFilesCaseSensitivity) {
+        this.excludedFilesCaseSensitivity = excludedFilesCaseSensitivity;
     }
 
     public List<String> getAllLineEndChoices(){

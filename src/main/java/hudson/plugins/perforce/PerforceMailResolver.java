@@ -32,8 +32,10 @@ public class PerforceMailResolver extends MailAddressResolver {
         String perforceId = u.getId();
         PerforceUserProperty puprop = u.getProperty(PerforceUserProperty.class);
         if (puprop != null){
-            LOGGER.fine("Using perforce user id '" + perforceId + "' from " + u.getId() + "'s properties.");
-            perforceId = puprop.getPerforceId();
+            if(puprop.getPerforceId() != null){
+                LOGGER.fine("Using perforce user id '" + perforceId + "' from " + u.getId() + "'s properties.");
+                perforceId = puprop.getPerforceId();
+            }
             if(puprop.getPerforceEmail() != null){
                 LOGGER.fine("Got email ("+puprop.getPerforceEmail()+") from " + u.getId() +"'s P4 properties.");
                 return puprop.getPerforceEmail();
@@ -79,7 +81,7 @@ public class PerforceMailResolver extends MailAddressResolver {
                     }
                     try {
                         //gradually increase sleep time
-                        Thread.sleep(tries*300);
+                        Thread.sleep(tries);
                     } catch (InterruptedException e){
                         return null;
                     }
