@@ -1386,14 +1386,14 @@ public class PerforceSCM extends SCM {
         if (launcher!= null)
         	isunix=launcher.isUnix();
 
-        String localPath = p4workspace.getRoot();
+        String localPath = unescapeP4String(p4workspace.getRoot());
 
         if (workspace!=null)
         	localPath = getLocalPathName(workspace, isunix);
         else if (localPath.trim().equals(""))
                 localPath = project.getRootDir().getAbsolutePath();
 
-        localPath = localPath.replace("@","%40");
+        localPath = escapeP4String(localPath);
         
         if (!localPath.equals(p4workspace.getRoot()) && !dontChangeRoot && !dontUpdateClient) {
             log.println("Changing P4 Client Root to: " + localPath);
@@ -1525,6 +1525,26 @@ public class PerforceSCM extends SCM {
         }
     }
 
+    public static String escapeP4String(String string) {
+        if(string == null) return null;
+        String result = new String(string);
+        result = result.replace("%","%25");
+        result = result.replace("@","%40");
+        result = result.replace("#","%23");
+        result = result.replace("*","%2A");
+        return result;
+    }
+    
+    public static String unescapeP4String(String string) {
+        if(string == null) return null;
+        String result = new String(string);
+        result = result.replace("%40","@");
+        result = result.replace("%23","#");
+        result = result.replace("%2A","*");
+        result = result.replace("%25","%");
+        return result;
+    }
+    
     @Extension
     public static final class PerforceSCMDescriptor extends SCMDescriptor<PerforceSCM> {
         public PerforceSCMDescriptor() {
