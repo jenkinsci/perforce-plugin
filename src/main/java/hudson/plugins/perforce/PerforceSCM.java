@@ -617,6 +617,12 @@ public class PerforceSCM extends SCM {
             }catch(Exception e){
                 throw new PerforceException("Problem getting user information for " + user,e);
             }
+            //If there is no such user in perforce, then ignore and keep going.
+            if(pu == null){
+                LOGGER.warning("Perforce User ("+user+") does not exist.");
+                continue;
+            }
+
             User author = User.get(user);
             // Need to store the actual perforce user id for later retrieval
             // because Jenkins does not support all the same characters that
