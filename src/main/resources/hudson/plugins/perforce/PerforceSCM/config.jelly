@@ -121,6 +121,10 @@
               checkUrl="'${rootURL}/scm/PerforceSCM/checkChangeList?port='+escape(this.form.elements['p4Port'].value)+'&amp;tool='+escape(this.form.elements['p4Tool'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)+'&amp;change='+escape(this.value)"/>
     </f:entry>
 
+    <f:entry title="Changelist file limit" help="/plugin/perforce/help/fileLimit.html">
+      <f:textbox field="fileLimit"/>
+    </f:entry>
+
     <f:entry title="Client Line Endings" help="/plugin/perforce/help/lineEnd.html">
         <select name="lineEndValue" id="lineEndValue">
             <j:forEach var="value" items="${instance==null?descriptor['allLineEndChoices']:instance['allLineEndChoices']}">
