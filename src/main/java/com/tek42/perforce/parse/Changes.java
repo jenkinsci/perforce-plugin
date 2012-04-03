@@ -59,12 +59,15 @@ public class Changes extends AbstractPerforceTemplate {
 	 * Returns a single changelist specified by its number.
 	 * 
 	 * @param number
+     * @param maxFiles 
+     *             The maximum number of affected files that will be recorded
+     *             to a changelist. With negative value include all the files.
 	 * @return
 	 * @throws PerforceException
 	 */
-	public Changelist getChangelist(int number) throws PerforceException {
+	public Changelist getChangelist(int number, int maxFiles) throws PerforceException {
 
-		ChangelistBuilder builder = new ChangelistBuilder();
+		ChangelistBuilder builder = new ChangelistBuilder(maxFiles);
 		Changelist change = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), Integer.toString(number))));
 		if(change == null)
 			throw new PerforceException("Failed to retrieve changelist " + number);
@@ -111,10 +114,12 @@ public class Changes extends AbstractPerforceTemplate {
 	 *            The last changelist number to start from
 	 * @param limit
 	 *            The maximum changes to return if less than 1, will return everything
+	 * @param maxFiles 
+	 *            The maximum amount of affected files in a changelist to be recorded
 	 * @return
 	 * @throws PerforceException
 	 */
-	public List<Changelist> getChangelists(String path, int lastChange, int limit) throws PerforceException {
+	public List<Changelist> getChangelists(String path, int lastChange, int limit, int maxFiles) throws PerforceException {
 		path = normalizePath(path);
 		if(lastChange > 0)
 			path += "@" + lastChange;
@@ -132,7 +137,7 @@ public class Changes extends AbstractPerforceTemplate {
 		List<Changelist> changes = new ArrayList<Changelist>();
 		for(String id : ids) {
                     try{
-			changes.add(getChangelist(new Integer(id)));
+			changes.add(getChangelist(new Integer(id), maxFiles));
                     } catch(Exception e){
                         throw new PerforceException("Could not retrieve changelists.\nResponse from perforce was:\n" + response, e);
                     }
@@ -416,13 +421,16 @@ public class Changes extends AbstractPerforceTemplate {
 	 * Converts a list of numbers to a list of changes.
 	 * 
 	 * @param numbers
+	 * @param maxFiles 
+	 *             The maximum number of affected files that will be recorded
+	 *             to a changelist. With negative value include all the files.
 	 * @return
 	 * @throws PerforceException
 	 */
-	public List<Changelist> getChangelistsFromNumbers(List<Integer> numbers) throws PerforceException {
+	public List<Changelist> getChangelistsFromNumbers(List<Integer> numbers, int maxFiles) throws PerforceException {
 		List<Changelist> changes = new ArrayList<Changelist>();
 		for(Integer id : numbers) {
-			changes.add(getChangelist(id));
+			changes.add(getChangelist(id, maxFiles));
 		}
 		return changes;
 	}

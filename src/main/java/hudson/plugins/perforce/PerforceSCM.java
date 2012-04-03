@@ -184,6 +184,11 @@ public class PerforceSCM extends SCM {
     int firstChange = -1;
 
     /**
+     * Maximum amount of files that are recorded to a changelist, if < 1 show every file.
+     */
+    int fileLimit = 0;
+
+    /**
      * P4 user name(s) or regex user pattern to exclude from SCM poll to prevent build trigger.
      * Multiple user names are deliminated by space.
      */
@@ -274,6 +279,7 @@ public class PerforceSCM extends SCM {
             boolean pollOnlyOnMaster,
             String slaveClientNameFormat,
             int firstChange,
+            int fileLimit,
             PerforceRepositoryBrowser browser,
             String excludedUsers,
             String excludedFiles,
@@ -352,6 +358,7 @@ public class PerforceSCM extends SCM {
         this.dontUpdateClient = dontUpdateClient;
         this.slaveClientNameFormat = slaveClientNameFormat;
         this.firstChange = firstChange;
+        this.fileLimit = fileLimit;
         this.dontRenameClient = false;
         this.useOldClientName = false;
         this.p4Charset = Util.fixEmptyAndTrim(p4Charset);
@@ -809,7 +816,7 @@ public class PerforceSCM extends SCM {
                     } else {
                         changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange);
                     }
-                    changes = depot.getChanges().getChangelistsFromNumbers(changeNumbersTo);
+                    changes = depot.getChanges().getChangelistsFromNumbers(changeNumbersTo, fileLimit);
                 }
 
 
@@ -1165,7 +1172,7 @@ public class PerforceSCM extends SCM {
         }
         else {
             for (int changeNumber : changeNumbers) {
-                if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber), project, logger)) {
+                if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber, fileLimit), project, logger)) {
                     logger.println("Changelist "+changeNumber+" is composed of file(s) and/or user(s) that are excluded.");
                 } else {
                     return new PerforceSCMRevisionState(changeNumber);
@@ -1899,7 +1906,7 @@ public class PerforceSCM extends SCM {
             if (depot != null) {
                 try {
                     int number = Integer.parseInt(change);
-                    Changelist changelist = depot.getChanges().getChangelist(number);
+                    Changelist changelist = depot.getChanges().getChangelist(number, -1);
                     if (changelist.getChangeNumber() != number)
                         throw new PerforceException("broken");
                 } catch (Exception e) {
@@ -2705,6 +2712,24 @@ public class PerforceSCM extends SCM {
         if (firstChange <= 0)
             return "";
         return Integer.valueOf(firstChange).toString();
+    }
+
+    /**
+     * This is only for the config screen.  Also, it returns a string and not an int.
+     * This is because we want to show an empty value in the config option if it is not being
+     * used.  The default value of -1 is not exactly empty.  So if we are set to default of
+     * -1, we return an empty string.  Anything else and we return the actual change number.
+     *
+     * @return  fileLimit
+     */
+    public String getFileLimit() {
+        if (fileLimit <= 0)
+            return "";
+        return Integer.valueOf(fileLimit).toString();
+    }
+    
+    public void setFileLimit(int fileLimit) {
+        this.fileLimit = fileLimit;
     }
 
     /**

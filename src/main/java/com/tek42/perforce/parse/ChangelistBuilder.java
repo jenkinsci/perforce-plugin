@@ -48,6 +48,12 @@ import com.tek42.perforce.model.Changelist;
  */
 public class ChangelistBuilder implements Builder<Changelist> {
 	private final Logger logger = LoggerFactory.getLogger("perforce");
+	//Maximum amount of files to be recorded to a changelist
+	private int maxFiles;
+	
+	public ChangelistBuilder(int maxFiles) {
+	    this.maxFiles = maxFiles;
+	}
 
 	public String[] getBuildCmd(String p4exe, String id) {
 		return new String[] { p4exe, "describe", "-s", id };
@@ -152,8 +158,16 @@ public class ChangelistBuilder implements Builder<Changelist> {
 				if(line.startsWith("Affected files")) {
 					logger.debug("reading files...");
 					List<Changelist.FileEntry> files = new ArrayList<Changelist.FileEntry>();
+			        int fileCount = 0;
 
 					while(lines.hasMoreElements()) {
+					    //Record a maximum of maxFiles files
+					    if(maxFiles > 0) {
+	                        if(fileCount >= maxFiles) {
+	                            break;
+	                        }
+					        fileCount++;
+					    }
 						String entry = lines.nextToken();
 						logger.debug("File Line: " + entry);
 						// if(!entry.startsWith("..."))
