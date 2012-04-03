@@ -431,14 +431,14 @@ public class PerforceSCM extends SCM {
         env.put("P4USER", p4User);
 
         // if we want to allow p4 commands in script steps this helps
-        if (exposeP4Passwd) {
-            // this may help when tickets are used since we are
-            // not storing the ticket on the client during login
-            if (p4Ticket != null) {
-                env.put("P4TICKET", p4Ticket);
-            }
+        if (exposeP4Passwd) {            
             PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
             env.put("P4PASSWD", encryptor.decryptString(p4Passwd));
+        }
+        // this may help when tickets are used since we are
+        // not storing the ticket on the client during login
+        if (p4Ticket != null) {
+            env.put("P4TICKET", p4Ticket);
         }
 
         env.put("P4CLIENT", getEffectiveClientName(build));
