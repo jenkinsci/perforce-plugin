@@ -439,31 +439,32 @@ public class Changes extends AbstractPerforceTemplate {
      * Return the change numbers in the range [first, last] that apply to the
      * specified workspace.  The change numbers are returned highest (most
      * recent) first.
-     * 
-     * @param first
+	 * @param first
      *            The number of the change to start from
-     * @param last
+	 * @param last
      *            The last change to include (if applies to the workspace)
+	 * @param showIntegChanges
+	 *            True if integrated changelists should be counted as well
      * @return list of change numbers
      * @throws PerforceException
      */
-    public List<Integer> getChangeNumbersInRange(Workspace workspace, int first, int last) throws PerforceException {
+    public List<Integer> getChangeNumbersInRange(Workspace workspace, int first, int last, boolean showIntegChanges) throws PerforceException {
         StringBuilder sb = new StringBuilder();
         sb.append("//");
         sb.append(workspace.getName());
         sb.append("/...");
 
         String path = sb.toString();
-        return getChangeNumbersInRangeForSinglePath(workspace, first, last, path);
+        return getChangeNumbersInRangeForSinglePath(workspace, first, last, path, showIntegChanges);
     }
     
-    public List<Integer> getChangeNumbersInRange(Workspace workspace, int first, int last, String paths) throws PerforceException {
+    public List<Integer> getChangeNumbersInRange(Workspace workspace, int first, int last, String paths, boolean showIntegChanges) throws PerforceException {
         if(paths == null){
-            return getChangeNumbersInRange(workspace, first, last);
+            return getChangeNumbersInRange(workspace, first, last, showIntegChanges);
         }
         List<Integer> numbers = new ArrayList<Integer>();
         for(String path : paths.replaceAll("\r", "").split("\n")){
-            List<Integer> newNumbers = getChangeNumbersInRangeForSinglePath(workspace, first, last, path);
+            List<Integer> newNumbers = getChangeNumbersInRangeForSinglePath(workspace, first, last, path, showIntegChanges);
             for(Integer num : newNumbers){
                 if(!numbers.contains(num)){
                     numbers.add(num);
@@ -508,7 +509,7 @@ public class Changes extends AbstractPerforceTemplate {
         }
     }
 
-    public List<Integer> getChangeNumbersInRangeForSinglePath(Workspace workspace, int first, int last, String path) throws PerforceException {
+    public List<Integer> getChangeNumbersInRangeForSinglePath(Workspace workspace, int first, int last, String path, boolean showIntegChanges) throws PerforceException {
         StringBuilder sb = new StringBuilder();
         sb.append(path.replaceAll("\"", ""));
         sb.append("@");
@@ -516,8 +517,13 @@ public class Changes extends AbstractPerforceTemplate {
         sb.append(",@");
         sb.append(last);
         String fullPath = sb.toString();
+        String[] cmd;
 
-        String[] cmd = new String[] { getP4Exe(), "-s", "changes", "-s", "submitted", fullPath };
+        if (showIntegChanges) {
+            cmd = new String[] { getP4Exe(), "-s", "changes", "-s", "submitted", "-i", fullPath };
+        } else {
+            cmd = new String[] { getP4Exe(), "-s", "changes", "-s", "submitted", fullPath };
+        }
 
         List<String> response = getRawPerforceResponseLines(cmd);
         List<Integer> numbers = new ArrayList<Integer>(response.size());
