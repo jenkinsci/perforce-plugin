@@ -322,9 +322,14 @@ public class PerforceSCM extends SCM {
         String systemRoot = null;
         if (Hudson.isWindows()) {
             try {
-                EnvVars envVars = Computer.currentComputer().getEnvironment();
-                systemDrive = envVars.get("SystemDrive");
-                systemRoot = envVars.get("SystemRoot");
+                Computer currentComputer = Computer.currentComputer();
+                // A master with no executors seems to throw an NPE here, so
+                // we need to check for null.
+                if(currentComputer != null) {
+                    EnvVars envVars = currentComputer.getEnvironment();
+                    systemDrive = envVars.get("SystemDrive");
+                    systemRoot = envVars.get("SystemRoot");
+                }
             } catch (Exception ex) {
                 LOGGER.log(Level.WARNING, ex.getMessage(), ex);
             }
