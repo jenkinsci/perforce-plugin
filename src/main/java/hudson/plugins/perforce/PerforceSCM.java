@@ -914,9 +914,10 @@ public class PerforceSCM extends SCM {
             if (p4Counter != null && updateCounterValue) {
                 // Set or create a counter to mark this change
                 Counter counter = new Counter();
-                counter.setName(p4Counter);
+                String counterName = substituteParameters(this.p4Counter, build);
+                counter.setName(counterName);
                 counter.setValue(newestChange);
-                log.println("Updating counter " + p4Counter + " to " + newestChange);
+                log.println("Updating counter " + counterName + " to " + newestChange);
                 depot.getCounters().saveCounter(counter);
             }
 
