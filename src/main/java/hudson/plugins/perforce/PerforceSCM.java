@@ -131,6 +131,10 @@ public class PerforceSCM extends SCM {
      */
     boolean disableSyncOnly = false;
     /**
+     * Show integrated changelists
+     */
+    boolean showIntegChanges = false;
+    /**
      * This is to allow the client to use the old naming scheme
      * @deprecated As of 1.0.25, replaced by {@link #clientSuffixType}
      */
@@ -272,6 +276,7 @@ public class PerforceSCM extends SCM {
             boolean updateView,
             boolean disableAutoSync,
             boolean disableSyncOnly,
+            boolean showIntegChanges,
             boolean wipeBeforeBuild,
             boolean wipeRepoBeforeBuild,
             boolean dontUpdateClient,
@@ -355,6 +360,7 @@ public class PerforceSCM extends SCM {
         this.alwaysForceSync = alwaysForceSync;
         this.disableAutoSync = disableAutoSync;
         this.disableSyncOnly = disableSyncOnly;
+        this.showIntegChanges = showIntegChanges;
         this.browser = browser;
         this.wipeBeforeBuild = wipeBeforeBuild;
         this.wipeRepoBeforeBuild = wipeRepoBeforeBuild;
@@ -817,9 +823,9 @@ public class PerforceSCM extends SCM {
                 } else {
                     List<Integer> changeNumbersTo;
                     if(useViewMaskForSyncing && useViewMask){
-                        changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange, viewMask);
+                        changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange, viewMask, showIntegChanges);
                     } else {
-                        changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange);
+                        changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange, showIntegChanges);
                     }
                     changes = depot.getChanges().getChangelistsFromNumbers(changeNumbersTo, fileLimit);
                 }
@@ -913,9 +919,10 @@ public class PerforceSCM extends SCM {
             if (p4Counter != null && updateCounterValue) {
                 // Set or create a counter to mark this change
                 Counter counter = new Counter();
-                counter.setName(p4Counter);
+                String counterName = substituteParameters(this.p4Counter, build);
+                counter.setName(counterName);
                 counter.setValue(newestChange);
-                log.println("Updating counter " + p4Counter + " to " + newestChange);
+                log.println("Updating counter " + counterName + " to " + newestChange);
                 depot.getCounters().saveCounter(counter);
             }
 
@@ -1133,7 +1140,7 @@ public class PerforceSCM extends SCM {
             highestSelectedChangeNumber = counter.getValue();
             logger.println("Latest submitted change selected by named counter is " + highestSelectedChangeNumber);
             String root = "//" + p4workspace.getName() + "/...";
-            changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, highestSelectedChangeNumber, root);
+            changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, highestSelectedChangeNumber, root, false);
         } else {
             // General Case
 
@@ -1152,10 +1159,10 @@ public class PerforceSCM extends SCM {
             }
 
             if(useViewMaskForPolling && useViewMask){
-                changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, substituteParameters(viewMask, getDefaultSubstitutions(project)));
+                changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, substituteParameters(viewMask, getDefaultSubstitutions(project)), false);
             } else {
                 String root = "//" + p4workspace.getName() + "/...";
-                changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, root);
+                changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, root, false);
             }
             if (changeNumbers.isEmpty()) {
                 // Wierd, this shouldn't be!  I suppose it could happen if the
@@ -2642,6 +2649,14 @@ public class PerforceSCM extends SCM {
     public void setLineEndValue(String lineEndValue) {
         this.lineEndValue = lineEndValue;
     }
+
+    public boolean isShowIntegChanges() {
+        return showIntegChanges;
+    }
+
+    public void setShowIntegChanges(boolean showIntegChanges) {
+        this.showIntegChanges = showIntegChanges;
+	}
 
     public boolean isDisableSyncOnly() {
         return disableSyncOnly;
