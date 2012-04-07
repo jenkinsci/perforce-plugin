@@ -244,6 +244,20 @@ public class PerforceSCMTest extends HudsonTestCase {
                 "//depot/s.../testfile", false));
     }
 
+    public void testFileInView() throws Exception {
+        String projectPath = 
+                "//depot/somefile/...\n"+
+                "-//depot/somefile/excludedfile...\n"+
+                "+//depot/somefile/excludedfile/readdedfile\n"+
+                "//depot/someotherfile/...";
+        assertEquals(false,PerforceSCM.isFileInView("//depot/somefile/excludedfile", projectPath, true));
+        assertEquals(false,PerforceSCM.isFileInView("//depot/somefile/excludedfile/test", projectPath, true));
+        assertEquals(false,PerforceSCM.isFileInView("//depot/notincluded", projectPath, true));
+        assertEquals(true, PerforceSCM.isFileInView("//depot/somefile/excludedfile/readdedfile", projectPath, true));
+        assertEquals(true, PerforceSCM.isFileInView("//depot/someotherfile/test", projectPath, true));
+        assertEquals(true,PerforceSCM.isFileInView("//depot/somefile/file", projectPath, true));
+    }
+    
     /** Test migration from "p4Exe" field to tool installation.
      * 
      * @throws Exception

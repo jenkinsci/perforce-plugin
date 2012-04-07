@@ -659,6 +659,28 @@ public class PerforceSCM extends SCM {
         }
     }
 
+    public static boolean isFileInView(String filename, String projectPath, boolean caseSensitive) {
+        List<String> view = parseProjectPath(projectPath, "workspace");
+        boolean inView = false;
+        for(int i=0; i < view.size(); i+=2){
+            String viewline = view.get(i);
+            if(viewline.startsWith("-")){
+                if(doesFilenameMatchP4Pattern(filename, viewline.substring(1), caseSensitive)){
+                    inView = false;
+                }
+            } else if(viewline.startsWith("+")){
+                if(doesFilenameMatchP4Pattern(filename, viewline.substring(1), caseSensitive)){
+                    inView = true;
+                }
+            } else {
+                if(doesFilenameMatchP4Pattern(filename, viewline, caseSensitive)){
+                    inView = true;
+                }
+            }
+        }
+        return inView;
+    }
+
     private static class WipeWorkspaceExcludeFilter implements FileFilter, Serializable {
         
         private List<String> excluded = new ArrayList<String>();
@@ -1243,7 +1265,8 @@ public class PerforceSCM extends SCM {
             if (files.size() > 0 && changelist.getFiles().size() > 0)
             {
                 for (FileEntry f : changelist.getFiles()) {
-                    if (!doesFilenameMatchAnyP4Pattern(f.getFilename(),files,excludedFilesCaseSensitivity)) {
+                    if (!doesFilenameMatchAnyP4Pattern(f.getFilename(),files,excludedFilesCaseSensitivity) && 
+                            isFileInView(f.getFilename(), substituteParameters(projectPath, getDefaultSubstitutions(project)),excludedFilesCaseSensitivity)) {
                         return false;
                     }
 
