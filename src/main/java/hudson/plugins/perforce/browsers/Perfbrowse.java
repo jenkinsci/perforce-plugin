@@ -36,9 +36,9 @@ public class Perfbrowse extends PerforceRepositoryBrowser {
     public final String p4Diff     = "?@diff+";
 
     @DataBoundConstructor
-    public Perfbrowse(URL url) throws MalformedURLException {
+    public Perfbrowse(URL url) {
 	
-        this.url = normalizeToEndWithSlash(url);
+        this.url = url;
     }
 
     @Override
