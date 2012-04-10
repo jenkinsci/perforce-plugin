@@ -63,7 +63,7 @@ public final class PerforceToolInstallation extends ToolInstallation implements 
     @Initializer(after=InitMilestone.JOB_LOADED)
     public static void onLoaded() {
         DescriptorImpl descriptor = (DescriptorImpl) Hudson.getInstance().getDescriptor(PerforceToolInstallation.class);
-        PerforceToolInstallation[] installations = descriptor.getInstallations();
+        PerforceToolInstallation[] installations = getInstallations(descriptor);
 
         //Allow only one migration round. Old "p4Exe" field is kept in job configuration until the job is saved.
         if (installations.length > 0) {
@@ -75,6 +75,16 @@ public final class PerforceToolInstallation extends ToolInstallation implements 
         }
     }
 
+    private static PerforceToolInstallation[] getInstallations(DescriptorImpl descriptor) {
+        PerforceToolInstallation[] installations = null;
+        try {
+            installations = descriptor.getInstallations();
+        } catch (NullPointerException e) {
+            installations = new PerforceToolInstallation[0];
+        }
+        return installations;
+    }
+    
     /**
      * Migrate data from old job specific "p4Exe" field. Create a tool installation for each
      * individual path with the path as the tool name.
