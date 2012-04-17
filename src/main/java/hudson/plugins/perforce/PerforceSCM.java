@@ -1362,11 +1362,16 @@ public class PerforceSCM extends SCM {
         return getMostRecentTagAction(build.getPreviousBuild());
     }
     
-    private Workspace getPerforceWorkspace(AbstractProject project, String projectPath,
+    private com.tek42.perforce.model.Workspace getPerforceWorkspace(AbstractProject project, String projectPath,
             Depot depot, Node buildNode, AbstractBuild build,
             Launcher launcher, FilePath workspace, TaskListener listener, boolean dontChangeRoot)
-        throws IOException, InterruptedException, PerforceException
+        throws java.io.IOException, java.lang.InterruptedException, com.tek42.perforce.PerforceException
     {
+
+        return getPerforceWorkspace(project, projectPath, depot, buildNode, build, launcher, workspace, listener, dontChangeRoot, updateView);
+    }
+
+    private Workspace getPerforceWorkspace(AbstractProject project, String projectPath, Depot depot, Node buildNode, AbstractBuild build, Launcher launcher, FilePath workspace, TaskListener listener, boolean dontChangeRoot, boolean updateView) throws IOException, InterruptedException, PerforceException {
         PrintStream log = listener.getLogger();
 
         // If we are building on a slave node, and each node is supposed to have
@@ -1437,12 +1442,12 @@ public class PerforceSCM extends SCM {
         // So provide 'reasonable' default values.
         boolean isunix = true;
         if (launcher!= null)
-        	isunix=launcher.isUnix();
+                isunix=launcher.isUnix();
 
         String localPath = unescapeP4String(p4workspace.getRoot());
 
         if (workspace!=null)
-        	localPath = getLocalPathName(workspace, isunix);
+                localPath = getLocalPathName(workspace, isunix);
         else if (localPath.trim().equals(""))
                 localPath = project.getRootDir().getAbsolutePath();
 
@@ -2816,7 +2821,8 @@ public class PerforceSCM extends SCM {
                 null,
                 workspace,
                 listener,
-                dontRenameClient);
+                true,
+                false);
             flushWorkspaceTo0(depot, p4workspace, log);
         } catch (Exception ex) {
             Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
