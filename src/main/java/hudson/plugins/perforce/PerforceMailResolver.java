@@ -26,8 +26,20 @@ import java.util.logging.Logger;
 public class PerforceMailResolver extends MailAddressResolver {
     private static final Logger LOGGER = Logger.getLogger(PerforceMailResolver.class.getName());
 
-    @SuppressWarnings("unchecked")
     public String findMailAddressFor(User u) {
+        String email = findPerforceMailAddressFor(u);
+        if (email == null){
+            return null;
+        } else if (email.matches(".+@.+")){
+            return email;
+        } else {
+            LOGGER.fine("Rejecting invalid email ("+ email +") retrieved from perforce.");
+            return null;
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    public String findPerforceMailAddressFor(User u) {
         LOGGER.fine("Email address for " + u.getId() + " requested.");
         String perforceId = u.getId();
         PerforceUserProperty puprop = u.getProperty(PerforceUserProperty.class);
