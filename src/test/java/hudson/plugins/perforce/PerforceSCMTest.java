@@ -176,6 +176,8 @@ public class PerforceSCMTest extends HudsonTestCase {
         assertViewParsesSame("//depot/path/a/b/c/... //client/path/a/b/c/...");
         assertViewParsesSame("\"//depot/quotedpath/...\" \"//client/quotedpath/...\"");
         assertViewParsesSame("\"//depot/path with space/...\" \"//client/path with space/...\"");
+        assertViewParsesSame("//depot/pathwithoutspace/... \"//client/path with space/...\"");
+        assertViewParsesSame("\"//depot/path with space/...\" //client/pathwithoutspace/...");
         assertViewParsesSame("-//depot/path/sub/... //client/path/sub/...");
     }
 
@@ -257,7 +259,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         assertEquals(true, PerforceSCM.isFileInView("//depot/someotherfile/test", projectPath, true));
         assertEquals(true,PerforceSCM.isFileInView("//depot/somefile/file", projectPath, true));
     }
-    
+        
     /** Test migration from "p4Exe" field to tool installation.
      * 
      * @throws Exception
@@ -291,4 +293,5 @@ public class PerforceSCMTest extends HudsonTestCase {
             assertTrue("Was not expecting tool installation '" + actualTool.getName() + "'.", found);
         }
     }
+
 }

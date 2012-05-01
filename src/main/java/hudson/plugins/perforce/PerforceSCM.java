@@ -1924,6 +1924,7 @@ public class PerforceSCM extends SCM {
                         !DEPOT_ONLY_QUOTED.matcher(mapping).matches() &&
                         !DEPOT_AND_WORKSPACE_QUOTED.matcher(mapping).matches() &&
                         !DEPOT_AND_QUOTED_WORKSPACE.matcher(mapping).matches() &&
+                        !QUOTED_DEPOT_AND_WORKSPACE.matcher(mapping).matches() &&
                         !COMMENT.matcher(mapping).matches())
                         return FormValidation.error("Invalid mapping:" + mapping);
                 }
@@ -2069,6 +2070,8 @@ public class PerforceSCM extends SCM {
             Pattern.compile("^\\s*\"([+-]?//\\S+?/[^\"]+)\"\\s+\"//\\S+?(/[^\"]+)\"$");
     private static final Pattern DEPOT_AND_QUOTED_WORKSPACE =
             Pattern.compile("^\\s*([+-]?//\\S+?/\\S+)\\s+\"//\\S+?(/[^\"]+)\"$");
+    private static final Pattern QUOTED_DEPOT_AND_WORKSPACE =
+            Pattern.compile("^\\s*\"([+-]?//\\S+?/[^\"]+)\"\\s+//\\S+?(/\\S+)$");
 
     /**
      * Parses the projectPath into a list of pairs of strings representing the depot and client
@@ -2115,9 +2118,15 @@ public class PerforceSCM extends SCM {
                                 parsed.add(depotAndQuotedWorkspace.group(1));
                                 parsed.add("\"//" + p4Client + depotAndQuotedWorkspace.group(2) + "\"");
                             } else {
-                                // Assume anything else is a comment and ignore it
-                                // Throw a warning anyways.
-                                log.println("Warning: Client Spec line invalid, ignoring. ("+line+")");
+                                Matcher quotedDepotAndWorkspace = QUOTED_DEPOT_AND_WORKSPACE.matcher(line);
+                                if (quotedDepotAndWorkspace.find()) {
+                                    parsed.add("\"" + quotedDepotAndWorkspace.group(1) + "\"");
+                                    parsed.add("//" + p4Client + quotedDepotAndWorkspace.group(2));
+                                } else {
+                                    // Assume anything else is a comment and ignore it
+                                    // Throw a warning anyways.
+                                    log.println("Warning: Client Spec line invalid, ignoring. ("+line+")");
+                                }
                             }
                         }
                     }
