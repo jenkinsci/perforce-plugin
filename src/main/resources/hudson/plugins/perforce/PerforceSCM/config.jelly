@@ -95,6 +95,11 @@
       <f:textbox field="projectOptions" default="noallwrite clobber nocompress unlocked nomodtime rmdir"
            value="${instance.projectOptions}" />
     </f:entry>
+    
+    <f:entry title="Client Owner" help="/plugin/perforce/help/clientOwner.html">
+      <f:textbox field="clientOwner" default=""
+           value="${instance.clientOwner}" />
+    </f:entry>
   
     <f:entry title="One Time Force Sync" help="/plugin/perforce/help/forceSync.html">
       <f:checkbox field="forceSync" value="True" id="forceSync" onchange="this.form.elements['dontUpdateServer'].changed();"/>

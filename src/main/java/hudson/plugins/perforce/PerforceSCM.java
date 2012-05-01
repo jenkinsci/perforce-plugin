@@ -76,6 +76,7 @@ public class PerforceSCM extends SCM {
     String p4Label;
     String p4Counter;
     String p4Stream;
+    String clientOwner;
 
     /**
      * Transient so that old XML data will be read but not saved.
@@ -268,6 +269,7 @@ public class PerforceSCM extends SCM {
             String lineEndValue,
             String p4Charset,
             String p4CommandCharset,
+            String clientOwner,
             boolean updateCounterValue,
             boolean forceSync, 
             boolean dontUpdateServer,
@@ -314,6 +316,8 @@ public class PerforceSCM extends SCM {
         this.updateCounterValue = updateCounterValue;
 
         this.projectPath = Util.fixEmptyAndTrim(projectPath);
+        
+        this.clientOwner = Util.fixEmptyAndTrim(clientOwner);
 
         if (p4SysRoot != null && p4SysRoot.length() != 0)
             this.p4SysRoot = Util.fixEmptyAndTrim(p4SysRoot);
@@ -535,6 +539,10 @@ public class PerforceSCM extends SCM {
         
         if(excludedFilesCaseSensitivity == null) {
             excludedFilesCaseSensitivity = Boolean.TRUE;
+        }
+
+        if(clientOwner == null) {
+            clientOwner = "";
         }
         
         if(configVersion == null) {
@@ -1433,6 +1441,10 @@ public class PerforceSCM extends SCM {
         // Set the line ending option according to the configuration
         if (lineEndValue != null && getAllLineEndChoices().contains(lineEndValue)){
             p4workspace.setLineEnd(lineEndValue);
+        }
+        
+        if (clientOwner != null && !clientOwner.trim().isEmpty()){
+            p4workspace.setOwner(clientOwner);
         }
 
         // Ensure that the root is appropriate (it might be wrong if the user
