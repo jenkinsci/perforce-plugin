@@ -84,7 +84,10 @@
     </f:entry>
     
     <f:entry title="Clean Workspace Before Each Build" help="/plugin/perforce/help/wipeBeforeBuild.html">
-      <f:checkbox field="wipeBeforeBuild" default="false" value="False"/>
+      <f:optionalBlock name="p4.cleanWorkspace" title="Clean" help="/plugin/perforce/help/cleanBeforeBuild.html" checked="${instance.cleanWorkspaceBeforeBuild}">
+        <f:radioBlock name="p4.cleanType" title="Full Wipe" value="wipe" checked="${instance.wipeBeforeBuild}" help="/plugin/perforce/help/wipeBeforeBuild.html"/>
+        <f:radioBlock name="p4.cleanType" title="Quick Clean" value="quick" checked="${instance.quickCleanBeforeBuild}" help="/plugin/perforce/help/quickCleanBeforeBuild.html"/>
+      </f:optionalBlock>
     </f:entry>
     
     <f:entry title="Clean .repository Before Build" help="/plugin/perforce/help/wipeRepoBeforeBuild.html">

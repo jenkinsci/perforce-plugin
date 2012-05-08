@@ -1,14 +1,23 @@
-
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
 package hudson.plugins.perforce;
 
+import com.tek42.perforce.Depot;
+import com.tek42.perforce.PerforceException;
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Proc;
-import hudson.Util;
+import hudson.model.Hudson;
 import hudson.model.TaskListener;
-import hudson.remoting.Callable;
+import hudson.remoting.*;
+import hudson.util.StreamTaskListener;
 import java.io.*;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.io.IOUtils;
@@ -17,162 +26,87 @@ import org.apache.commons.io.IOUtils;
  *
  * @author rpetti
  */
-public class QuickCleaner implements Callable<Integer, IOException>{
-        private final String[] env;
-        private final OutputStream out;
-        private final String workDir;
-        private final TaskListener listener;
-        private final String p4exe;
+public class QuickCleaner {
+    private Launcher hudsonLauncher;
+    private String[] env;
+    private FilePath filePath;
+    private String p4exe;
+    private FileFilter filter;
+    
+    QuickCleaner(String p4exe, Launcher hudsonLauncher, Depot depot, FilePath filePath, FileFilter filter) {
+        this.hudsonLauncher = this.hudsonLauncher;
+        this.env = getEnvFromDepot(depot, filePath.getRemote());
+        this.filePath = filePath;
+        this.p4exe = p4exe;
+        this.filter = filter;
+    }
+    
+    public void exec() throws PerforceException {
+        try {
+            // ensure we actually have a valid hudson launcher
+            if (null == hudsonLauncher) {
+                hudsonLauncher = Hudson.getInstance().createLauncher(new StreamTaskListener(System.out));
+            }
+            TaskListener listener = hudsonLauncher.getListener();
+            
+            // hudsonOut->p4in->reader
+            FastPipedOutputStream hudsonOut = new FastPipedOutputStream();
+            FastPipedInputStream p4in = new FastPipedInputStream(hudsonOut);
+            //input = p4in;
 
-        QuickCleaner(String p4exe, String[] env, OutputStream out, String workDir, TaskListener listener) {
-            this.env = env;
-            this.out = out;
-            this.workDir = workDir;
-            this.listener = listener;
-            this.p4exe = p4exe;
+            final OutputStream out = hudsonOut == null ? null : new RemoteOutputStream(hudsonOut);
+            
+            QuickCleanerCall remoteCall = new QuickCleanerCall(p4exe, env, out, filePath.getRemote(), listener, filter);
+            LogPrinter logPrinter = new LogPrinter(listener.getLogger(),p4in);
+            logPrinter.start();
+            filePath.act(remoteCall);
+            logPrinter.join();
+            
+        } catch(Exception e) {
+            throw new PerforceException("Could not run quick clean.", e);
         }
-        public Integer call() throws IOException {
-            PipedOutputStream dsOutput = new PipedOutputStream();
-            PipedInputStream p4Input = new PipedInputStream();
-            PipedOutputStream p4Output = new PipedOutputStream();
-            PipedInputStream cleanerInput = new PipedInputStream();
-            
-            DirectoryScanner directoryScanner = new DirectoryScanner(workDir, dsOutput);
-            ProcessByPerforce p4Processor = new ProcessByPerforce(env, p4exe, p4Input, p4Output);
-            Cleaner cleaner = new Cleaner(workDir, cleanerInput, out);
-            
-            dsOutput.connect(p4Input);
-            p4Output.connect(cleanerInput);
-            
-            cleaner.start();
-            p4Processor.start();
-            directoryScanner.start();
-            
-            try{
-                directoryScanner.join();
-                p4Processor.join();
-                cleaner.join();
-            } catch (InterruptedException e){
-                
-            }
-            return 0;
-        }
-        
-        //Scans the specified path for all files
-        private class DirectoryScanner extends Thread{
-            private File workDir;
-            private BufferedWriter output;
-            DirectoryScanner(String workDir, OutputStream os){
-                this.workDir = new File(workDir);
-                this.output = new BufferedWriter(new OutputStreamWriter(os));
-            }
+    }
 
-            @Override
-            public void run() {
-                try {
-                    scanDirForFiles(workDir);
-                } catch (IOException ex) {
-                    Logger.getLogger(QuickCleaner.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            
-            private void scanDirForFiles(File dir) throws IOException {
-                for(File file : dir.listFiles()) {
-                    if(Util.isSymlink(file)) continue;
-                    if(file.isFile()){
-                        outputFilePath(file);
-                    } else if(file.isDirectory()){
-                        scanDirForFiles(file);
-                    }
-                }
-            }
-            
-            private void outputFilePath(File file){
-                String path = file.getPath();
-                if(path.startsWith(workDir.getPath()))
-                    path = path.substring(workDir.getPath().length());
-                else
-                    return;
-                if(path.startsWith(File.separator))
-                    path = path.substring(1);
-                try {
-                    output.write(path);
-                    output.newLine();
-                    output.flush();
-                } catch (IOException e) {
-                    //TODO handle io errors
-                }
-            }
-            
+    private class LogPrinter extends Thread {
+        private PrintStream log;
+        private InputStream input;
+        LogPrinter(PrintStream log, InputStream input){
+            this.log = log;
+            this.input = input;
         }
-        
-        //Ask perforce if they are tracked        
-        private class ProcessByPerforce extends Thread{
-            private String[] env;
-            private String p4exe;
-            private InputStream input;
-            private OutputStream output;
-            ProcessByPerforce(String[] env, String p4exe, InputStream input, OutputStream output){
-                this.input = input;
-                this.output = output;
-                this.env = env;
-                this.p4exe = p4exe;
-            }
 
-            @Override
-            public void run() {
-                ArrayList<String> cmdList = new ArrayList<String>();
-                cmdList.add(p4exe);
-                cmdList.add("-x-");
-                cmdList.add("have");
-                Launcher.ProcStarter ps = new Launcher.LocalLauncher(listener).launch();
-                ps.envs(env).stdin(input).stdout(out).cmds(cmdList);
-                if(workDir!=null) ps.pwd(workDir);
-                Proc p;
-                try {
-                    p = ps.start();
-                    Integer ret = p.join();
-                    if(out!=null) out.close();
-                    //return ret;
-                } catch (InterruptedException e) {
-                    if(out!=null) IOUtils.closeQuietly(out);
-                    //return -1;
-                } catch (IOException e) {
-                    if(out!=null) IOUtils.closeQuietly(out);
-                }
+        @Override
+        public void run() {
+            try {
+                IOUtils.copy(input, log);
+            } catch (IOException ex) {
+                Logger.getLogger(QuickCleaner.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         
-        //Deletes untracked files
-        private class Cleaner extends Thread{
-            private InputStream input;
-            private OutputStream err;
-            private String workDir;
-            Cleaner(String workDir, InputStream input, OutputStream err){
-                this.workDir = workDir;
-                this.input = input;
-                this.err = err;
-            }
-            @Override
-            public void run() {
-                BufferedReader in = new BufferedReader(new InputStreamReader(input));
-                BufferedWriter error = new BufferedWriter(new OutputStreamWriter(err));
-                String line;
-                try{
-                    while((line = in.readLine()) != null){
-                        if(line.contains("- file(s) not on client.")){
-                            String filename = line.replace("- file(s) not on client.", "").trim();
-                            File file = new File(workDir,filename);
-                            if(!file.delete()){
-                                error.write("Error deleting file: "+line.trim());
-                                error.newLine();
-                                error.flush();
-                            }
-                        }
-                    }
-                }catch(IOException e){
-                    //TODO Handle IO errors
-                }
-            }
+    }
+    
+    private static String[] getEnvFromDepot(Depot depot, String workDir) {
+        String[] keys = {
+            "P4USER",
+            "P4PASSWD",
+            "P4PORT",
+            "P4COMMANDCHARSET",
+            "P4CHARSET",
+            "P4CLIENT",
+            "PATH",
+            "SystemDrive",
+            "SystemRoot"
+        };
+
+        ArrayList<String> result = new ArrayList<String>();
+        for (int i = 0; i < keys.length; i++){
+            String value = depot.getProperty(keys[i]);
+            if(value != null && !value.trim().isEmpty())
+                result.add(keys[i] + "=" + value);
         }
+
+        //result.add("PWD="+workDir);
+        return result.toArray(new String[result.size()]);
+    }
 }
