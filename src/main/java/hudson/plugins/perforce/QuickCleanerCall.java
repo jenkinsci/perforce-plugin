@@ -138,7 +138,7 @@ public class QuickCleanerCall implements Callable<Integer, IOException>{
                 cmdList.add("have");
                 //cmdList.add("info");
                 Launcher.ProcStarter ps = new Launcher.LocalLauncher(listener).launch();
-                ps.envs(env).stdin(input).stdout(out).cmds(cmdList);
+                ps.envs(env).stdin(input).stdout(output).cmds(cmdList);
                 if(workDir!=null) ps.pwd(workDir);
                 Proc p;
                 try {
@@ -146,13 +146,13 @@ public class QuickCleanerCall implements Callable<Integer, IOException>{
                     Integer ret = p.join();
                     //return ret;
                 } catch (InterruptedException e) {
-                    if(out!=null) IOUtils.closeQuietly(out);
+                    if(output!=null) IOUtils.closeQuietly(output);
                     //return -1;
                 } catch (IOException e) {
-                    if(out!=null) IOUtils.closeQuietly(out);
+                    if(output!=null) IOUtils.closeQuietly(output);
                 } finally {
                     IOUtils.closeQuietly(input);
-                    IOUtils.closeQuietly(out);
+                    IOUtils.closeQuietly(output);
                 }
             }
         }
@@ -177,11 +177,11 @@ public class QuickCleanerCall implements Callable<Integer, IOException>{
                         if(line.contains("- file(s) not on client.")){
                             String filename = line.replace("- file(s) not on client.", "").trim();
                             File file = new File(workDir,filename);
-                            //if(!file.delete()){
-                                log.write("Error deleting file: "+line.trim());
+                            if(!file.delete()){
+                                log.write("Error deleting file: "+filename);
                                 log.newLine();
                                 log.flush();
-                            //}
+                            }
                         }
                     }
                 }catch(IOException e){

@@ -34,7 +34,7 @@ public class QuickCleaner {
     private FileFilter filter;
     
     QuickCleaner(String p4exe, Launcher hudsonLauncher, Depot depot, FilePath filePath, FileFilter filter) {
-        this.hudsonLauncher = this.hudsonLauncher;
+        this.hudsonLauncher = hudsonLauncher;
         this.env = getEnvFromDepot(depot, filePath.getRemote());
         this.filePath = filePath;
         this.p4exe = p4exe;
@@ -105,8 +105,12 @@ public class QuickCleaner {
             if(value != null && !value.trim().isEmpty())
                 result.add(keys[i] + "=" + value);
         }
-
-        //result.add("PWD="+workDir);
+        try {
+            result.add("PWD="+new File(workDir).getCanonicalPath());
+        } catch (IOException ex) {
+            Logger.getLogger(QuickCleaner.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        result.add("P4CONFIG=");
         return result.toArray(new String[result.size()]);
     }
 }
