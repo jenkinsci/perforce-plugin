@@ -159,37 +159,51 @@ public class QuickCleanerCall implements Callable<Integer, IOException>{
         
         //Deletes untracked files
         private class Cleaner extends Thread{
-            private InputStream input;
-            private OutputStream output;
+            private BufferedReader in;
+            private BufferedWriter log;
             private String workDir;
             Cleaner(String workDir, InputStream input, OutputStream err){
                 this.workDir = workDir;
-                this.input = input;
-                this.output = err;
+                this.in = new BufferedReader(new InputStreamReader(input));
+                this.log = new BufferedWriter(new OutputStreamWriter(err));
             }
             @Override
             public void run() {
-                BufferedReader in = new BufferedReader(new InputStreamReader(input));
-                BufferedWriter log = new BufferedWriter(new OutputStreamWriter(output));
                 String line;
                 try{
                     while((line = in.readLine()) != null){
                         if(line.contains("- file(s) not on client.")){
                             String filename = line.replace("- file(s) not on client.", "").trim();
                             File file = new File(workDir,filename);
-                            if(!file.delete()){
-                                log.write("Error deleting file: "+filename);
-                                log.newLine();
-                                log.flush();
+                            if(!safelyDelete(file)){
+                                log("Error deleting file: "+filename);
                             }
                         }
                     }
                 }catch(IOException e){
                     // TODO: Handle IO errors
                 } finally {
-                    IOUtils.closeQuietly(input);
-                    IOUtils.closeQuietly(output);
+                    IOUtils.closeQuietly(in);
+                    IOUtils.closeQuietly(log);
                 }
+            }
+            
+            private boolean safelyDelete(File file) throws IOException{
+                File parent = (new File(workDir)).getCanonicalFile();
+                File testPath = file.getCanonicalFile();
+                while((testPath = testPath.getParentFile()) != null){
+                    if(testPath.equals(parent)){
+                        return file.delete();
+                    }
+                }
+                log("Warning, file outside workspace not cleaned: "+file.getPath());
+                return false;
+            }
+            
+            private void log(String string) throws IOException{
+                log.write(string);
+                log.newLine();
+                log.flush();
             }
         }
 }
