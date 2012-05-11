@@ -74,7 +74,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
     }
 
     public String getIconFileName() {
-        if (tag == null && !Hudson.getInstance().hasPermission(Hudson.ADMINISTER))
+        if (!getACL().hasPermission(getPermission()))
             return null;
         return "save.gif";
     }
