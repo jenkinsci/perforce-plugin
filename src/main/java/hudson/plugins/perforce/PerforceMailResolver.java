@@ -26,13 +26,37 @@ import java.util.logging.Logger;
 public class PerforceMailResolver extends MailAddressResolver {
     private static final Logger LOGGER = Logger.getLogger(PerforceMailResolver.class.getName());
 
-    @SuppressWarnings("unchecked")
     public String findMailAddressFor(User u) {
-    	LOGGER.fine("Email address for " + u.getId() + " requested.");
-        for (AbstractProject p : u.getProjects()) {
+        String email = findPerforceMailAddressFor(u);
+        if (email == null){
+            return null;
+        } else if (email.matches(".+@.+")){
+            return email;
+        } else {
+            LOGGER.fine("Rejecting invalid email ("+ email +") retrieved from perforce.");
+            return null;
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    public String findPerforceMailAddressFor(User u) {
+        LOGGER.fine("Email address for " + u.getId() + " requested.");
+        String perforceId = u.getId();
+        PerforceUserProperty puprop = u.getProperty(PerforceUserProperty.class);
+        if (puprop != null){
+            if(puprop.getPerforceId() != null){
+                LOGGER.fine("Using perforce user id '" + perforceId + "' from " + u.getId() + "'s properties.");
+                perforceId = puprop.getPerforceId();
+            }
+            if(puprop.getPerforceEmail() != null){
+                LOGGER.fine("Got email ("+puprop.getPerforceEmail()+") from " + u.getId() +"'s P4 properties.");
+                return puprop.getPerforceEmail();
+            }
+        }
+        for (AbstractProject p : Hudson.getInstance().getProjects()) {
             if (p.isDisabled()) continue;
             if (p.getScm() instanceof PerforceSCM) {
-                LOGGER.finer("Checking " + p.getName() + "'s SCM for " + u.getId() + "'s address.");
+                LOGGER.finer("Checking " + p.getName() + "'s Perforce SCM for " + perforceId + "'s address.");
                 PerforceSCM pscm = (PerforceSCM) p.getScm();
                 TaskListener listener = new StreamTaskListener(System.out);
                 Node node = p.getLastBuiltOn();
@@ -54,19 +78,22 @@ public class PerforceMailResolver extends MailAddressResolver {
                     Launcher launcher = p.getLastBuiltOn().createLauncher(listener);
                     com.tek42.perforce.model.User pu = null;
                     try {
-                        LOGGER.finer("Trying to get email address from perforce for " + u.getId());
-                        pu = pscm.getDepot(launcher, workspace, p).getUsers().getUser(u.getId());
+                        LOGGER.finer("Trying to get email address from perforce for " + perforceId);
+                        pu = pscm.getDepot(launcher, workspace, p, null, node).getUsers().getUser(perforceId);
+                        if (pu != null && pu.getEmail() != null && !pu.getEmail().equals("")) {
+                            LOGGER.fine("Got email (" + pu.getEmail() + ") from perforce for " + perforceId);
+                            return pu.getEmail();
+                        } else {
+                            //operation succeeded, but no email address was found for this user
+                            return null;
+                        }
                     } catch (Exception e) {
                         LOGGER.fine("Could not get email address from Perforce: " + e.getMessage());
                         e.printStackTrace(listener.getLogger());
                     }
-                    if (pu != null && pu.getEmail() != null && !pu.getEmail().equals("")) {
-                        LOGGER.fine("Got email (" + pu.getEmail() + ") from perforce for " + u.getId());
-                        return pu.getEmail();
-                    }
                     try {
                         //gradually increase sleep time
-                        Thread.sleep(tries*300);
+                        Thread.sleep(tries);
                     } catch (InterruptedException e){
                         return null;
                     }

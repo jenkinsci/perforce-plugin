@@ -1,6 +1,9 @@
 package hudson.plugins.perforce;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.kohsuke.stapler.export.Exported;
 
@@ -29,15 +32,26 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
     @Override
     @Exported
     public User getAuthor() {
-        return User.get(change.getUser());
+        User author = User.get(change.getUser());
+        return author;
     }
 
-    @Override
+    public String getUser() {
+        return getAuthor().getDisplayName();
+    }
+
+    public Collection<Changelist.FileEntry> getAffectedFiles() {
+        return change.getFiles();
+    }
+
     @Exported
     public Collection<String> getAffectedPaths() {
         List<String> paths = new ArrayList<String>(change.getFiles().size());
         for (Changelist.FileEntry entry : change.getFiles()) {
-            paths.add(entry.getFilename());
+            //only report those files that are actually in the workspace
+            if(entry.getWorkspacePath()!=null && !entry.getWorkspacePath().equals("")){
+                paths.add(entry.getWorkspacePath());
+            }
         }
         return paths;
     }
@@ -53,10 +67,27 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
         return new Integer(getChange().getChangeNumber()).toString();
     }
 
+    //used for email-ext
+    public String getRevision() {
+        return getChangeNumber();
+    }
+
     @Exported
     public String getChangeTime() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return sdf.format(getChange().getDate());
+    }
+
+    //used for email-ext
+    public String getDate() {
+        return getChangeTime();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public String getCurrentRevision() {
+        return getChangeNumber();
     }
 
     /**

@@ -3,4 +3,7 @@
     <f:textbox name="fisheye.perforce.url" value="${browser.url}"
         checkUrl="'${rootURL}/repositoryBrowser/FishEyePerforce/check?value='+escape(this.value)"/>
   </f:entry>
+  <f:entry title="${%Root module}" field="rootModule" help="/plugin/perforce/help/browsers/fisheye/rootModule.html">
+    <f:textbox />
+  </f:entry>
 </j:jelly>

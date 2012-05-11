@@ -24,43 +24,48 @@
 				
       <j:set var="change" value="${it.changeNumber}" />
       
-      <j:choose>
-          <j:when test="${it.isTagged()}">
-        	<p>	
-          	This build is labeled: <b>${it.tag}</b>
-        	</p>
-        	<p>
-        	${it.description}
-        	</p>    
-          </j:when>
-          <j:otherwise>
-          <p>You may label this build using Perforce's label feature.  This will
-			create a Perforce label with a view matching this project and a revision matching
-			the change number: ${it.changeNumber}.</p>
-            <form action="submit" method="get">
-	      	<table border="0" width="400">
-	      	<tr>
-	      		<td nowrap="nowrap"><b>Label Name:</b> </td>
-	      		<td><input type="text" name="name"
-	                       	value="${it.build.project.name}-Build-${it.build.number}" style="width:300px" id="name" 
-                   			checkUrl="'checkTag?value='+escape(this.value)"/>
-				</td>
-	        </tr>
-	        <tr>
-	        	<td><b>Description:</b> </td>
-	        	<td><textarea name="desc" rows="5" cols="50">Changelist: ${it.changeNumber}</textarea></td>
-	        </tr>
-	        <tr>
-	        	<td colspan="2"> </td>
-	        </tr>
-	        <tr>
-	        	<td colspan="2" align="right"><input type="submit" value="Label Build"/></td>
-	        </tr>
-	        </table>
-	        </form>
-          </j:otherwise>
-        </j:choose>
-          
+
+        <j:if test="${it.isTagged()}">
+            <p>	
+            This build is labeled:
+            </p>
+            <table border="0" width="400"><tr><td><b>Label</b></td><td><b>Description</b></td></tr>
+                <j:forEach var="entry" items="${it.tags}">
+                    <tr><td>${entry.name}</td><td>${entry.desc}</td></tr>
+                </j:forEach>
+            </table>
+        </j:if>
+        
+        <p>You may label this build using Perforce's label feature.  This will
+                    create a Perforce label with a view matching this project and a revision matching
+                    the change number: ${it.changeNumber}.</p>
+        <form action="submit" method="get">
+            <table border="0" width="400">
+            <tr>
+                    <td nowrap="nowrap"><b>Label Name:</b> </td>
+                    <td><input type="text" name="name"
+                            value="${it.build.project.name}-Build-${it.build.number}" style="width:300px" id="name" 
+                                    checkUrl="'checkTag?value='+escape(this.value)"/>
+                            </td>
+            </tr>
+            <tr>
+                    <td><b>Description:</b> </td>
+                    <td><textarea name="desc" rows="5" cols="50">Changelist: ${it.changeNumber}</textarea></td>
+            </tr>
+            <tr>
+                    <td><b>Owner:</b> </td>
+                    <td><input type="text" name="owner"
+                            value="${it.owner}" style="width:300px" id="owner" /></td>
+            </tr>
+            <tr>
+                    <td colspan="2"> </td>
+            </tr>
+            <tr>
+                    <td colspan="2" align="right"><input type="submit" value="Label Build"/></td>
+            </tr>
+            </table>
+        </form>
+
     </l:main-panel>
   </l:layout>
 </j:jelly>

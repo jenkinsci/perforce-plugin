@@ -38,6 +38,8 @@ import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Changelist;
 import com.tek42.perforce.model.Workspace;
+import hudson.plugins.perforce.PerforceSCMHelper;
+import java.io.IOException;
 
 /**
  * Base API object for interacting with changelists.
@@ -47,6 +49,8 @@ import com.tek42.perforce.model.Workspace;
  */
 public class Changes extends AbstractPerforceTemplate {
 
+        private transient List<PerforceSCMHelper.WhereMapping> whereMaps = null;
+    
 	public Changes(Depot depot) {
 		super(depot);
 	}
@@ -55,16 +59,51 @@ public class Changes extends AbstractPerforceTemplate {
 	 * Returns a single changelist specified by its number.
 	 * 
 	 * @param number
+     * @param maxFiles 
+     *             The maximum number of affected files that will be recorded
+     *             to a changelist. With negative value include all the files.
 	 * @return
 	 * @throws PerforceException
 	 */
-	public Changelist getChangelist(int number) throws PerforceException {
-		ChangelistBuilder builder = new ChangelistBuilder();
+	public Changelist getChangelist(int number, int maxFiles) throws PerforceException {
+
+		ChangelistBuilder builder = new ChangelistBuilder(maxFiles);
 		Changelist change = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), Integer.toString(number))));
 		if(change == null)
 			throw new PerforceException("Failed to retrieve changelist " + number);
+                calculateWorkspacePaths(change);
 		return change;
 	}
+
+        /**
+         * Calculates the workspace paths for every file in the changelist.
+         * @param change
+         */
+        private void calculateWorkspacePaths(Changelist change) throws PerforceException{
+            if(whereMaps == null){
+                byte[] bytes = getRawPerforceResponseBytes(new String[]{getP4Exe(),"-G","where","//..."});
+                whereMaps = PerforceSCMHelper.parseWhereMapping(bytes);
+                if(whereMaps == null) {
+                    whereMaps = new ArrayList<PerforceSCMHelper.WhereMapping>();
+                }
+            }
+            for(Changelist.FileEntry file :change.getFiles()){
+                String workspacePath;
+                workspacePath = getWorkspacePathForFile(file.getFilename());
+                file.setWorkspacePath(workspacePath);
+            }
+        }
+
+        private String getWorkspacePathForFile(String file) throws PerforceException {
+            String workspacePath = PerforceSCMHelper.mapToWorkspace(whereMaps, file);
+            if(workspacePath!=null){
+                //trim the head off of it, so it's a workspace-relative path.
+                return workspacePath.replaceAll("^//\\S+?/", "");
+            } else {
+                //We didn't get a workspace path, likely because it's not in the workspace
+                return "";
+            }
+        }
 
 	/**
 	 * Returns a list of changelists that match the parameters
@@ -75,10 +114,12 @@ public class Changes extends AbstractPerforceTemplate {
 	 *            The last changelist number to start from
 	 * @param limit
 	 *            The maximum changes to return if less than 1, will return everything
+	 * @param maxFiles 
+	 *            The maximum amount of affected files in a changelist to be recorded
 	 * @return
 	 * @throws PerforceException
 	 */
-	public List<Changelist> getChangelists(String path, int lastChange, int limit) throws PerforceException {
+	public List<Changelist> getChangelists(String path, int lastChange, int limit, int maxFiles) throws PerforceException {
 		path = normalizePath(path);
 		if(lastChange > 0)
 			path += "@" + lastChange;
@@ -86,9 +127,9 @@ public class Changes extends AbstractPerforceTemplate {
 		String cmd[];
 
 		if(limit > 0)
-			cmd = new String[] { getP4Exe(), "changes", "-m", Integer.toString(limit), path };
+			cmd = new String[] { getP4Exe(), "changes", "-s", "submitted", "-m", Integer.toString(limit), path };
 		else
-			cmd = new String[] { getP4Exe(), "changes", path };
+			cmd = new String[] { getP4Exe(), "changes", "-s", "submitted", path };
 
 		StringBuilder response = getPerforceResponse(cmd);
 		List<String> ids = parseList(response, 1);
@@ -96,7 +137,7 @@ public class Changes extends AbstractPerforceTemplate {
 		List<Changelist> changes = new ArrayList<Changelist>();
 		for(String id : ids) {
                     try{
-			changes.add(getChangelist(new Integer(id)));
+			changes.add(getChangelist(new Integer(id), maxFiles));
                     } catch(Exception e){
                         throw new PerforceException("Could not retrieve changelists.\nResponse from perforce was:\n" + response, e);
                     }
@@ -134,9 +175,9 @@ public class Changes extends AbstractPerforceTemplate {
 		String cmd[];
 
 		if(limit > 0)
-			cmd = new String[] { getP4Exe(), "changes", "-m", Integer.toString(limit), path };
+			cmd = new String[] { getP4Exe(), "changes", "-s", "submitted", "-m", Integer.toString(limit), path };
 		else
-			cmd = new String[] { getP4Exe(), "changes", path };
+			cmd = new String[] { getP4Exe(), "changes", "-s", "submitted", path };
 
 		StringBuilder response = getPerforceResponse(cmd);
                 if(hitMax(response)){
@@ -252,7 +293,7 @@ public class Changes extends AbstractPerforceTemplate {
 
 		List<String> cmdList = new ArrayList<String>();
 
-		addCommand(cmdList, getP4Exe(), "changes", "-m", "25");
+		addCommand(cmdList, getP4Exe(), "changes", "-s", "submitted", "-m", "25");
 		addCommandWorkspace(cmdList, workspace);
 		addCommand(cmdList, path);
 
@@ -306,7 +347,7 @@ public class Changes extends AbstractPerforceTemplate {
 			}
 			cmdList.clear();
 			getLogger().warn("running p4 changes for " + next + " until change is " + untilChange);
-			addCommand(cmdList, getP4Exe(), "changes", "-m", "25");
+			addCommand(cmdList, getP4Exe(), "changes", "-s", "submitted", "-m", "25");
 			addCommandWorkspace(cmdList, workspace);
 			addCommand(cmdList, path + "@" + next);
 		}
@@ -380,13 +421,16 @@ public class Changes extends AbstractPerforceTemplate {
 	 * Converts a list of numbers to a list of changes.
 	 * 
 	 * @param numbers
+	 * @param maxFiles 
+	 *             The maximum number of affected files that will be recorded
+	 *             to a changelist. With negative value include all the files.
 	 * @return
 	 * @throws PerforceException
 	 */
-	public List<Changelist> getChangelistsFromNumbers(List<Integer> numbers) throws PerforceException {
+	public List<Changelist> getChangelistsFromNumbers(List<Integer> numbers, int maxFiles) throws PerforceException {
 		List<Changelist> changes = new ArrayList<Changelist>();
 		for(Integer id : numbers) {
-			changes.add(getChangelist(id));
+			changes.add(getChangelist(id, maxFiles));
 		}
 		return changes;
 	}
@@ -395,31 +439,32 @@ public class Changes extends AbstractPerforceTemplate {
      * Return the change numbers in the range [first, last] that apply to the
      * specified workspace.  The change numbers are returned highest (most
      * recent) first.
-     * 
-     * @param first
+	 * @param first
      *            The number of the change to start from
-     * @param last
+	 * @param last
      *            The last change to include (if applies to the workspace)
+	 * @param showIntegChanges
+	 *            True if integrated changelists should be counted as well
      * @return list of change numbers
      * @throws PerforceException
      */
-    public List<Integer> getChangeNumbersInRange(Workspace workspace, int first, int last) throws PerforceException {
+    public List<Integer> getChangeNumbersInRange(Workspace workspace, int first, int last, boolean showIntegChanges) throws PerforceException {
         StringBuilder sb = new StringBuilder();
         sb.append("//");
         sb.append(workspace.getName());
         sb.append("/...");
 
         String path = sb.toString();
-        return getChangeNumbersInRangeForSinglePath(workspace, first, last, path);
+        return getChangeNumbersInRangeForSinglePath(workspace, first, last, path, showIntegChanges);
     }
     
-    public List<Integer> getChangeNumbersInRange(Workspace workspace, int first, int last, String paths) throws PerforceException {
+    public List<Integer> getChangeNumbersInRange(Workspace workspace, int first, int last, String paths, boolean showIntegChanges) throws PerforceException {
         if(paths == null){
-            return getChangeNumbersInRange(workspace, first, last);
+            return getChangeNumbersInRange(workspace, first, last, showIntegChanges);
         }
         List<Integer> numbers = new ArrayList<Integer>();
         for(String path : paths.replaceAll("\r", "").split("\n")){
-            List<Integer> newNumbers = getChangeNumbersInRangeForSinglePath(workspace, first, last, path);
+            List<Integer> newNumbers = getChangeNumbersInRangeForSinglePath(workspace, first, last, path, showIntegChanges);
             for(Integer num : newNumbers){
                 if(!numbers.contains(num)){
                     numbers.add(num);
@@ -431,7 +476,40 @@ public class Changes extends AbstractPerforceTemplate {
         return numbers;
     }
 
-    public List<Integer> getChangeNumbersInRangeForSinglePath(Workspace workspace, int first, int last, String path) throws PerforceException {
+    public Integer getHighestLabelChangeNumber(Workspace workspace, String label, String path) throws PerforceException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(path.replaceAll("\"", ""));
+        sb.append("@");
+        sb.append(label);
+        
+        String fullPath = sb.toString();
+
+        String[] cmd = new String[] { getP4Exe(), "-s", "changes", "-s", "submitted", "-m", "1", fullPath };
+
+        List<String> response = getRawPerforceResponseLines(cmd);
+        List<Integer> numbers = new ArrayList<Integer>(response.size());
+
+        // TODO Handle error cases, and "exit: <exit-code>" (currently just ignored,
+        // should really be parsing that line, and providing that value to the caller
+        // by some means).
+
+        for (String line : response) {
+            if (line.startsWith("info: Change ")) {
+                int offset = line.indexOf(' ', 13);
+                String s = line.substring(13, offset);
+                Integer n = Integer.valueOf(s);
+                numbers.add(n);
+                continue;
+            }
+        }
+        if(numbers.isEmpty()){
+            return -1;
+        } else {
+            return numbers.get(0);
+        }
+    }
+
+    public List<Integer> getChangeNumbersInRangeForSinglePath(Workspace workspace, int first, int last, String path, boolean showIntegChanges) throws PerforceException {
         StringBuilder sb = new StringBuilder();
         sb.append(path.replaceAll("\"", ""));
         sb.append("@");
@@ -439,8 +517,13 @@ public class Changes extends AbstractPerforceTemplate {
         sb.append(",@");
         sb.append(last);
         String fullPath = sb.toString();
+        String[] cmd;
 
-        String[] cmd = new String[] { getP4Exe(), "-s", "changes", fullPath };
+        if (showIntegChanges) {
+            cmd = new String[] { getP4Exe(), "-s", "changes", "-s", "submitted", "-i", fullPath };
+        } else {
+            cmd = new String[] { getP4Exe(), "-s", "changes", "-s", "submitted", fullPath };
+        }
 
         List<String> response = getRawPerforceResponseLines(cmd);
         List<Integer> numbers = new ArrayList<Integer>(response.size());

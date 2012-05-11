@@ -7,6 +7,7 @@ import hudson.scm.ChangeLogSet;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
@@ -43,6 +44,10 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
     @Override
     public boolean isEmptySet() {
         return history.size() == 0;
+    }
+
+    public Collection<PerforceChangeLogEntry> getLogs() {
+        return history;
     }
 
     /*
@@ -104,7 +109,17 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
                 for (Node fnode : fileNodes) {
                     Changelist.FileEntry file = new Changelist.FileEntry();
                     file.setFilename(fnode.selectSingleNode("name").getStringValue());
+                    try{
+                        file.setWorkspacePath(fnode.selectSingleNode("workspacePath").getStringValue());
+                    }catch(Exception e){
+                        //This field might not exist yet, so ignore it.
+                    }
                     file.setRevision(fnode.selectSingleNode("rev").getStringValue());
+                    try{
+                        file.setChangenumber(fnode.selectSingleNode("changenumber").getStringValue());
+                    }catch(Exception e){
+                        //This field might not exist yet, so ignore it.
+                    }
                     file.setAction(Changelist.FileEntry.Action.valueOf(fnode.selectSingleNode("action")
                             .getStringValue()));
                     files.add(file);
@@ -160,7 +175,9 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
             for (Changelist.FileEntry entry : change.getFiles()) {
                 stream.println("\t\t\t<file>");
                 stream.println("\t\t\t\t<name>" + Util.xmlEscape(entry.getFilename()) + "</name>");
+                stream.println("\t\t\t\t<workspacePath>" + Util.xmlEscape(entry.getWorkspacePath()) + "</workspacePath>");
                 stream.println("\t\t\t\t<rev>" + Util.xmlEscape(entry.getRevision()) + "</rev>");
+                stream.println("\t\t\t\t<changenumber>" + Util.xmlEscape(entry.getChangenumber()) + "</changenumber>");
                 stream.println("\t\t\t\t<action>" + entry.getAction() + "</action>");
                 stream.println("\t\t\t</file>");
             }

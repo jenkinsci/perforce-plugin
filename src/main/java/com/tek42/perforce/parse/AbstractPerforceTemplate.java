@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.process.Executor;
+import java.io.InputStream;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -69,11 +70,11 @@ public abstract class AbstractPerforceTemplate {
     private transient String errors[];   // Obsolete field, present just to keep demarshaller happy
 
     private final Depot depot;
-	final String maxError = "Request too large";
+    final transient String maxError = "Request too large";
 
-	public AbstractPerforceTemplate(Depot depot) {
-		this.depot = depot;
-	}
+    public AbstractPerforceTemplate(Depot depot) {
+            this.depot = depot;
+    }
 
     public Logger getLogger()
     {
@@ -466,7 +467,79 @@ public abstract class AbstractPerforceTemplate {
         return lines;
     }
 
-	/**
+    /**
+     * Used by calls that make use of p4.exe's python dictionary output format.
+     * @param cmd
+     * @return
+     * @throws PerforceException
+     */
+
+    protected byte[] getRawPerforceResponseBytes(String cmd[]) throws PerforceException {
+        List<Byte> bytes = new ArrayList<Byte>(1024);
+
+        Executor p4 = depot.getExecFactory().newExecutor();
+        String debugCmd = "";
+        // get entire cmd to execute
+        cmd = getExtraParams(cmd);
+
+        // setup information for logging...
+        for(String cm : cmd) {
+            debugCmd += cm + " ";
+        }
+
+        // Perform execution and IO
+        p4.exec(cmd);
+
+        try
+        {
+            byte[] cbuf = new byte[1024];
+            InputStream input = p4.getInputStream();
+            p4.getWriter().close();
+            int readCount = -1;
+            while((readCount = input.read(cbuf, 0, 1024)) != -1) {
+                for(int i=0; i<readCount; i++){
+                    bytes.add(new Byte((byte)(cbuf[i]&0xff)));
+                }
+            }
+        }
+        catch(IOException ioe)
+        {
+            //this is generally not anything to worry about.  The underlying
+            //perforce process terminated and that causes java to be angry.
+
+            // TODO Given the above comment, should we bother to log a warning?
+            // See this blog for a discussion of IOException with message "Write end dead" from pipes:
+            //      http://techtavern.wordpress.com/2008/07/16/whats-this-ioexception-write-end-dead/
+
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw, true);
+            ioe.printStackTrace(pw);
+            pw.flush();
+            sw.flush();
+            getLogger().warn("IOException reading from Perforce process (may just be EOF)");
+            getLogger().warn(sw.toString());
+        }
+        finally{
+            try{
+                p4.getWriter().close();
+            } catch (IOException e) {
+                getLogger().warn("Write pipe failed to close.");
+            }
+            try{
+                p4.getReader().close();
+            } catch (IOException e) {
+                getLogger().warn("Read pipe failed to close.");
+            }
+            p4.close();
+        }
+        byte[] byteArray = new byte[bytes.size()];
+        for(int i=0; i<bytes.size(); i++){
+            byteArray[i] = bytes.get(i).byteValue();
+        }
+        return byteArray;
+    }
+
+        /**
 	 * Tries to perform a p4 login if the security level on the server is set to level 3 and no ticket was set via
 	 * depot.setP4Ticket().
 	 * <p>

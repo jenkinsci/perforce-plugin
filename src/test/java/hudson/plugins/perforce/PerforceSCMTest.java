@@ -1,13 +1,18 @@
 package hudson.plugins.perforce;
 
 import hudson.model.FreeStyleProject;
+import hudson.model.Hudson;
+import hudson.plugins.perforce.PerforceToolInstallation.DescriptorImpl;
 import hudson.plugins.perforce.browsers.P4Web;
+import hudson.tools.ToolProperty;
 
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.jvnet.hudson.test.HudsonTestCase;
+import org.jvnet.hudson.test.recipes.LocalData;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -20,9 +25,10 @@ public class PerforceSCMTest extends HudsonTestCase {
         FreeStyleProject project = createFreeStyleProject();
         P4Web browser = new P4Web(new URL("http://localhost/"));
         PerforceSCM scm = new PerforceSCM(
-        		"user", "pass", "client", "port", "path", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+        		"user", "pass", "client", "port", "", "exe", "sysRoot",
+        		"sysDrive", "label", "counter", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+                        false, false, true, false, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
+        scm.setProjectPath("path");
         project.setScm(scm);
 
         // config roundtrip
@@ -30,7 +36,29 @@ public class PerforceSCMTest extends HudsonTestCase {
 
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
-                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset");
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,createWorkspace,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset,p4Stream,useStreamDepot,showIntegChanges,fileLimit");
+        assertEquals("exclude_user", scm.getExcludedUsers());
+        assertEquals("exclude_file", scm.getExcludedFiles());
+        //assertEqualBeans(scm.getBrowser(),p.getScm().getBrowser(),"URL");
+    }
+
+    public void testConfigRoundtripWithStream() throws Exception {
+        FreeStyleProject project = createFreeStyleProject();
+        P4Web browser = new P4Web(new URL("http://localhost/"));
+        PerforceSCM scm = new PerforceSCM(
+        		"user", "pass", "client", "port", "", "exe", "sysRoot",
+        		"sysDrive", "label", "counter", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+                        false, false, true, false, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
+        scm.setP4Stream("stream");
+        scm.setUseStreamDepot(true);
+        project.setScm(scm);
+
+        // config roundtrip
+        submit(new WebClient().getPage(project,"configure").getFormByName("config"));
+
+        // verify that the data is intact
+        assertEqualBeans(scm, project.getScm(),
+                "p4User,p4Client,p4Port,p4Label,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,createWorkspace,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset,p4Stream,useStreamDepot");
         assertEquals("exclude_user", scm.getExcludedUsers());
         assertEquals("exclude_file", scm.getExcludedFiles());
         //assertEqualBeans(scm.getBrowser(),p.getScm().getBrowser(),"URL");
@@ -39,11 +67,16 @@ public class PerforceSCMTest extends HudsonTestCase {
     public void testConfigPasswordEnctyptionAndDecription() throws Exception {
         FreeStyleProject project = createFreeStyleProject();
         P4Web browser = new P4Web(new URL("http://localhost/"));
+        PerforceToolInstallation tool = new PerforceToolInstallation("test_installation", "p4.exe", Collections.<ToolProperty<?>>emptyList());
+        DescriptorImpl descriptor = (DescriptorImpl) Hudson.getInstance().getDescriptor(PerforceToolInstallation.class);
+        descriptor.setInstallations(new PerforceToolInstallation[] { tool });
+        descriptor.save();
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
-        		"user", password, "client", "port", "path", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+        		"user", password, "client", "port", "", "test_installation", "sysRoot",
+        		"sysDrive", "label", "counter", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+                        false, false, true, false, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
+        scm.setProjectPath("path");
         project.setScm(scm);
 
         // config roundtrip
@@ -51,7 +84,7 @@ public class PerforceSCMTest extends HudsonTestCase {
 
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
-                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset");
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Tool,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset,p4Stream,useStreamDepot,showIntegChanges,fileLimit");
         assertEquals("exclude_user", scm.getExcludedUsers());
         assertEquals("exclude_file", scm.getExcludedFiles());
 
@@ -63,34 +96,43 @@ public class PerforceSCMTest extends HudsonTestCase {
     public void testDepotContainsUnencryptedPassword() throws Exception {
         FreeStyleProject project = createFreeStyleProject();
         P4Web browser = new P4Web(new URL("http://localhost/"));
+        PerforceToolInstallation tool = new PerforceToolInstallation("test_installation", "p4.exe", Collections.<ToolProperty<?>>emptyList());
+        DescriptorImpl descriptor = (DescriptorImpl) Hudson.getInstance().getDescriptor(PerforceToolInstallation.class);
+        descriptor.setInstallations(new PerforceToolInstallation[] { tool });
+        descriptor.save();
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
-        		"user", password, "client", "port", "path", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
-
+        		"user", password, "client", "port", "", "test_installation", "sysRoot",
+        		"sysDrive", "label", "counter", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+                        false, false, true, false, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
+        scm.setProjectPath("path");
         project.setScm(scm);
-        
-        assertEquals(password, ((PerforceSCM)project.getScm()).getDepot(null, null, null).getPassword());
+
+        assertEquals(password, ((PerforceSCM)project.getScm()).getDepot(null, null, null, null, null).getPassword());
     }
 
     public void testConfigSaveReloadAndSaveDoesNotDoubleEncryptThePassword() throws Exception {
         FreeStyleProject project = createFreeStyleProject();
         P4Web browser = new P4Web(new URL("http://localhost/"));
+        PerforceToolInstallation tool = new PerforceToolInstallation("test_installation", "p4.exe", Collections.<ToolProperty<?>>emptyList());
+        DescriptorImpl descriptor = (DescriptorImpl) Hudson.getInstance().getDescriptor(PerforceToolInstallation.class);
+        descriptor.setInstallations(new PerforceToolInstallation[] { tool });
+        descriptor.save();
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
-        		"user", password, "client", "port", "path", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, browser, "exclude_user", "exclude_file");
+        		"user", password, "client", "port", "", "test_installation", "sysRoot",
+        		"sysDrive", "label", "counter", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+                        false, false, true, false, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
+        scm.setProjectPath("path");
         project.setScm(scm);
 
         // config roundtrip
         submit(new WebClient().getPage(project,"configure").getFormByName("config"));
         submit(new WebClient().getPage(project,"configure").getFormByName("config"));
-        
+
         // verify that the data is intact
         assertEqualBeans(scm, project.getScm(),
-                "p4User,p4Client,p4Port,p4Label,projectPath,p4Exe,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset");
+                "p4User,p4Client,p4Port,p4Label,projectPath,p4Tool,p4SysRoot,p4SysDrive,forceSync,alwaysForceSync,dontUpdateClient,updateView,slaveClientNameFormat,lineEndValue,firstChange,p4Counter,updateCounterValue,exposeP4Passwd,useViewMaskForPolling,viewMask,useViewMaskForSyncing,p4Charset,p4CommandCharset,p4Stream,useStreamDepot,showIntegChanges,fileLimit");
         assertEquals("exclude_user", scm.getExcludedUsers());
         assertEquals("exclude_file", scm.getExcludedFiles());
 
@@ -134,6 +176,8 @@ public class PerforceSCMTest extends HudsonTestCase {
         assertViewParsesSame("//depot/path/a/b/c/... //client/path/a/b/c/...");
         assertViewParsesSame("\"//depot/quotedpath/...\" \"//client/quotedpath/...\"");
         assertViewParsesSame("\"//depot/path with space/...\" \"//client/path with space/...\"");
+        assertViewParsesSame("//depot/pathwithoutspace/... \"//client/path with space/...\"");
+        assertViewParsesSame("\"//depot/path with space/...\" //client/pathwithoutspace/...");
         assertViewParsesSame("-//depot/path/sub/... //client/path/sub/...");
     }
 
@@ -163,40 +207,91 @@ public class PerforceSCMTest extends HudsonTestCase {
     public void testFilenameP4PatternMatcher() throws Exception {
         assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
                 "//depot/somefile/testfile",
-                "//depot/..."));
+                "//depot/...",true));
         assertEquals(false, PerforceSCM.doesFilenameMatchP4Pattern(
                 "//depot3/somefile/testfile",
-                "//depot/..."));
+                "//depot/...",true));
         assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
                 "//depot/somefile/testfile",
-                "//depot/.../testfile"));
+                "//depot/.../testfile",true));
         assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
                 "//depot/somefile/testfile",
-                "//depot/*/testfile"));
+                "//depot/*/testfile",true));
         assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
                 "//depot/somefile/testfile",
-                "//depot/some*/..."));
+                "//depot/some*/...",true));
         assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
                 "//depot/somefile/testfile",
-                "//depot/*file..."));
+                "//depot/*file...",true));
         assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
                 "//depot/somefile/testfile",
-                "//depot/.../*"));
+                "//depot/.../*",true));
         assertEquals(false, PerforceSCM.doesFilenameMatchP4Pattern(
                 "//depot/somefile/testfile",
-                "//depot/somefile/test"));
+                "//depot/somefile/test",true));
         assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
                 "//depot/somefile/testfile",
-                "//depot/somefile/testfile"));
+                "//depot/somefile/testfile",true));
         assertEquals(false, PerforceSCM.doesFilenameMatchP4Pattern(
                 "//depot/somefile/testfile",
-                "//depot/.../test"));
+                "//depot/.../test",true));
         assertEquals(false, PerforceSCM.doesFilenameMatchP4Pattern(
                 "//depot/somefile/testfile",
-                "//depot/.../*test"));
+                "//depot/.../*test",true));
         assertEquals(false, PerforceSCM.doesFilenameMatchP4Pattern(
                 "//depot/somefile/testfile",
-                "//depot/.../file*"));
+                "//depot/.../file*",true));
+        assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot/SomeFile/testFile",
+                "//depot/s.../testfile", false));
+    }
+
+    public void testFileInView() throws Exception {
+        String projectPath = 
+                "//depot/somefile/...\n"+
+                "-//depot/somefile/excludedfile...\n"+
+                "+//depot/somefile/excludedfile/readdedfile\n"+
+                "//depot/someotherfile/...";
+        assertEquals(false,PerforceSCM.isFileInView("//depot/somefile/excludedfile", projectPath, true));
+        assertEquals(false,PerforceSCM.isFileInView("//depot/somefile/excludedfile/test", projectPath, true));
+        assertEquals(false,PerforceSCM.isFileInView("//depot/notincluded", projectPath, true));
+        assertEquals(true, PerforceSCM.isFileInView("//depot/somefile/excludedfile/readdedfile", projectPath, true));
+        assertEquals(true, PerforceSCM.isFileInView("//depot/someotherfile/test", projectPath, true));
+        assertEquals(true,PerforceSCM.isFileInView("//depot/somefile/file", projectPath, true));
+    }
+        
+    /** Test migration from "p4Exe" field to tool installation.
+     * 
+     * @throws Exception
+     */
+    @LocalData
+    public void testP4ExeMigration() throws Exception {
+        DescriptorImpl descriptor = (DescriptorImpl) Hudson.getInstance().getDescriptor(PerforceToolInstallation.class);
+        PerforceToolInstallation[] expected = new PerforceToolInstallation[] {
+                new PerforceToolInstallation("c:\\program files\\perforce\\p4.exe", "c:\\program files\\perforce\\p4.exe", Collections.<ToolProperty<?>>emptyList()), 
+                new PerforceToolInstallation("p4.exe", "p4.exe", Collections.<ToolProperty<?>>emptyList())
+        };
+        assertEquals(expected, descriptor.getInstallations());
+    }
+
+    /**
+     * Helper method to check that PerforceToolInstallations match.
+     * 
+     * @param expected Expected PerforceToolInstallation
+     * @param actual Actual PerforceToolInstallation
+     */
+    static void assertEquals(PerforceToolInstallation[] expected, PerforceToolInstallation[] actual) {
+        assertEquals("Was expecting " + expected.length + " tool installations but got " + actual.length + " instead.", expected.length, actual.length);
+        for (PerforceToolInstallation actualTool : actual) {
+            boolean found = false;
+            for (PerforceToolInstallation expectedTool : expected) {
+                if (expectedTool.getName().equals(actualTool.getName()) && expectedTool.getHome().equals(actualTool.getHome())) {
+                    found = true;
+                    break;
+                }
+            }
+            assertTrue("Was not expecting tool installation '" + actualTool.getName() + "'.", found);
+        }
     }
 
 }

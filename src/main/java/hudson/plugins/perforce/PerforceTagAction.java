@@ -8,12 +8,14 @@ import hudson.model.AbstractBuild;
 import hudson.model.Action;
 import hudson.model.Hudson;
 import hudson.scm.AbstractScmTagAction;
+import hudson.security.Permission;
 import hudson.util.FormValidation;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.List;
@@ -27,23 +29,30 @@ import org.kohsuke.stapler.QueryParameter;
 public class PerforceTagAction extends AbstractScmTagAction {
     private final int changeNumber;
     private Depot depot;
-    private String tag;
-    private String desc;
+    private List<PerforceTag> tags = new ArrayList<PerforceTag>();
+    @Deprecated
+    private transient String tag;
+    @Deprecated
+    private transient String desc;
     private String view;
+    private String owner;
 
-    public PerforceTagAction(AbstractBuild build, Depot depot, int changeNumber, String views) {
+    public PerforceTagAction(AbstractBuild build, Depot depot, int changeNumber, String views, String owner) {
         super(build);
         this.depot = depot;
         this.changeNumber = changeNumber;
         this.view = views;
+        this.owner = owner;
     }
 
-    public PerforceTagAction(AbstractBuild build, Depot depot, String label, String views) {
+    public PerforceTagAction(AbstractBuild build, Depot depot, String label, String views, String owner) {
         super(build);
         this.depot = depot;
         this.changeNumber = -1;
         this.tag = label;
+        this.tags.add(new PerforceTag(label,""));
         this.view = views;
+        this.owner = owner;
     }
 
     public PerforceTagAction(PerforceTagAction tga) {
@@ -51,7 +60,9 @@ public class PerforceTagAction extends AbstractScmTagAction {
         this.depot = tga.depot;
         this.changeNumber = tga.changeNumber;
         this.tag = tga.tag;
+        this.tags.addAll(tga.getTags());
         this.view = tga.view;
+        this.owner = tga.owner;
     }
 
     public int getChangeNumber() {
@@ -91,11 +102,31 @@ public class PerforceTagAction extends AbstractScmTagAction {
         this.desc = desc;
     }
 
+    public String getOwner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
+
+    public Depot getDepot() {
+        return depot;
+    }
+
+    public List<PerforceTag> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<PerforceTag> tags) {
+        this.tags = tags;
+    }
+
     /**
      * Returns true if this build has already been tagged at least once.
      */
     public boolean isTagged() {
-        return tag != null;
+        return tags != null && !tags.isEmpty();
     }
 
     /**
@@ -124,10 +155,11 @@ public class PerforceTagAction extends AbstractScmTagAction {
      * Invoked to actually tag the workspace.
      */
     public synchronized void doSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+        getACL().checkPermission(getPermission());
 
         String tag = req.getParameter("name");
         String desc = req.getParameter("desc");
+        owner = req.getParameter("owner");
 
         tagBuild(tag, desc);
 
@@ -135,12 +167,16 @@ public class PerforceTagAction extends AbstractScmTagAction {
     }
 
     public void tagBuild(String tagname, String description) throws IOException {
-        tag = tagname;
-        desc = description;
         Label label = new Label();
-        label.setName(tag);
-        label.setDescription(desc);
+        label.setName(tagname);
+        label.setDescription(description);
         label.setRevision(new Integer(changeNumber).toString());
+        if(owner!=null && !owner.equals("")) label.setOwner(owner);
+
+        if(this.getBuild().getProject().getScm() instanceof PerforceSCM){
+            PerforceSCM scm = (PerforceSCM)this.getBuild().getProject().getScm();
+            depot.setPassword(scm.getDecryptedP4Passwd(this.getBuild().getProject()));
+        }
 
         //Only take the depot paths and add them to the view.
         List<String> viewPairs = PerforceSCM.parseProjectPath(view, "workspace");
@@ -151,12 +187,57 @@ public class PerforceTagAction extends AbstractScmTagAction {
         try {
             depot.getLabels().saveLabel(label);
         } catch(PerforceException e) {
-            tag = null;
-            desc = null;
             e.printStackTrace();
             throw new IOException("Failed to issue perforce label." + e.getMessage());
         }
+        tags.add(new PerforceTag(tagname,description));
         build.save();
+    }
+    
+    @SuppressWarnings( "deprecation" )
+    public Object readResolve() {
+        if (tags == null)
+        {
+            tags = new ArrayList<PerforceTag>();
+            if (tag != null)
+            {
+                tags.add(new PerforceTag(tag,desc));
+            }
+        }
+        
+        return this;
+    }
+    
+    public static class PerforceTag {
+        private String name;
+        private String desc;
+
+        public PerforceTag(String name, String desc) {
+            this.name = name;
+            this.desc = desc;
+        }
+
+        public String getDesc() {
+            return desc;
+        }
+
+        public void setDesc(String desc) {
+            this.desc = desc;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+        
+    }
+
+    @Override
+    protected Permission getPermission() {
+        return PerforceSCM.TAG;
     }
     
 }

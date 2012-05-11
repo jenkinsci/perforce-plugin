@@ -89,12 +89,8 @@ public class Depot {
 
 	public Depot(ExecutorFactory factory) {
 		settings = new HashMap<String, String>();
-		setUser("robot"); // Specific to some prior developers environment, presumably
-        setClient("robot-client");
-		setPort("localhost:1666");
+
 		setPassword("");
-		setPath("C:\\Program Files\\Perforce");
-		setenv("CLASSPATH", "/usr/share/java/p4.jar");
 		setSystemDrive("C:");
 		setSystemRoot("C:\\WINDOWS");
 		setExecutable("p4");
@@ -107,10 +103,8 @@ public class Depot {
 		}
 
 		if(os.startsWith("Windows")) {
-			setenv("PATHEXT", ".COM;.EXE;.BAT;.CMD");
 			String windir = System.getProperty("com.ms.windir");
 			if(windir != null) {
-				appendPath(windir.substring(0, 1) + "\\Program Files\\Perforce");
 				setSystemDrive(windir.substring(0, 1));
 				setSystemRoot(windir);
 			}
@@ -233,6 +227,17 @@ public class Depot {
 		return status;
 	}
 
+	/**
+	 * Retrieves a file object to access a file in the depot.
+	 * <p>
+	 * E.g., depot.getFile().read() for reading a file from the depot.
+	 * 
+	 * @return Status object
+	 */
+	public File getFile(String file) {
+        return new File(this,file);
+    }
+	
 	/**
 	 * Returns the output created by "p4 info"
 	 * 
@@ -470,15 +475,6 @@ public class Depot {
 		if(null == exe)
 			return;
 		p4exe = exe;
-		if(null == fileSep) {
-			fileSep = System.getProperties().getProperty("file.separator", "\\");
-		}
-		if(-1 == (pos = exe.lastIndexOf(fileSep)))
-			return;
-		if(null == pathSep) {
-			pathSep = System.getProperties().getProperty("path.separator", ";");
-		}
-		appendPath(exe.substring(0, pos));
 	}
 
 	/**
