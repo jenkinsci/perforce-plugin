@@ -116,23 +116,31 @@ public class ChangelistBuilder implements Builder<Changelist> {
 						if(!getDesc) {
 							// Line looks like:
 							// EXT-84 on 2007/09/25 by mwille *closed*
+							// or
+							// EXT-84 on 2007/09/25 *closed*
+							// or
+							// EXT-84 on 2007/09/25
 							StringTokenizer details = new StringTokenizer(line);
 							job = new Changelist.JobEntry();
 							job.setJob(details.nextToken());
 							details.nextToken(); // on
 							details.nextToken(); // date
-							
-							String possibleUser = details.nextToken(); // by
 							String status = "";
-							if ("by".equals(possibleUser))
+
+							if (details.hasMoreTokens())
 							{
-							details.nextToken(); // user
-							  status = details.nextToken(); // status
+								String possibleUser = details.nextToken(); // by
+								if ("by".equals(possibleUser))
+								{
+									details.nextToken(); // user
+									status = details.nextToken(); // status
+								}
+								else
+								{
+									status = possibleUser;
+								}
 							}
-							else
-							{
-							  status = possibleUser;
-							}
+
 							job.setStatus(status);
 							description = "";
 							getDesc = true;
