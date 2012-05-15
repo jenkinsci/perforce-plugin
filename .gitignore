@@ -3,3 +3,7 @@
 *.iws
 target
 work
+.classpath
+.settings
+.project
+.DS_Store

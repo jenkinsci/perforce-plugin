@@ -160,8 +160,9 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
             if(err != null) ps.stderr(err);
             if(workDir!=null)   ps.pwd(workDir);
 
-            Proc p = ps.start();
+            Proc p;
             try {
+                p = ps.start();
                 Integer ret = p.join();
                 if(out!=null) out.close();
                 if(err!=null) err.close();
@@ -170,6 +171,10 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
                 if(out!=null) out.close();
                 if(err!=null) err.close();
                 return -1;
+            } catch (IOException e) {
+                if(out!=null) out.close();
+                if(err!=null) err.close();
+                throw new IOException(e);
             }
         }
     }

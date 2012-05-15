@@ -19,6 +19,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public class PerforceUserProperty extends UserProperty {
 
     private String perforceId;
+    private String perforceEmail;
 
     public PerforceUserProperty(){
         super();
@@ -51,6 +52,14 @@ public class PerforceUserProperty extends UserProperty {
             return "Perforce";
         }
         
+    }
+
+    public String getPerforceEmail() {
+        return perforceEmail;
+    }
+
+    public void setPerforceEmail(String perforceEmail) {
+        this.perforceEmail = perforceEmail;
     }
 
 }
