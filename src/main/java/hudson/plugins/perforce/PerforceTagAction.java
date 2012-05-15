@@ -8,6 +8,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.Action;
 import hudson.model.Hudson;
 import hudson.scm.AbstractScmTagAction;
+import hudson.security.Permission;
 import hudson.util.FormValidation;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -73,7 +74,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
     }
 
     public String getIconFileName() {
-        if (tag == null && !Hudson.getInstance().hasPermission(Hudson.ADMINISTER))
+        if (!getACL().hasPermission(getPermission()))
             return null;
         return "save.gif";
     }
@@ -154,7 +155,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
      * Invoked to actually tag the workspace.
      */
     public synchronized void doSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+        getACL().checkPermission(getPermission());
 
         String tag = req.getParameter("name");
         String desc = req.getParameter("desc");
@@ -232,6 +233,11 @@ public class PerforceTagAction extends AbstractScmTagAction {
             this.name = name;
         }
         
+    }
+
+    @Override
+    protected Permission getPermission() {
+        return PerforceSCM.TAG;
     }
     
 }
