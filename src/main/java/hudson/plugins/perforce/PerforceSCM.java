@@ -284,7 +284,6 @@ public class PerforceSCM extends SCM {
             boolean disableAutoSync,
             boolean disableSyncOnly,
             boolean showIntegChanges,
-            boolean wipeRepoBeforeBuild,
             boolean dontUpdateClient,
             boolean exposeP4Passwd,
             boolean pollOnlyOnMaster,
@@ -370,7 +369,6 @@ public class PerforceSCM extends SCM {
         this.disableSyncOnly = disableSyncOnly;
         this.showIntegChanges = showIntegChanges;
         this.browser = browser;
-        this.wipeRepoBeforeBuild = wipeRepoBeforeBuild;
         this.createWorkspace = Boolean.valueOf(createWorkspace);
         this.updateView = updateView;
         this.dontUpdateClient = dontUpdateClient;
@@ -1687,12 +1685,15 @@ public class PerforceSCM extends SCM {
             String cleanType = req.getParameter("p4.cleanType");
             boolean useWipe = false;
             boolean useQuickClean = false;
-            if(cleanType != null){
+            if(cleanType != null && req.getParameter("p4.cleanWorkspace") != null){
                 useWipe = cleanType.equals("wipe");
                 useQuickClean = cleanType.equals("quick");
             }
             newInstance.setWipeBeforeBuild(useWipe);
             newInstance.setQuickCleanBeforeBuild(useQuickClean);
+            
+            String wipeRepo = req.getParameter("p4.wipeRepoBeforeBuild");
+            newInstance.setWipeRepoBeforeBuild(wipeRepo != null);
             
             return newInstance;
         }
@@ -2790,6 +2791,14 @@ public class PerforceSCM extends SCM {
 
     public void setExcludedFilesCaseSensitivity(boolean excludedFilesCaseSensitivity) {
         this.excludedFilesCaseSensitivity = excludedFilesCaseSensitivity;
+    }
+
+    public void setWipeRepoBeforeBuild(boolean wipeRepoBeforeBuild) {
+        this.wipeRepoBeforeBuild = wipeRepoBeforeBuild;
+    }
+
+    public boolean isQuickCleanBeforeBuild() {
+        return quickCleanBeforeBuild;
     }
 
     public List<String> getAllLineEndChoices(){
