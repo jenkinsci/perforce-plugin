@@ -184,6 +184,11 @@ public class PerforceSCM extends SCM {
     boolean quickCleanBeforeBuild = false;
     
     /**
+     * If true, files in the workspace will be scanned for differences and restored during a quick clean
+     */
+    boolean restoreChangedDeletedFiles = false;
+    
+    /**
      * If true, the ,repository will be deleted before the checkout commences in addition to the workspace.
      */
     boolean wipeRepoBeforeBuild = false;
@@ -792,9 +797,15 @@ public class PerforceSCM extends SCM {
                 forceSync = true;
             }
             if (quickCleanBeforeBuild) {
+                QuickCleaner quickCleaner = new QuickCleaner(depot.getExecutable(), launcher, depot, workspace, wipeFilter);
                 log.println("Quickly cleaning workspace...");
-                (new QuickCleaner(depot.getExecutable(), launcher, depot, workspace, wipeFilter)).exec();
+                quickCleaner.doClean();
                 log.println("Workspace is clean.");
+                if (restoreChangedDeletedFiles) {
+                    log.println("Restoring changed and deleted files...");
+                    quickCleaner.doRestore();
+                    log.println("Files restored.");
+                }
             }
             
             // In case of a stream depot, we want Perforce to handle the client views. So let's re-initialize
@@ -1655,6 +1666,8 @@ public class PerforceSCM extends SCM {
             
             String wipeRepo = req.getParameter("p4.wipeRepoBeforeBuild");
             newInstance.setWipeRepoBeforeBuild(wipeRepo != null);
+            
+            newInstance.setRestoreChangedDeletedFiles(req.getParameter("p4.restoreChangedDeletedFiles") != null);
             
             return newInstance;
         }
@@ -2756,6 +2769,14 @@ public class PerforceSCM extends SCM {
 
     public boolean isQuickCleanBeforeBuild() {
         return quickCleanBeforeBuild;
+    }
+
+    public boolean isRestoreChangedDeletedFiles() {
+        return restoreChangedDeletedFiles;
+    }
+
+    public void setRestoreChangedDeletedFiles(boolean restoreChangedDeletedFiles) {
+        this.restoreChangedDeletedFiles = restoreChangedDeletedFiles;
     }
 
     public List<String> getAllLineEndChoices() {

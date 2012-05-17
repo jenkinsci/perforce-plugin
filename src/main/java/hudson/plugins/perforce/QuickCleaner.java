@@ -8,14 +8,17 @@ import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Proc;
 import hudson.model.Hudson;
 import hudson.model.TaskListener;
+import hudson.remoting.Callable;
 import hudson.remoting.FastPipedInputStream;
 import hudson.remoting.FastPipedOutputStream;
 import hudson.remoting.RemoteOutputStream;
 import hudson.util.StreamTaskListener;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.io.IOUtils;
@@ -40,7 +43,19 @@ public class QuickCleaner {
         this.filter = filter;
     }
 
+    public void doClean() throws PerforceException {
+        call(new QuickCleanerCall());
+    }
+    
+    public void doRestore() throws PerforceException {
+        call(new QuickRestoreCall());
+    }
+    
     public void exec() throws PerforceException {
+        call(new QuickCleanerCall());
+    }
+
+    public void call(RemoteCall remoteCall) throws PerforceException {
         try {
             // ensure we actually have a valid hudson launcher
             if (null == hudsonLauncher) {
@@ -55,7 +70,12 @@ public class QuickCleaner {
 
             final OutputStream out = hudsonOut == null ? null : new RemoteOutputStream(hudsonOut);
 
-            QuickCleanerCall remoteCall = new QuickCleanerCall(p4exe, env, out, filePath.getRemote(), listener, filter);
+            remoteCall.setEnv(env);
+            remoteCall.setP4exe(p4exe);
+            remoteCall.setOut(out);
+            remoteCall.setWorkDir(filePath.getRemote());
+            remoteCall.setListener(listener);
+            remoteCall.setFilter(filter);
             LogPrinter logPrinter = new LogPrinter(listener.getLogger(), p4in);
             logPrinter.start();
             filePath.act(remoteCall);
@@ -65,7 +85,7 @@ public class QuickCleaner {
             throw new PerforceException("Could not run quick clean.", e);
         }
     }
-
+    
     private class LogPrinter extends Thread {
 
         private PrintStream log;
@@ -113,5 +133,74 @@ public class QuickCleaner {
         }
         result.add("P4CONFIG=");
         return result.toArray(new String[result.size()]);
+    }
+
+    public interface RemoteCall extends Callable<Integer, IOException> {
+
+        Integer call() throws IOException;
+
+        void setEnv(String[] env);
+
+        void setFilter(FileFilter filter);
+
+        void setListener(TaskListener listener);
+
+        void setOut(OutputStream out);
+
+        void setP4exe(String p4exe);
+
+        void setWorkDir(String workDir);
+    }
+    
+    public static class PerforceCall extends Thread {
+
+        private String[] env;
+        private String p4exe;
+        private InputStream input;
+        private OutputStream output;
+        private String workDir;
+        private TaskListener listener;
+        private String[] cmdList;
+        private boolean closePipes;
+
+        PerforceCall(String[] env, String[] cmdList, InputStream input, OutputStream output, String workDir, TaskListener listener, boolean closePipes) {
+            this.input = input;
+            this.output = output;
+            this.env = env;
+            this.p4exe = p4exe;
+            this.workDir = workDir;
+            this.listener = listener;
+            this.cmdList = cmdList;
+            this.closePipes = closePipes;
+        }
+
+        @Override
+        public void run() {
+            Launcher.ProcStarter ps = new Launcher.LocalLauncher(listener).launch();
+            ps.envs(env).stdin(input).stdout(output).cmds(cmdList);
+            if (workDir != null) {
+                ps.pwd(workDir);
+            }
+            Proc p;
+            try {
+                p = ps.start();
+                Integer ret = p.join();
+                //return ret;
+            } catch (InterruptedException e) {
+                if (output != null && closePipes) {
+                    IOUtils.closeQuietly(output);
+                }
+                //return -1;
+            } catch (IOException e) {
+                if (output != null && closePipes) {
+                    IOUtils.closeQuietly(output);
+                }
+            } finally {
+                if (closePipes) {
+                    IOUtils.closeQuietly(input);
+                    IOUtils.closeQuietly(output);
+                }
+            }
+        }
     }
 }

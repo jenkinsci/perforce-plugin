@@ -4,6 +4,7 @@ import hudson.Launcher;
 import hudson.Proc;
 import hudson.Util;
 import hudson.model.TaskListener;
+import hudson.plugins.perforce.QuickCleaner.PerforceCall;
 import hudson.remoting.Callable;
 import java.io.*;
 import java.util.ArrayList;
@@ -15,24 +16,50 @@ import org.apache.commons.io.IOUtils;
  *
  * @author rpetti
  */
-public class QuickCleanerCall implements Callable<Integer, IOException> {
+public class QuickCleanerCall implements QuickCleaner.RemoteCall {
 
-    private final String[] env;
-    private final OutputStream out;
-    private final String workDir;
-    private final TaskListener listener;
-    private final String p4exe;
-    private final FileFilter filter;
+    private String[] env;
+    private OutputStream out;
+    private String workDir;
+    private TaskListener listener;
+    private String p4exe;
+    private FileFilter filter;
+    
+    QuickCleanerCall() {
+        
+    }
 
-    QuickCleanerCall(String p4exe, String[] env, OutputStream out, String workDir, TaskListener listener, FileFilter filter) {
+    @Override
+    public void setEnv(String[] env) {
         this.env = env;
-        this.out = out;
-        this.workDir = workDir;
-        this.listener = listener;
-        this.p4exe = p4exe;
+    }
+
+    @Override
+    public void setFilter(FileFilter filter) {
         this.filter = filter;
     }
 
+    @Override
+    public void setListener(TaskListener listener) {
+        this.listener = listener;
+    }
+
+    @Override
+    public void setOut(OutputStream out) {
+        this.out = out;
+    }
+
+    @Override
+    public void setP4exe(String p4exe) {
+        this.p4exe = p4exe;
+    }
+
+    @Override
+    public void setWorkDir(String workDir) {
+        this.workDir = workDir;
+    }
+    
+    @Override
     public Integer call() throws IOException {
         PipedOutputStream dsOutput = new PipedOutputStream();
         PipedInputStream p4Input = new PipedInputStream();
@@ -40,7 +67,7 @@ public class QuickCleanerCall implements Callable<Integer, IOException> {
         PipedInputStream cleanerInput = new PipedInputStream();
 
         DirectoryScanner directoryScanner = new DirectoryScanner(workDir, dsOutput, filter);
-        ProcessByPerforce p4Processor = new ProcessByPerforce(env, p4exe, p4Input, p4Output, workDir);
+        ProcessByPerforce p4Processor = new ProcessByPerforce(env, p4exe, p4Input, p4Output, workDir, listener);
         Cleaner cleaner = new Cleaner(workDir, cleanerInput, out);
 
         dsOutput.connect(p4Input);
@@ -120,53 +147,10 @@ public class QuickCleanerCall implements Callable<Integer, IOException> {
     }
 
     //Ask perforce if they are tracked        
-    private class ProcessByPerforce extends Thread {
+    private class ProcessByPerforce extends PerforceCall {
 
-        private String[] env;
-        private String p4exe;
-        private InputStream input;
-        private OutputStream output;
-        private String workDir;
-
-        ProcessByPerforce(String[] env, String p4exe, InputStream input, OutputStream output, String workDir) {
-            this.input = input;
-            this.output = output;
-            this.env = env;
-            this.p4exe = p4exe;
-            this.workDir = workDir;
-        }
-
-        @Override
-        public void run() {
-            ArrayList<String> cmdList = new ArrayList<String>();
-            //cmdList.add("env");
-            cmdList.add(p4exe);
-            cmdList.add("-x-");
-            cmdList.add("have");
-            //cmdList.add("info");
-            Launcher.ProcStarter ps = new Launcher.LocalLauncher(listener).launch();
-            ps.envs(env).stdin(input).stdout(output).cmds(cmdList);
-            if (workDir != null) {
-                ps.pwd(workDir);
-            }
-            Proc p;
-            try {
-                p = ps.start();
-                Integer ret = p.join();
-                //return ret;
-            } catch (InterruptedException e) {
-                if (output != null) {
-                    IOUtils.closeQuietly(output);
-                }
-                //return -1;
-            } catch (IOException e) {
-                if (output != null) {
-                    IOUtils.closeQuietly(output);
-                }
-            } finally {
-                IOUtils.closeQuietly(input);
-                IOUtils.closeQuietly(output);
-            }
+        ProcessByPerforce(String[] env, String p4exe, InputStream input, OutputStream output, String workDir, TaskListener listener) {
+            super(env, new String[]{p4exe, "-x-", "have"}, input, output, workDir, listener, true);
         }
     }
 
