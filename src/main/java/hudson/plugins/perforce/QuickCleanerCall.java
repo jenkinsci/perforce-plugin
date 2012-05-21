@@ -193,7 +193,8 @@ public class QuickCleanerCall implements QuickCleaner.RemoteCall {
             File testPath = file.getCanonicalFile();
             while ((testPath = testPath.getParentFile()) != null) {
                 if (testPath.equals(parent)) {
-                    return file.delete();
+                    Util.deleteFile(file);
+                    return true;
                 }
             }
             log("Warning, file outside workspace not cleaned: " + file.getPath());
