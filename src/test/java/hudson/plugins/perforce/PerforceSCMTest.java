@@ -273,6 +273,24 @@ public class PerforceSCMTest extends HudsonTestCase {
         };
         assertEquals(expected, descriptor.getInstallations());
     }
+    
+    public void testDepotContainsUnencryptedPasswordWithgetProperty() throws Exception {
+        FreeStyleProject project = createFreeStyleProject();
+        P4Web browser = new P4Web(new URL("http://localhost/"));
+        PerforceToolInstallation tool = new PerforceToolInstallation("test_installation", "p4.exe", Collections.<ToolProperty<?>>emptyList());
+        DescriptorImpl descriptor = (DescriptorImpl) Hudson.getInstance().getDescriptor(PerforceToolInstallation.class);
+        descriptor.setInstallations(new PerforceToolInstallation[] { tool });
+        descriptor.save();
+        String password = "pass";
+        PerforceSCM scm = new PerforceSCM(
+                "user", password, "client", "port", "", "test_installation", "sysRoot",
+                "sysDrive", "label", "counter", "shared", "charset", "charset2", false, true, true, true, true, true, false,
+                        false, false, true, false, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
+        scm.setP4Stream("stream");
+        project.setScm(scm);
+
+        assertEquals(password, ((PerforceSCM)project.getScm()).getDepot(null, null, null, null, null).getProperty("P4PASSWD"));
+    }
 
     /**
      * Helper method to check that PerforceToolInstallations match.
