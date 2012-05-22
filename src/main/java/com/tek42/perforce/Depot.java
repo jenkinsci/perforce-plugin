@@ -27,6 +27,8 @@
 
 package com.tek42.perforce;
 
+import hudson.plugins.perforce.PerforcePasswordEncryptor;
+
 import java.util.HashMap;
 import java.util.StringTokenizer;
 
@@ -65,6 +67,9 @@ import com.tek42.perforce.process.ExecutorFactory;
  */
 public class Depot {
 	private transient final Logger logger = LoggerFactory.getLogger("perforce");
+	// settings contains encryt password for not exposing it in build.xml.
+	// In order not to break compatibility, the method returns password will
+	// decrypt it first.
 	private HashMap<String, String> settings;
 	private String pathSep;
 	private String fileSep;
@@ -119,8 +124,17 @@ public class Depot {
 	 * @return
 	 */
 	public ExecutorFactory getExecFactory() {
-		if(!validEnvp) {
-			execFactory.setEnv(settings);
+		if (!validEnvp) {
+			HashMap<String, String> decryptCloneSettings = new HashMap<String, String>(
+					settings);
+			PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+
+			if (decryptCloneSettings.containsKey("P4PASSWD")) {
+				decryptCloneSettings.put("P4PASSWD",
+						encryptor.decryptString(decryptCloneSettings.get("P4PASSWD")));
+			}
+
+			execFactory.setEnv(decryptCloneSettings);
 		}
 		return execFactory;
 	}
@@ -262,6 +276,11 @@ public class Depot {
 	 * @return
 	 */
 	public String getProperty(String key) {
+		if (key.equals("P4PASSWD")) {
+			String password = settings.get("P4PASSWD");
+			PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+			return encryptor.decryptString(password);
+		}
 		return settings.get(key);
 	}
 
@@ -343,7 +362,8 @@ public class Depot {
 	 *            P4PASSWD value.
 	 */
 	public void setPassword(String password) {
-		setenv("P4PASSWD", password);
+		PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+		setenv("P4PASSWD", encryptor.encryptString(password));
 	}
 
 	/**
@@ -352,7 +372,9 @@ public class Depot {
 	 * @return
 	 */
 	public String getPassword() {
-		return settings.get("P4PASSWD");
+		String password = settings.get("P4PASSWD");
+		PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+		return encryptor.decryptString(password);
 	}
 
 	/**
