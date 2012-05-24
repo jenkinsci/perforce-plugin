@@ -816,14 +816,25 @@ public class PerforceSCM extends SCM {
                 if (p4Label != null && !p4Label.trim().isEmpty()) {
                     newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, p4Label.trim(), p4WorkspacePath);
                 } else {
-                    String counterName;
-                    if (p4Counter != null && !updateCounterValue)
+                    if (p4Counter != null && !updateCounterValue) {
+                        //use a counter
+                        String counterName;
                         counterName = substituteParameters(this.p4Counter, build);
-                    else
-                        counterName = "change";
-
-                    Counter counter = depot.getCounters().getCounter(counterName);
-                    newestChange = counter.getValue();
+                        Counter counter = depot.getCounters().getCounter(counterName);
+                        newestChange = counter.getValue();
+                    } else {
+                        //use the latest submitted change from depot
+                        try {
+                            List<Integer> depotChanges = depot.getChanges().getChangeNumbers("//...", 0, 1);
+                            if (depotChanges != null && depotChanges.size() > 0) {
+                                newestChange = depotChanges.get(0);
+                            }
+                        } catch (PerforceException e) {
+                            //fall back onto 'change' counter value
+                            Counter counter = depot.getCounters().getCounter("change");
+                            newestChange = counter.getValue();
+                        }
+                    }
                 }
 
                 if (build instanceof MatrixRun) {
