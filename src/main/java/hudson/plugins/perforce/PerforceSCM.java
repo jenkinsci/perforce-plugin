@@ -179,6 +179,16 @@ public class PerforceSCM extends SCM {
     boolean wipeBeforeBuild = false;
 
     /**
+     * If true, the workspace will be cleaned before the checkout commences.
+     */
+    boolean quickCleanBeforeBuild = false;
+    
+    /**
+     * If true, files in the workspace will be scanned for differences and restored during a quick clean
+     */
+    boolean restoreChangedDeletedFiles = false;
+    
+    /**
      * If true, the ,repository will be deleted before the checkout commences in addition to the workspace.
      */
     boolean wipeRepoBeforeBuild = false;
@@ -279,8 +289,6 @@ public class PerforceSCM extends SCM {
             boolean disableAutoSync,
             boolean disableSyncOnly,
             boolean showIntegChanges,
-            boolean wipeBeforeBuild,
-            boolean wipeRepoBeforeBuild,
             boolean dontUpdateClient,
             boolean exposeP4Passwd,
             boolean pollOnlyOnMaster,
@@ -366,8 +374,6 @@ public class PerforceSCM extends SCM {
         this.disableSyncOnly = disableSyncOnly;
         this.showIntegChanges = showIntegChanges;
         this.browser = browser;
-        this.wipeBeforeBuild = wipeBeforeBuild;
-        this.wipeRepoBeforeBuild = wipeRepoBeforeBuild;
         this.createWorkspace = Boolean.valueOf(createWorkspace);
         this.updateView = updateView;
         this.dontUpdateClient = dontUpdateClient;
@@ -731,6 +737,8 @@ public class PerforceSCM extends SCM {
 
         boolean wipeBeforeBuild = overrideWithBooleanParameter(
                 "P4CLEANWORKSPACE", build, this.wipeBeforeBuild);
+        boolean quickCleanBeforeBuild = overrideWithBooleanParameter(
+                "P4QUICKCLEANWORKSPACE", build, this.quickCleanBeforeBuild);
         boolean wipeRepoBeforeBuild = overrideWithBooleanParameter(
                 "P4CLEANREPOINWORKSPACE", build, this.wipeRepoBeforeBuild);
         boolean forceSync = overrideWithBooleanParameter(
@@ -768,24 +776,44 @@ public class PerforceSCM extends SCM {
             boolean dirtyWorkspace = p4workspace.isDirty();
             saveWorkspaceIfDirty(depot, p4workspace, log);
 
-            if (wipeBeforeBuild) {
-                log.println("Clearing workspace...");
-                String p4config = substituteParameters("${P4CONFIG}", build);
-                WipeWorkspaceExcludeFilter wipeFilter = new WipeWorkspaceExcludeFilter(".p4config",p4config);
+            //Wipe/clean workspace
+            String p4config = substituteParameters("${P4CONFIG}", build);
+            WipeWorkspaceExcludeFilter wipeFilter = new WipeWorkspaceExcludeFilter(".p4config",p4config);
+            
+            if (wipeBeforeBuild || quickCleanBeforeBuild) {
+                long cleanStartTime = System.currentTimeMillis();
                 if (wipeRepoBeforeBuild) {
-                    log.println("Clear workspace includes .repository ...");
+                    log.println("Clear workspace includes .repository ...");                    
                 } else {
-                    log.println("Note: .repository directory in workspace (if exists) is skipped.");
+                    log.println("Note: .repository directory in workspace (if exists) is skipped during clean.");
                     wipeFilter.exclude(".repository");
                 }
-                List<FilePath> workspaceDirs = workspace.list(wipeFilter);
-                for (FilePath dir : workspaceDirs) {
-                    dir.deleteRecursive();
+                if (wipeBeforeBuild) {
+                    log.println("Wiping workspace...");
+                    List<FilePath> workspaceDirs = workspace.list(wipeFilter);
+                    for (FilePath dir : workspaceDirs) {
+                        dir.deleteRecursive();
+                    }
+                    log.println("Wiped workspace.");
+                    forceSync = true;
                 }
-                log.println("Cleared workspace.");
-                forceSync = true;
-            }
+                if (quickCleanBeforeBuild) {
+                    QuickCleaner quickCleaner = new QuickCleaner(depot.getExecutable(), launcher, depot, workspace, wipeFilter);
+                    log.println("Quickly cleaning workspace...");
+                    quickCleaner.doClean();
+                    log.println("Workspace is clean.");
+                    if (restoreChangedDeletedFiles) {
+                        log.println("Restoring changed and deleted files...");
+                        quickCleaner.doRestore();
+                        log.println("Files restored.");
+                    }
+                }
+                long cleanEndTime = System.currentTimeMillis();
+                long cleanDuration = cleanEndTime - cleanStartTime;
 
+                log.println("Clean complete, took " + cleanDuration + " ms");
+            }
+            
             // In case of a stream depot, we want Perforce to handle the client views. So let's re-initialize
             // the p4workspace object if it was changed since the last build. Also, populate projectPath with
             // the current view from Perforce. We need it for labeling.
@@ -1642,6 +1670,22 @@ public class PerforceSCM extends SCM {
             newInstance.setViewMask(Util.fixEmptyAndTrim(req.getParameter("p4.viewMask")));
             newInstance.setUseViewMaskForPolling(req.getParameter("p4.useViewMaskForPolling") != null);
             newInstance.setUseViewMaskForSyncing(req.getParameter("p4.useViewMaskForSyncing") != null);
+            
+            String cleanType = req.getParameter("p4.cleanType");
+            boolean useWipe = false;
+            boolean useQuickClean = false;
+            if(cleanType != null && req.getParameter("p4.cleanWorkspace") != null){
+                useWipe = cleanType.equals("wipe");
+                useQuickClean = cleanType.equals("quick");
+            }
+            newInstance.setWipeBeforeBuild(useWipe);
+            newInstance.setQuickCleanBeforeBuild(useQuickClean);
+            
+            String wipeRepo = req.getParameter("p4.wipeRepoBeforeBuild");
+            newInstance.setWipeRepoBeforeBuild(wipeRepo != null);
+            
+            newInstance.setRestoreChangedDeletedFiles(req.getParameter("p4.restoreChangedDeletedFiles") != null);
+            
             return newInstance;
         }
 
@@ -2585,6 +2629,13 @@ public class PerforceSCM extends SCM {
     }
 
     /**
+     * @return True if the plugin is to clean the workspace using any method before building.
+     */
+    public boolean isCleanWorkspaceBeforeBuild() {
+        return wipeBeforeBuild || quickCleanBeforeBuild;
+    }
+    
+    /**
      * @return True if the plugin is to delete the workpsace including the.repository files before building.
      */
     public boolean isWipeRepoBeforeBuild() {
@@ -2605,6 +2656,10 @@ public class PerforceSCM extends SCM {
         this.wipeBeforeBuild = wipeBeforeBuild;
     }
 
+    public void setQuickCleanBeforeBuild(boolean quickCleanBeforeBuild) {
+        this.quickCleanBeforeBuild = quickCleanBeforeBuild;
+    }
+    
     public boolean isDontUpdateClient() {
         return dontUpdateClient;
     }
@@ -2723,6 +2778,22 @@ public class PerforceSCM extends SCM {
 
     public void setExcludedFilesCaseSensitivity(boolean excludedFilesCaseSensitivity) {
         this.excludedFilesCaseSensitivity = excludedFilesCaseSensitivity;
+    }
+
+    public void setWipeRepoBeforeBuild(boolean wipeRepoBeforeBuild) {
+        this.wipeRepoBeforeBuild = wipeRepoBeforeBuild;
+    }
+
+    public boolean isQuickCleanBeforeBuild() {
+        return quickCleanBeforeBuild;
+    }
+
+    public boolean isRestoreChangedDeletedFiles() {
+        return restoreChangedDeletedFiles;
+    }
+
+    public void setRestoreChangedDeletedFiles(boolean restoreChangedDeletedFiles) {
+        this.restoreChangedDeletedFiles = restoreChangedDeletedFiles;
     }
 
     public List<String> getAllLineEndChoices() {

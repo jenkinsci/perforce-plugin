@@ -83,14 +83,20 @@
       </select>
     </f:entry>
     
-    <f:entry title="Clean Workspace Before Each Build" help="/plugin/perforce/help/wipeBeforeBuild.html">
-      <f:checkbox field="wipeBeforeBuild" default="false" value="False"/>
-    </f:entry>
+    <f:optionalBlock name="p4.cleanWorkspace" title="Clean Workspace Before Each Build" help="/plugin/perforce/help/cleanBeforeBuild.html" checked="${instance.cleanWorkspaceBeforeBuild}">
+        <f:entry><table width="100%">
+        <f:radioBlock title="Full Wipe" name="p4.cleanType" value="wipe" id="p4.wipeClean" checked="${instance.wipeBeforeBuild}" help="/plugin/perforce/help/wipeBeforeBuild.html"/>
+        <f:radioBlock title="Quick Clean" name="p4.cleanType" value="quick" id="p4.quickClean" checked="${instance.quickCleanBeforeBuild}" help="/plugin/perforce/help/quickCleanBeforeBuild.html"> 
+          <f:entry title="Restore Changed/Deleted Files" help="/plugin/perforce/help/quickCleanRestore.html">
+            <f:checkbox name="p4.restoreChangedDeletedFiles" id="p4.restoreChangedDeletedFiles" checked="${instance.restoreChangedDeletedFiles}"/>
+          </f:entry>
+        </f:radioBlock>
+      <f:entry title="Clean .repository Before Build" help="/plugin/perforce/help/wipeRepoBeforeBuild.html">
+        <f:checkbox name="p4.wipeRepoBeforeBuild" default="false" value="False" checked="${instance.wipeRepoBeforeBuild}"/>
+      </f:entry>
+      </table></f:entry>
+    </f:optionalBlock>
     
-    <f:entry title="Clean .repository Before Build" help="/plugin/perforce/help/wipeRepoBeforeBuild.html">
-      <f:checkbox field="wipeRepoBeforeBuild" default="false" value="False"/>
-    </f:entry>
-  
     <f:entry title="Options" help="/plugin/perforce/help/projectOptions.html">
       <f:textbox field="projectOptions" default="noallwrite clobber nocompress unlocked nomodtime rmdir"
            value="${instance.projectOptions}" />
