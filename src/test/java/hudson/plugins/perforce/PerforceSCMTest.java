@@ -285,7 +285,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
                 "user", password, "client", "port", "", "test_installation", "sysRoot",
                 "sysDrive", "label", "counter", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, false, true, false, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
+                        false, false, true, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
         scm.setP4Stream("stream");
         project.setScm(scm);
 
