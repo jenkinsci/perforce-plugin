@@ -779,33 +779,39 @@ public class PerforceSCM extends SCM {
             //Wipe/clean workspace
             String p4config = substituteParameters("${P4CONFIG}", build);
             WipeWorkspaceExcludeFilter wipeFilter = new WipeWorkspaceExcludeFilter(".p4config",p4config);
+            
             if (wipeBeforeBuild || quickCleanBeforeBuild) {
+                long cleanStartTime = System.currentTimeMillis();
                 if (wipeRepoBeforeBuild) {
                     log.println("Clear workspace includes .repository ...");                    
                 } else {
                     log.println("Note: .repository directory in workspace (if exists) is skipped during clean.");
                     wipeFilter.exclude(".repository");
                 }
-            }
-            if(wipeBeforeBuild){
-                log.println("Wiping workspace...");
-                List<FilePath> workspaceDirs = workspace.list(wipeFilter);
-                for (FilePath dir : workspaceDirs) {
-                    dir.deleteRecursive();
+                if (wipeBeforeBuild) {
+                    log.println("Wiping workspace...");
+                    List<FilePath> workspaceDirs = workspace.list(wipeFilter);
+                    for (FilePath dir : workspaceDirs) {
+                        dir.deleteRecursive();
+                    }
+                    log.println("Wiped workspace.");
+                    forceSync = true;
                 }
-                log.println("Wiped workspace.");
-                forceSync = true;
-            }
-            if (quickCleanBeforeBuild) {
-                QuickCleaner quickCleaner = new QuickCleaner(depot.getExecutable(), launcher, depot, workspace, wipeFilter);
-                log.println("Quickly cleaning workspace...");
-                quickCleaner.doClean();
-                log.println("Workspace is clean.");
-                if (restoreChangedDeletedFiles) {
-                    log.println("Restoring changed and deleted files...");
-                    quickCleaner.doRestore();
-                    log.println("Files restored.");
+                if (quickCleanBeforeBuild) {
+                    QuickCleaner quickCleaner = new QuickCleaner(depot.getExecutable(), launcher, depot, workspace, wipeFilter);
+                    log.println("Quickly cleaning workspace...");
+                    quickCleaner.doClean();
+                    log.println("Workspace is clean.");
+                    if (restoreChangedDeletedFiles) {
+                        log.println("Restoring changed and deleted files...");
+                        quickCleaner.doRestore();
+                        log.println("Files restored.");
+                    }
                 }
+                long cleanEndTime = System.currentTimeMillis();
+                long cleanDuration = cleanEndTime - cleanStartTime;
+
+                log.println("Clean complete, took " + cleanDuration + " ms");
             }
             
             // In case of a stream depot, we want Perforce to handle the client views. So let's re-initialize
