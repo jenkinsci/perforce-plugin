@@ -46,6 +46,6 @@ public class HudsonP4ExecutorFactory implements ExecutorFactory {
     public void setEnv(Map<String, String> env) {
 	this.env = new HashMap<String, String>(env);
         //Clear the P4CONFIG field to eliminate issues with configuration files
-        env.put("P4CONFIG", "");
+        this.env.put("P4CONFIG", "");
     }
 }
