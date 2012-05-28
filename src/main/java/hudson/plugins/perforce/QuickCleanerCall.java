@@ -150,7 +150,7 @@ public class QuickCleanerCall implements QuickCleaner.RemoteCall {
     private class ProcessByPerforce extends PerforceCall {
 
         ProcessByPerforce(String[] env, String p4exe, InputStream input, OutputStream output, String workDir, TaskListener listener) {
-            super(env, new String[]{p4exe, "-x-", "have"}, input, output, workDir, listener, true);
+            super(env, new String[]{p4exe, "-d", workDir, "-x-", "have"}, input, output, workDir, listener, true);
         }
     }
 
