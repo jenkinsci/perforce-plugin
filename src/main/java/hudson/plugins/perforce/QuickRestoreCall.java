@@ -27,9 +27,12 @@ class QuickRestoreCall implements RemoteCall {
     }
 
     public Integer call() throws IOException {
-        forceSyncUsingP4DiffOption("-se");
-        forceSyncUsingP4DiffOption("-sd");
-        IOUtils.closeQuietly(out);
+        try {
+            forceSyncUsingP4DiffOption("-se");
+            forceSyncUsingP4DiffOption("-sd");
+        } finally {
+            IOUtils.closeQuietly(out);
+        }
         return 0;
     }
     
@@ -39,8 +42,8 @@ class QuickRestoreCall implements RemoteCall {
         
         forceSyncInput.connect(diffOutput);
         
-        PerforceCall forceSync = new PerforceCall(env, new String[]{p4exe, "-x-", "sync", "-f"}, forceSyncInput, out, workDir, listener, false);
-        PerforceCall findDiffFiles = new PerforceCall(env, new String[]{p4exe, "diff", option}, new ClosedInputStream(), diffOutput, workDir, listener, true);    
+        PerforceCall forceSync = new PerforceCall(env, new String[]{p4exe, "-d", workDir, "-x-", "sync", "-f"}, forceSyncInput, out, workDir, listener, false);
+        PerforceCall findDiffFiles = new PerforceCall(env, new String[]{p4exe, "-d", workDir, "diff", option}, new ClosedInputStream(), diffOutput, workDir, listener, true);    
         
         try {
             forceSync.start();
@@ -51,6 +54,9 @@ class QuickRestoreCall implements RemoteCall {
         } catch (InterruptedException e) {
             forceSync.interrupt();
             findDiffFiles.interrupt();
+        } finally {
+            IOUtils.closeQuietly(forceSyncInput);
+            IOUtils.closeQuietly(diffOutput);
         }
     }
     

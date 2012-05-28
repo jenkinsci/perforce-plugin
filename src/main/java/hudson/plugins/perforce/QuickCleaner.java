@@ -128,6 +128,7 @@ public class QuickCleaner {
         }
         try {
             result.add("PWD=" + new File(workDir).getCanonicalPath());
+            result.add("CD=" + new File(workDir).getCanonicalPath());
         } catch (IOException ex) {
             Logger.getLogger(QuickCleaner.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -163,7 +164,7 @@ public class QuickCleaner {
         private String[] cmdList;
         private boolean closePipes;
 
-        PerforceCall(String[] env, String[] cmdList, InputStream input, OutputStream output, String workDir, TaskListener listener, boolean closePipes) {
+        PerforceCall(String[] env, String[] cmdList, InputStream input, OutputStream output, String workDir, TaskListener listener, boolean closeOutputPipe) {
             this.input = input;
             this.output = output;
             this.env = env;
@@ -171,7 +172,7 @@ public class QuickCleaner {
             this.workDir = workDir;
             this.listener = listener;
             this.cmdList = cmdList;
-            this.closePipes = closePipes;
+            this.closePipes = closeOutputPipe;
         }
 
         @Override
@@ -197,9 +198,9 @@ public class QuickCleaner {
                 }
             } finally {
                 if (closePipes) {
-                    IOUtils.closeQuietly(input);
                     IOUtils.closeQuietly(output);
                 }
+                IOUtils.closeQuietly(input);
             }
         }
     }
