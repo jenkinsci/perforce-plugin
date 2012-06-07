@@ -2,6 +2,12 @@
   <f:entry title="Label Name" help="/plugin/perforce/help/tagNotifierLabelName.html">
     <f:textbox name="rawLabelName" field="rawLabelName" id="rawLabelName"/>
   </f:entry>
+  <f:entry title="Label Description" help="/plugin/perforce/help/tagNotifierLabelDesc.html">
+    <f:textarea name="rawLabelDesc" field="rawLabelDesc" id="rawLabelDesc"/>
+  </f:entry>
+  <f:entry title="Label Owner" help="/plugin/perforce/help/tagNotifierLabelOwner.html">
+    <f:textbox name="rawLabelOwner" field="rawLabelOwner" id="rawLabelOwner"/>
+  </f:entry>
   <f:entry title="Only tag on build success">
     <f:checkbox name="onlyOnSuccess" field="onlyOnSuccess" id="onlyOnSuccess"/>
   </f:entry>

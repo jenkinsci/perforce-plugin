@@ -159,14 +159,14 @@ public class PerforceTagAction extends AbstractScmTagAction {
 
         String tag = req.getParameter("name");
         String desc = req.getParameter("desc");
-        owner = req.getParameter("owner");
+        String owner = req.getParameter("owner");
 
-        tagBuild(tag, desc);
+        tagBuild(tag, desc, owner);
 
         rsp.sendRedirect(".");
     }
 
-    public void tagBuild(String tagname, String description) throws IOException {
+    public void tagBuild(String tagname, String description, String owner) throws IOException {
         Label label = new Label();
         label.setName(tagname);
         label.setDescription(description);
