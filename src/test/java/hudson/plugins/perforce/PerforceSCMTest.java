@@ -4,8 +4,10 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Hudson;
 import hudson.plugins.perforce.PerforceToolInstallation.DescriptorImpl;
 import hudson.plugins.perforce.browsers.P4Web;
+import hudson.scm.SCM;
 import hudson.tools.ToolProperty;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,7 +28,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         P4Web browser = new P4Web(new URL("http://localhost/"));
         PerforceSCM scm = new PerforceSCM(
         		"user", "pass", "client", "port", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+        		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
                         false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
         scm.setProjectPath("path");
         project.setScm(scm);
@@ -47,7 +49,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         P4Web browser = new P4Web(new URL("http://localhost/"));
         PerforceSCM scm = new PerforceSCM(
         		"user", "pass", "client", "port", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+        		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
                         false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
         scm.setP4Stream("stream");
         scm.setUseStreamDepot(true);
@@ -74,7 +76,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "", "test_installation", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+        		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
                         false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
         scm.setProjectPath("path");
         project.setScm(scm);
@@ -103,7 +105,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "", "test_installation", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+        		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
                         false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
         scm.setProjectPath("path");
         project.setScm(scm);
@@ -121,7 +123,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "", "test_installation", "sysRoot",
-        		"sysDrive", "label", "counter", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+        		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
                         false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
         scm.setProjectPath("path");
         project.setScm(scm);
@@ -284,7 +286,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         String password = "pass";
         PerforceSCM scm = new PerforceSCM(
                 "user", password, "client", "port", "", "test_installation", "sysRoot",
-                "sysDrive", "label", "counter", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+                "sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
                         false, false, true, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
         scm.setP4Stream("stream");
         project.setScm(scm);
@@ -312,4 +314,41 @@ public class PerforceSCMTest extends HudsonTestCase {
         }
     }
 
+    public void testP4UpstreamProjectRenaming() throws Exception {
+        P4Web browser = new P4Web(new URL("http://localhost/"));
+        PerforceToolInstallation tool = new PerforceToolInstallation("test_installation", "p4.exe", Collections.<ToolProperty<?>>emptyList());
+        DescriptorImpl descriptor = (DescriptorImpl) Hudson.getInstance().getDescriptor(PerforceToolInstallation.class);
+        descriptor.setInstallations(new PerforceToolInstallation[] { tool });
+        descriptor.save();
+
+        FreeStyleProject upstreamProject = createFreeStyleProject();
+        PerforceSCM upstreamScm = new PerforceSCM(
+                "user", "pass", "client", "port", "", "test_installation", "sysRoot",
+                "sysDrive", null, null, null, "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
+        upstreamScm.setProjectPath("path");
+        upstreamProject.setScm(upstreamScm);
+        
+        FreeStyleProject downstreamProject = createFreeStyleProject();
+        String oldName = upstreamProject.getName();
+        PerforceSCM downstreamScm = new PerforceSCM(
+                "user", "pass", "client", "port", "", "test_installation", "sysRoot",
+                "sysDrive", null, null, oldName, "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
+        downstreamScm.setProjectPath("path");
+        downstreamProject.setScm(downstreamScm);
+
+        // config roundtrip
+        submit(new WebClient().getPage(upstreamProject,"configure").getFormByName("config"));
+        submit(new WebClient().getPage(downstreamProject,"configure").getFormByName("config"));
+
+        PerforceSCM scm = (PerforceSCM) downstreamProject.getScm();
+        assertEquals(scm.p4UpstreamProject, oldName);
+        
+        String newName = "newName" + oldName;
+        upstreamProject.renameTo(newName);
+
+        scm = (PerforceSCM) downstreamProject.getScm();
+        assertEquals(scm.p4UpstreamProject, newName);
+    }
 }

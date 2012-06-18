@@ -161,6 +161,13 @@
     <f:entry title="Update counter to most recent changeset" help="/plugin/perforce/help/updateCounterValue.html">
       <f:checkbox field="updateCounterValue" default="false" />
     </f:entry>
+    
+    <j:invokeStatic var="hudsonInstance" className="hudson.model.Hudson" method="getInstance"/>
+    <j:invoke var="allProjects" on="${hudsonInstance}" method="getJobNames"/>
+    <f:entry title="Use Upstream Project revision" help="/plugin/perforce/help/p4UpstreamProject.html">
+      <f:editableComboBox id="p4UpstreamProject" field="p4UpstreamProject" items="${allProjects}"
+          checkUrl="'${rootURL}/scm/PerforceSCM/validateP4UpstreamProject?project='+escape(document.forms[1].p4UpstreamProject.value)"/>
+    </f:entry>
 
     <f:entry title="Don't update client workspace" help="/plugin/perforce/help/dontUpdateClient.html">
       <f:checkbox field="dontUpdateClient" default="false" />
