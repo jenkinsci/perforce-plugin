@@ -587,6 +587,16 @@ public class PerforceSCM extends SCM {
         return subst;
     }
 
+    private String getEffectiveProjectPath(AbstractBuild build, AbstractProject project, PrintStream log, Depot depot) throws PerforceException {
+        String projectPath;
+        if (useClientSpec) {
+            projectPath = getEffectiveProjectPathFromFile(build, project, log, depot);
+        } else {
+            projectPath = substituteParameters(this.projectPath, build);
+        }
+        return projectPath;
+    }
+
     private String getEffectiveProjectPathFromFile(AbstractBuild build, AbstractProject project, PrintStream log, Depot depot) throws PerforceException {
         String clientSpec;
         if (build != null) {
@@ -772,11 +782,7 @@ public class PerforceSCM extends SCM {
         try {
             // keep projectPath local so any modifications for slaves don't get saved
             String projectPath;
-            if (useClientSpec) {
-                projectPath = getEffectiveProjectPathFromFile(build, build.getProject(), log, depot);
-            } else {
-                projectPath = substituteParameters(this.projectPath, build);
-            }
+            projectPath = getEffectiveProjectPath(build, build.getProject(), log, depot);
 
             Workspace p4workspace = getPerforceWorkspace(build.getProject(), projectPath, depot, build.getBuiltOn(), build, launcher, workspace, listener, false);
 
@@ -1136,7 +1142,7 @@ public class PerforceSCM extends SCM {
                 logger.println("Using node: " + buildNode.getDisplayName());
             }
 
-            Workspace p4workspace = getPerforceWorkspace(project, substituteParameters(projectPath, subst), depot, buildNode, null, launcher, workspace, listener, true);
+            Workspace p4workspace = getPerforceWorkspace(project, getEffectiveProjectPath(null, project, logger, depot), depot, buildNode, null, launcher, workspace, listener, true);
             saveWorkspaceIfDirty(depot, p4workspace, logger);
 
             int lastChangeNumber = baseline.getRevision();
@@ -1260,7 +1266,7 @@ public class PerforceSCM extends SCM {
         }
         else {
             for (int changeNumber : changeNumbers) {
-                if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber, fileLimit), project, logger)) {
+                if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber, fileLimit), project, p4workspace.getViewsAsString(), logger)) {
                     logger.println("Changelist "+changeNumber+" is composed of file(s) and/or user(s) that are excluded.");
                 } else {
                     return new PerforceSCMRevisionState(changeNumber);
@@ -1277,7 +1283,7 @@ public class PerforceSCM extends SCM {
      * @param changelist the p4 changelist
      * @return  True if changelist only contains user(s) and/or file(s) that are denoted to be excluded
      */
-    private boolean isChangelistExcluded(Changelist changelist, AbstractProject project, PrintStream logger) {
+    private boolean isChangelistExcluded(Changelist changelist, AbstractProject project, String view, PrintStream logger) {
         if (changelist == null) {
             return false;
         }
@@ -1311,7 +1317,7 @@ public class PerforceSCM extends SCM {
             if (files.size() > 0 && changelist.getFiles().size() > 0) {
                 for (FileEntry f : changelist.getFiles()) {
                     if (!doesFilenameMatchAnyP4Pattern(f.getFilename(),files,excludedFilesCaseSensitivity) &&
-                            isFileInView(f.getFilename(), substituteParameters(projectPath, getDefaultSubstitutions(project)),excludedFilesCaseSensitivity)) {
+                            isFileInView(f.getFilename(), view, excludedFilesCaseSensitivity)) {
                         return false;
                     }
 
