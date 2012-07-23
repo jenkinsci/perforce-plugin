@@ -619,7 +619,6 @@ public class PerforceSCM extends SCM {
 
     public static String processPathName(String path, boolean isUnix) {
         String pathName = path;
-        pathName = pathName.replaceAll("\\\\+", "\\\\");
         pathName = pathName.replaceAll("/\\./", "/");
         pathName = pathName.replaceAll("\\\\\\.\\\\", "\\\\");
         pathName = pathName.replaceAll("/+", "/");
