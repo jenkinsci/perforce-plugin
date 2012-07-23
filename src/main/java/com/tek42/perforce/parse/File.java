@@ -20,7 +20,7 @@ public class File extends AbstractPerforceTemplate
     }
 
     public String read() throws PerforceException {
-        StringBuilder sb = getPerforceResponse(new String[] { getP4Exe(), "print", file });
+        StringBuilder sb = getPerforceResponse(new String[] { getP4Exe(), "print", "-q", file });
         return sb.toString();
     }
 }

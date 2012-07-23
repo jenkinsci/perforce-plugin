@@ -21,6 +21,7 @@ import static hudson.Util.fixNull;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixRun;
 import hudson.model.*;
+import hudson.model.listeners.ItemListener;
 import hudson.remoting.VirtualChannel;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.PollingResult;
@@ -29,6 +30,8 @@ import hudson.scm.SCMDescriptor;
 import hudson.scm.SCMRevisionState;
 import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
+import hudson.tasks.BuildTrigger;
+import hudson.tasks.Messages;
 import hudson.util.FormValidation;
 import hudson.util.LogTaskListener;
 
@@ -75,6 +78,7 @@ public class PerforceSCM extends SCM {
     String projectOptions;
     String p4Label;
     String p4Counter;
+    String p4UpstreamProject;
     String p4Stream;
     String clientOwner;
 
@@ -276,6 +280,7 @@ public class PerforceSCM extends SCM {
             String p4SysDrive,
             String p4Label,
             String p4Counter,
+            String p4UpstreamProject,
             String lineEndValue,
             String p4Charset,
             String p4CommandCharset,
@@ -322,6 +327,8 @@ public class PerforceSCM extends SCM {
 
         this.p4Counter = Util.fixEmptyAndTrim(p4Counter);
         this.updateCounterValue = updateCounterValue;
+
+        this.p4UpstreamProject = Util.fixEmptyAndTrim(p4UpstreamProject);
 
         this.projectPath = Util.fixEmptyAndTrim(projectPath);
 
@@ -580,6 +587,16 @@ public class PerforceSCM extends SCM {
         return subst;
     }
 
+    private String getEffectiveProjectPath(AbstractBuild build, AbstractProject project, PrintStream log, Depot depot) throws PerforceException {
+        String projectPath;
+        if (useClientSpec) {
+            projectPath = getEffectiveProjectPathFromFile(build, project, log, depot);
+        } else {
+            projectPath = substituteParameters(this.projectPath, build);
+        }
+        return projectPath;
+    }
+
     private String getEffectiveProjectPathFromFile(AbstractBuild build, AbstractProject project, PrintStream log, Depot depot) throws PerforceException {
         String clientSpec;
         if (build != null) {
@@ -764,11 +781,7 @@ public class PerforceSCM extends SCM {
         try {
             // keep projectPath local so any modifications for slaves don't get saved
             String projectPath;
-            if (useClientSpec) {
-                projectPath = getEffectiveProjectPathFromFile(build, build.getProject(), log, depot);
-            } else {
-                projectPath = substituteParameters(this.projectPath, build);
-            }
+            projectPath = getEffectiveProjectPath(build, build.getProject(), log, depot);
 
             Workspace p4workspace = getPerforceWorkspace(build.getProject(), projectPath, depot, build.getBuiltOn(), build, launcher, workspace, listener, false);
 
@@ -843,6 +856,24 @@ public class PerforceSCM extends SCM {
                 if (p4Label != null && !p4Label.trim().isEmpty()) {
                     newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, p4Label.trim(), p4WorkspacePath);
                 } else {
+                    if (p4UpstreamProject != null && p4UpstreamProject.length() > 0) {
+                        log.println("Using last successful or unstable build of upstream project " + p4UpstreamProject);
+                        Job job = Hudson.getInstance().getItemByFullName(p4UpstreamProject, Job.class);
+                        if (job == null) {
+                            throw new AbortException(
+                                    "Configured upstream job does not exist anymore: " + p4UpstreamProject + ". Please update your job configuration.");
+                        }
+                        Run upStreamRun = job.getLastSuccessfulBuild();
+                        int lastUpStreamChange = getLastChangeNoFirstChange(upStreamRun);
+                        if (lastUpStreamChange > 0) {
+                            log.println("Using P4 revision " + lastUpStreamChange + " from upstream project " + p4UpstreamProject);
+                            newestChange = lastUpStreamChange;
+                        } else {
+                            log.println("No P4 revision found in upstream project " + p4UpstreamProject);
+                            throw new AbortException(
+                                    "Configured upstream job has not been run yet: " + p4UpstreamProject + ". Please run it once befor launching a new build.");
+                        }
+                    } else
                     if (p4Counter != null && !updateCounterValue) {
                         //use a counter
                         String counterName;
@@ -1110,7 +1141,7 @@ public class PerforceSCM extends SCM {
                 logger.println("Using node: " + buildNode.getDisplayName());
             }
 
-            Workspace p4workspace = getPerforceWorkspace(project, substituteParameters(projectPath, subst), depot, buildNode, null, launcher, workspace, listener, true);
+            Workspace p4workspace = getPerforceWorkspace(project, getEffectiveProjectPath(null, project, logger, depot), depot, buildNode, null, launcher, workspace, listener, true);
             saveWorkspaceIfDirty(depot, p4workspace, logger);
 
             int lastChangeNumber = baseline.getRevision();
@@ -1234,7 +1265,7 @@ public class PerforceSCM extends SCM {
         }
         else {
             for (int changeNumber : changeNumbers) {
-                if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber, fileLimit), project, logger)) {
+                if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber, fileLimit), project, p4workspace.getViewsAsString(), logger)) {
                     logger.println("Changelist "+changeNumber+" is composed of file(s) and/or user(s) that are excluded.");
                 } else {
                     return new PerforceSCMRevisionState(changeNumber);
@@ -1251,7 +1282,7 @@ public class PerforceSCM extends SCM {
      * @param changelist the p4 changelist
      * @return  True if changelist only contains user(s) and/or file(s) that are denoted to be excluded
      */
-    private boolean isChangelistExcluded(Changelist changelist, AbstractProject project, PrintStream logger) {
+    private boolean isChangelistExcluded(Changelist changelist, AbstractProject project, String view, PrintStream logger) {
         if (changelist == null) {
             return false;
         }
@@ -1285,7 +1316,7 @@ public class PerforceSCM extends SCM {
             if (files.size() > 0 && changelist.getFiles().size() > 0) {
                 for (FileEntry f : changelist.getFiles()) {
                     if (!doesFilenameMatchAnyP4Pattern(f.getFilename(),files,excludedFilesCaseSensitivity) &&
-                            isFileInView(f.getFilename(), substituteParameters(projectPath, getDefaultSubstitutions(project)),excludedFilesCaseSensitivity)) {
+                            isFileInView(f.getFilename(), view, excludedFilesCaseSensitivity)) {
                         return false;
                     }
 
@@ -1345,9 +1376,14 @@ public class PerforceSCM extends SCM {
     }
 
     public int getLastChange(Run build) {
-        // If we are starting a new hudson project on existing work and want to skip the prior history...
-        if (firstChange > 0)
-            return firstChange;
+    	// If we are starting a new hudson project on existing work and want to skip the prior history...
+    	if (firstChange > 0)
+    		return firstChange;
+
+    	return getLastChangeNoFirstChange(build);
+    }
+
+    private static int getLastChangeNoFirstChange(Run build) {
 
         // If we can't find a PerforceTagAction, we will default to 0.
 
@@ -1359,7 +1395,7 @@ public class PerforceSCM extends SCM {
         return action.getChangeNumber();
     }
 
-    private PerforceTagAction getMostRecentTagAction(Run build) {
+    private static PerforceTagAction getMostRecentTagAction(Run build) {
         if (build == null)
             return null;
 
@@ -1819,7 +1855,7 @@ public class PerforceSCM extends SCM {
         /**
          * Performs syntactical and permissions check on the P4Counter
          */
-        public FormValidation doValidateP4Counter(StaplerRequest req, @QueryParameter String counter) throws IOException, ServletException {
+        public FormValidation doValidateP4Counter(StaplerRequest req, @QueryParameter String counter) {
             counter= Util.fixEmptyAndTrim(counter);
             if (counter == null)
                 return FormValidation.ok();
@@ -1836,6 +1872,30 @@ public class PerforceSCM extends SCM {
                             "Error accessing perforce while checking counter: " + e.getLocalizedMessage());
                 }
             }
+            return FormValidation.ok();
+        }
+        
+        /**
+         * Checks to see if the specified project exists and has p4 info.
+         */
+        public FormValidation doValidateP4UpstreamProject(StaplerRequest req, @QueryParameter String project) throws IOException, ServletException {
+            project = Util.fixEmptyAndTrim(project);
+            if (project == null) {
+                // well, it is not really OK, but it means it will not be used, so no error
+                return FormValidation.ok();
+            }
+
+            Job job = Hudson.getInstance().getItemByFullName(project, Job.class);
+            if (job == null) {
+                return FormValidation.error(Messages.BuildTrigger_NoSuchProject(project, AbstractProject.findNearest(project).getName()));
+            }
+
+            Run upStreamRun = job.getLastSuccessfulBuild();
+            int lastUpStreamChange = getLastChangeNoFirstChange(upStreamRun);
+            if (lastUpStreamChange < 1) {
+                FormValidation.warning("No Perforce change found in this project");
+            }
+
             return FormValidation.ok();
         }
 
@@ -2066,6 +2126,29 @@ public class PerforceSCM extends SCM {
 
         public String getAppName() {
             return Hudson.getInstance().getDisplayName();
+        }
+
+        @Extension
+        public static class ItemListenerImpl extends ItemListener {
+            @Override
+            public void onRenamed(Item item, String oldName, String newName) {
+                for( Project<?,?> p : Hudson.getInstance().getProjects() ) {
+                    SCM scm = p.getScm();
+                    if (scm instanceof PerforceSCM) {
+                        PerforceSCM p4scm = (PerforceSCM) scm;
+                        if (oldName.equals(p4scm.p4UpstreamProject)) {
+                            p4scm.p4UpstreamProject = newName;
+                            try {
+                                p.save();
+                            } catch (IOException e) {
+                                LOGGER.log(Level.WARNING,
+                                        "Failed to persist project setting during rename from "
+                                                + oldName + " to " + newName, e);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
     }
@@ -2468,6 +2551,20 @@ public class PerforceSCM extends SCM {
      */
     public void setP4Counter(String counter) {
         p4Counter = counter;
+    }
+    
+    /**
+     * @return the p4UpstreamProject
+     */
+    public String getP4UpstreamProject() {
+        return p4UpstreamProject;
+    }
+    
+    /**
+     * @param label the p4Label to set
+     */
+    public void setP4UpstreamProject(String project) {
+        p4UpstreamProject = project;
     }
 
     /**
