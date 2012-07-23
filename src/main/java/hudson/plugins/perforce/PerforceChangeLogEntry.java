@@ -30,7 +30,6 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
     }
     
     @Override
-    @Exported
     public User getAuthor() {
         User author = User.get(change.getUser());
         return author;
@@ -44,7 +43,6 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
         return change.getFiles();
     }
 
-    @Exported
     public Collection<String> getAffectedPaths() {
         List<String> paths = new ArrayList<String>(change.getFiles().size());
         for (Changelist.FileEntry entry : change.getFiles()) {
@@ -57,7 +55,6 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
     }
 
     @Override
-    @Exported
     public String getMsg() {
         return change.getDescription();
     }
