@@ -639,6 +639,11 @@ public class PerforceSCM extends SCM {
         pathName = pathName.replaceAll("/\\./", "/");
         pathName = pathName.replaceAll("\\\\\\.\\\\", "\\\\");
         pathName = pathName.replaceAll("/+", "/");
+        boolean isRemoteUNC = pathName.startsWith("\\\\");
+        pathName = pathName.replaceAll("\\\\+", "\\\\");
+        if (isRemoteUNC) {
+            pathName = "\\" + pathName;
+        }
         if (isUnix) {
             pathName = pathName.replaceAll("\\\\", "/");
         } else {

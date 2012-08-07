@@ -205,6 +205,10 @@ public class PerforceSCMTest extends HudsonTestCase {
     public void testWindowsPathName() throws Exception {
         assertEquals("C:\\Windows\\Path\\Name\\", PerforceSCM.processPathName("C://Windows\\.\\Path\\\\Name\\",false));
     }
+    
+    public void testWindowsRemotePathName() throws Exception {
+        assertEquals("\\\\somehost\\someshare", PerforceSCM.processPathName("\\\\somehost\\someshare",false));
+    }
 
     public void testFilenameP4PatternMatcher() throws Exception {
         assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
