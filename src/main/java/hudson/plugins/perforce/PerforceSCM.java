@@ -591,8 +591,10 @@ public class PerforceSCM extends SCM {
         String projectPath;
         if (useClientSpec) {
             projectPath = getEffectiveProjectPathFromFile(build, project, log, depot);
-        } else {
+        } else if (build != null) {
             projectPath = substituteParameters(this.projectPath, build);
+        } else {
+            projectPath = substituteParameters(this.projectPath, getDefaultSubstitutions(project));
         }
         return projectPath;
     }
