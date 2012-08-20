@@ -563,7 +563,7 @@ public class PerforceSCM extends SCM {
 
     private Hashtable<String, String> getDefaultSubstitutions(AbstractProject project) {
         Hashtable<String, String> subst = new Hashtable<String, String>();
-        subst.put("JOB_NAME", getSafeJobName(project));
+        subst.put("JOB_NAME", getSafeJobName(project));    
         for (NodeProperty nodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
             if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
                 subst.putAll(((EnvironmentVariablesNodeProperty)nodeProperty).getEnvVars());
@@ -583,7 +583,7 @@ public class PerforceSCM extends SCM {
                 }
             }
         }
-
+        subst.put("P4USER", substituteParameters(p4User, subst));
         return subst;
     }
 
