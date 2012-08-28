@@ -48,9 +48,8 @@ public class PerforceMailResolver extends MailAddressResolver {
                 return puprop.getPerforceEmail();
             }
         }
-        for (TopLevelItem topLevelItem : Hudson.getInstance().getAllItems(TopLevelItem.class)) {
-            if (!(topLevelItem instanceof AbstractProject)) continue;
-            AbstractProject p = (AbstractProject)topLevelItem;
+        for (AbstractProject p : Hudson.getInstance().getAllItems(AbstractProject.class)) {
+            if (!(p instanceof TopLevelItem)) continue;
             if (p.isDisabled()) continue;
             if (p.getScm() instanceof PerforceSCM) {
                 LOGGER.finer("Checking " + p.getName() + "'s Perforce SCM for " + perforceId + "'s address.");
