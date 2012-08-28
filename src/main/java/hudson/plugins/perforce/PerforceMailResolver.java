@@ -4,6 +4,7 @@ import com.tek42.perforce.PerforceException;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.matrix.MatrixConfiguration;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
@@ -53,8 +54,10 @@ public class PerforceMailResolver extends MailAddressResolver {
                 return puprop.getPerforceEmail();
             }
         }
-        for (AbstractProject p : Hudson.getInstance().getProjects()) {
+        for (AbstractProject p : Hudson.getInstance().getAllItems(AbstractProject.class)) {
             if (p.isDisabled()) continue;
+            if (p instanceof MatrixConfiguration) continue;
+            if (p.getClass().getName().equals("hudson.maven.MavenModule")) continue;
             if (p.getScm() instanceof PerforceSCM) {
                 LOGGER.finer("Checking " + p.getName() + "'s Perforce SCM for " + perforceId + "'s address.");
                 PerforceSCM pscm = (PerforceSCM) p.getScm();
