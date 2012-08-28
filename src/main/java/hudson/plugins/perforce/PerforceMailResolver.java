@@ -5,13 +5,7 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.matrix.MatrixConfiguration;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Hudson;
-import hudson.model.Node;
-import hudson.model.Project;
-import hudson.model.TaskListener;
-import hudson.model.User;
+import hudson.model.*;
 import hudson.tasks.MailAddressResolver;
 import hudson.util.StreamTaskListener;
 import java.io.File;
@@ -54,10 +48,10 @@ public class PerforceMailResolver extends MailAddressResolver {
                 return puprop.getPerforceEmail();
             }
         }
-        for (AbstractProject p : Hudson.getInstance().getAllItems(AbstractProject.class)) {
+        for (TopLevelItem topLevelItem : Hudson.getInstance().getAllItems(TopLevelItem.class)) {
+            if (!(topLevelItem instanceof AbstractProject)) continue;
+            AbstractProject p = (AbstractProject)topLevelItem;
             if (p.isDisabled()) continue;
-            if (p instanceof MatrixConfiguration) continue;
-            if (p.getClass().getName().equals("hudson.maven.MavenModule")) continue;
             if (p.getScm() instanceof PerforceSCM) {
                 LOGGER.finer("Checking " + p.getName() + "'s Perforce SCM for " + perforceId + "'s address.");
                 PerforceSCM pscm = (PerforceSCM) p.getScm();
