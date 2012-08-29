@@ -594,7 +594,7 @@ public abstract class AbstractPerforceTemplate {
      */
     private String p4Login(String p4Exe) throws IOException, PerforceException {
         Executor login = depot.getExecFactory().newExecutor();
-        login.exec(new String[] { p4Exe, "login", "-p" });
+        login.exec(new String[] { p4Exe, "login", "-a", "-p" });
 
         try {
             // "echo" the password for the p4 process to read
