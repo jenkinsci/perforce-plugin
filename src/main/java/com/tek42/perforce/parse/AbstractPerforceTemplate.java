@@ -304,14 +304,15 @@ public abstract class AbstractPerforceTemplate {
 
 		List<String> lines = null;
 		int totalLength = 0;
-
+                
+                // get entire cmd to execute
+		cmd = getExtraParams(cmd);
+                
 		do {
 			int mesgIndex = -1, count = 0;
 			Executor p4 = depot.getExecFactory().newExecutor();
 			String debugCmd = "";
-			// get entire cmd to execute
-			cmd = getExtraParams(cmd);
-
+			
 			// setup information for logging...
 			for(String cm : cmd) {
 				debugCmd += cm + " ";
