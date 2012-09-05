@@ -120,6 +120,8 @@ public class ChangelistBuilder implements Builder<Changelist> {
 							// EXT-84 on 2007/09/25 *closed*
 							// or
 							// EXT-84 on 2007/09/25
+                                                        // or 
+                                                        // EXT-84 on 2007/09/25 by mwille
 							StringTokenizer details = new StringTokenizer(line);
 							job = new Changelist.JobEntry();
 							job.setJob(details.nextToken());
@@ -133,7 +135,8 @@ public class ChangelistBuilder implements Builder<Changelist> {
 								if ("by".equals(possibleUser))
 								{
 									details.nextToken(); // user
-									status = details.nextToken(); // status
+                                                                        if (details.hasMoreTokens()) //status is optional
+                                                                            status = details.nextToken(); // status
 								}
 								else
 								{
