@@ -268,6 +268,7 @@ public class PerforceSCM extends SCM {
     private String p4Charset = null;
     private String p4CommandCharset = null;
 
+    // Plugin constructor, (only?) used when a job configuration is saved
     @DataBoundConstructor
     public PerforceSCM(
             String p4User,
@@ -334,43 +335,11 @@ public class PerforceSCM extends SCM {
 
         this.clientOwner = Util.fixEmptyAndTrim(clientOwner);
 
-        if (p4SysRoot != null && p4SysRoot.length() != 0)
-            this.p4SysRoot = Util.fixEmptyAndTrim(p4SysRoot);
-
-        if (p4SysDrive != null && p4SysDrive.length() != 0)
-            this.p4SysDrive = Util.fixEmptyAndTrim(p4SysDrive);
-
-        // Get systemDrive,systemRoot computer environment variables from
-        // the current machine.
-        String systemDrive = null;
-        String systemRoot = null;
-        if (Hudson.isWindows()) {
-            try {
-                Computer currentComputer = Computer.currentComputer();
-                // A master with no executors seems to throw an NPE here, so
-                // we need to check for null.
-                if (currentComputer != null) {
-                    EnvVars envVars = currentComputer.getEnvironment();
-                    systemDrive = envVars.get("SystemDrive");
-                    systemRoot = envVars.get("SystemRoot");
-                }
-            } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, ex.getMessage(), ex);
-            }
+        if (p4SysRoot != null) {
+            this.p4SysRoot = p4SysRoot.trim();
         }
-        if (p4SysRoot != null && p4SysRoot.length() != 0) {
-            this.p4SysRoot = Util.fixEmptyAndTrim(p4SysRoot);
-        } else {
-            if (systemRoot != null && !systemRoot.trim().equals("")) {
-                this.p4SysRoot = Util.fixEmptyAndTrim(systemRoot);
-            }
-        }
-        if (p4SysDrive != null && p4SysDrive.length() != 0) {
-            this.p4SysDrive = Util.fixEmptyAndTrim(p4SysDrive);
-        } else {
-            if (systemDrive != null && !systemDrive.trim().equals("")) {
-                this.p4SysDrive = Util.fixEmptyAndTrim(systemDrive);
-            }
+        if (p4SysDrive != null) {
+            this.p4SysDrive = p4SysDrive.trim();
         }
 
         this.lineEndValue = lineEndValue;
@@ -433,8 +402,31 @@ public class PerforceSCM extends SCM {
             depot.setExecutable(getP4Executable(p4Tool));
         else
             depot.setExecutable(getP4Executable(p4Tool,node,TaskListener.NULL));
-        depot.setSystemDrive(p4SysDrive);
-        depot.setSystemRoot(p4SysRoot);
+
+        // Get systemDrive,systemRoot computer environment variables from
+        // the current machine.
+        // The current machine is the machine about to do something (run a
+        // build, poll the server) according to whatever called getDepot
+        String systemDrive = Util.fixEmptyAndTrim(p4SysDrive);
+        String systemRoot = Util.fixEmptyAndTrim(p4SysRoot);
+        try {
+            Computer currentComputer = Computer.currentComputer();
+            // A master with no executors seems to throw an NPE here, so
+            // we need to check for null.
+            if (currentComputer != null) {
+                EnvVars envVars = currentComputer.getEnvironment();
+                if (systemDrive == null && envVars.containsKey("SystemDrive")) {
+                    systemDrive = envVars.get("SystemDrive");
+                }
+                if (systemRoot == null && envVars.containsKey("SystemRoot")) {
+                    systemRoot = envVars.get("SystemRoot");
+                }
+            }
+        } catch (Exception ex) {
+            LOGGER.log(Level.WARNING, ex.getMessage(), ex);
+        }
+        depot.setSystemDrive(systemDrive);
+        depot.setSystemRoot(systemRoot);
 
         depot.setCharset(p4Charset);
         depot.setCommandCharset(p4CommandCharset);

@@ -44,6 +44,26 @@ public class PerforceSCMTest extends HudsonTestCase {
         //assertEqualBeans(scm.getBrowser(),p.getScm().getBrowser(),"URL");
     }
 
+    public void testConfigRoundtripWithNoSystemRoot() throws Exception {
+	FreeStyleProject project = createFreeStyleProject();
+        P4Web browser = new P4Web(new URL("http://localhost/"));
+        PerforceSCM scm = new PerforceSCM(
+                        "user", "pass", "client", "port", "", "exe", "",
+                        "", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true);
+        assertEquals("", scm.getP4SysDrive());
+        assertEquals("", scm.getP4SysRoot());
+        scm.setProjectPath("path");
+        project.setScm(scm);
+
+        // config roundtrip
+        submit(new WebClient().getPage(project,"configure").getFormByName("config"));
+
+        // verify that the data is intact
+        assertEqualBeans(scm, project.getScm(),
+                "p4SysRoot,p4SysDrive");
+    }
+
     public void testConfigRoundtripWithStream() throws Exception {
         FreeStyleProject project = createFreeStyleProject();
         P4Web browser = new P4Web(new URL("http://localhost/"));
