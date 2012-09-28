@@ -384,17 +384,21 @@ public class PerforceSCM extends SCM {
         HudsonP4ExecutorFactory p4Factory = new HudsonP4ExecutorFactory(launcher,workspace);
 
         Depot depot = new Depot(p4Factory);
-        depot.setUser(p4User);
-        depot.setPort(p4Port);
-
+        
         if (build != null) {
             depot.setClient(substituteParameters(p4Client, build));
+            depot.setUser(substituteParameters(p4User, build));
+            depot.setPort(substituteParameters(p4Port, build));
             depot.setPassword(getDecryptedP4Passwd(build));
         } else if (project != null) {
             depot.setClient(substituteParameters(p4Client, getDefaultSubstitutions(project)));
+            depot.setUser(substituteParameters(p4User, getDefaultSubstitutions(project)));
+            depot.setPort(substituteParameters(p4Port, getDefaultSubstitutions(project)));
             depot.setPassword(getDecryptedP4Passwd(project));
         } else {
             depot.setClient(p4Client);
+            depot.setUser(p4User);
+            depot.setPort(p4Port);
             depot.setPassword(getDecryptedP4Passwd());
         }
 
@@ -445,8 +449,8 @@ public class PerforceSCM extends SCM {
     @Override
     public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
         super.buildEnvVars(build, env);
-        env.put("P4PORT", p4Port);
-        env.put("P4USER", p4User);
+        env.put("P4PORT", substituteParameters(p4Port, build));
+        env.put("P4USER", substituteParameters(p4User, build));
 
         // if we want to allow p4 commands in script steps this helps
         if (exposeP4Passwd) {
@@ -995,7 +999,7 @@ public class PerforceSCM extends SCM {
             // Add tagging action that enables the user to create a label
             // for this build.
             build.addAction(new PerforceTagAction(
-                build, depot, newestChange, projectPath, p4User));
+                build, depot, newestChange, projectPath, substituteParameters(p4User, build)));
 
             build.addAction(new PerforceSCMRevisionState(newestChange));
 
@@ -1046,7 +1050,7 @@ public class PerforceSCM extends SCM {
                     // no changeset on parent, set it for other
                     // matrixruns to use
                     log.println("No change number has been set by parent/siblings. Using latest.");
-                    parentBuild.addAction(new PerforceTagAction(build, depot, newestChange, projectPath, p4User));
+                    parentBuild.addAction(new PerforceTagAction(build, depot, newestChange, projectPath, substituteParameters(p4User,build)));
                 }
             }
         }
@@ -2155,16 +2159,16 @@ public class PerforceSCM extends SCM {
     /* Regular expressions for parsing view mappings.
      */
     private static final Pattern COMMENT = Pattern.compile("^\\s*$|^#.*$");
-    private static final Pattern DEPOT_ONLY = Pattern.compile("^\\s*[+-]?//\\S+?(/\\S+)$");
-    private static final Pattern DEPOT_ONLY_QUOTED = Pattern.compile("^\\s*\"[+-]?//\\S+?(/[^\"]+)\"$");
+    private static final Pattern DEPOT_ONLY = Pattern.compile("^\\s*[+-]?//\\S+?(/\\S+)\\s*$");
+    private static final Pattern DEPOT_ONLY_QUOTED = Pattern.compile("^\\s*\"[+-]?//\\S+?(/[^\"]+)\"\\s*$");
     private static final Pattern DEPOT_AND_WORKSPACE =
-            Pattern.compile("^\\s*([+-]?//\\S+?/\\S+)\\s+//\\S+?(/\\S+)$");
+            Pattern.compile("^\\s*([+-]?//\\S+?/\\S+)\\s+//\\S+?(/\\S+)\\s*$");
     private static final Pattern DEPOT_AND_WORKSPACE_QUOTED =
-            Pattern.compile("^\\s*\"([+-]?//\\S+?/[^\"]+)\"\\s+\"//\\S+?(/[^\"]+)\"$");
+            Pattern.compile("^\\s*\"([+-]?//\\S+?/[^\"]+)\"\\s+\"//\\S+?(/[^\"]+)\"\\s*$");
     private static final Pattern DEPOT_AND_QUOTED_WORKSPACE =
-            Pattern.compile("^\\s*([+-]?//\\S+?/\\S+)\\s+\"//\\S+?(/[^\"]+)\"$");
+            Pattern.compile("^\\s*([+-]?//\\S+?/\\S+)\\s+\"//\\S+?(/[^\"]+)\"\\s*$");
     private static final Pattern QUOTED_DEPOT_AND_WORKSPACE =
-            Pattern.compile("^\\s*\"([+-]?//\\S+?/[^\"]+)\"\\s+//\\S+?(/\\S+)$");
+            Pattern.compile("^\\s*\"([+-]?//\\S+?/[^\"]+)\"\\s+//\\S+?(/\\S+)$\\s*");
 
     /**
      * Parses the projectPath into a list of pairs of strings representing the depot and client
