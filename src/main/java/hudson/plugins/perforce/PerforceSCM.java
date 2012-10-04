@@ -1014,7 +1014,9 @@ public class PerforceSCM extends SCM {
             }
 
             // remember the p4Ticket if we were issued one
-            p4Ticket = depot.getP4Ticket();
+			// otherwise keep the last one issued
+			if (depot.getP4Ticket() != null)
+	            p4Ticket = depot.getP4Ticket();
 
             return true;
 
