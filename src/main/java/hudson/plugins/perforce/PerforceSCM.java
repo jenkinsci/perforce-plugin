@@ -1989,26 +1989,6 @@ public class PerforceSCM extends SCM {
             return FormValidation.ok();
         }
 
-        /**
-         * Checks if the value is a valid Perforce project path.
-         */
-        public FormValidation doCheckProjectPath(@QueryParameter String value) throws IOException, ServletException {
-            String view = Util.fixEmptyAndTrim(value);
-            if (view != null) {
-                for (String mapping : view.replace("\r","").split("\n")) {
-                    if (!DEPOT_ONLY.matcher(mapping).matches() &&
-                        !DEPOT_AND_WORKSPACE.matcher(mapping).matches() &&
-                        !DEPOT_ONLY_QUOTED.matcher(mapping).matches() &&
-                        !DEPOT_AND_WORKSPACE_QUOTED.matcher(mapping).matches() &&
-                        !DEPOT_AND_QUOTED_WORKSPACE.matcher(mapping).matches() &&
-                        !QUOTED_DEPOT_AND_WORKSPACE.matcher(mapping).matches() &&
-                        !COMMENT.matcher(mapping).matches())
-                        return FormValidation.error("Invalid mapping:" + mapping);
-                }
-            }
-            return FormValidation.ok();
-        }
-
         public FormValidation doCheckViewMask(StaplerRequest req) {
             String view = Util.fixEmptyAndTrim(req.getParameter("viewMask"));
             if (view != null) {
