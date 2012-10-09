@@ -463,7 +463,7 @@ public class PerforceSCM extends SCM {
             env.put("P4TICKET", p4Ticket);
         }
 
-        env.put("P4CLIENT", getEffectiveClientName(build));
+        env.put("P4CLIENT", getConcurrentClientName(build.getWorkspace(), getEffectiveClientName(build)));
         PerforceTagAction pta = build.getAction(PerforceTagAction.class);
         if (pta != null) {
             if (pta.getChangeNumber() > 0) {
