@@ -402,6 +402,9 @@ public class PerforceSCM extends SCM {
             depot.setPassword(getDecryptedP4Passwd());
         }
 
+        if (p4Ticket != null && !p4Ticket.equals(""))
+            depot.setP4Ticket(p4Ticket);
+        
         if (node == null)
             depot.setExecutable(getP4Executable(p4Tool));
         else
