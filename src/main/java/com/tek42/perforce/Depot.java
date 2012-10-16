@@ -532,7 +532,7 @@ public class Depot {
 	 * @return the p4Ticket
 	 */
 	public String getP4Ticket() {
-		return p4Ticket;
+		return settings.get("P4TICKET");
 	}
 
 	/**
@@ -543,7 +543,7 @@ public class Depot {
 	 *            the p4Ticket to set
 	 */
 	public void setP4Ticket(String ticket) {
-		p4Ticket = ticket;
+		setenv("P4TICKET",ticket);
 	}
 
 	private void setenv(String key, String newValue) {
