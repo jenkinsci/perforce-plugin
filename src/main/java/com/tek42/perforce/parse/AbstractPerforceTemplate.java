@@ -297,7 +297,7 @@ public abstract class AbstractPerforceTemplate {
             });
         }
 
-	protected StringBuilder getPerforceResponse(String cmd[], ResponseFilter filter) throws PerforceException {
+	protected StringBuilder getPerforceResponse(String origcmd[], ResponseFilter filter) throws PerforceException {
 		// TODO: Create a way to wildcard portions of the error checking.  Add method to check for these errors.
 		boolean loop = false;
 		boolean attemptLogin = true;
@@ -305,14 +305,13 @@ public abstract class AbstractPerforceTemplate {
 		List<String> lines = null;
 		int totalLength = 0;
                 
-                // get entire cmd to execute
-		cmd = getExtraParams(cmd);
-                
 		do {
 			int mesgIndex = -1, count = 0;
 			Executor p4 = depot.getExecFactory().newExecutor();
 			String debugCmd = "";
-			
+			// get entire cmd to execute
+                        String cmd[] = getExtraParams(origcmd);
+                        
 			// setup information for logging...
 			for(String cm : cmd) {
 				debugCmd += cm + " ";
