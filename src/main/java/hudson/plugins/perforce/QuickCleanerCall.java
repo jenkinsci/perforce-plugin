@@ -24,6 +24,7 @@ public class QuickCleanerCall implements QuickCleaner.RemoteCall {
     private TaskListener listener;
     private String p4exe;
     private FileFilter filter;
+    private String p4ticket;
     
     QuickCleanerCall() {
         
@@ -67,7 +68,7 @@ public class QuickCleanerCall implements QuickCleaner.RemoteCall {
         PipedInputStream cleanerInput = new PipedInputStream();
 
         DirectoryScanner directoryScanner = new DirectoryScanner(workDir, dsOutput, filter);
-        ProcessByPerforce p4Processor = new ProcessByPerforce(env, p4exe, p4Input, p4Output, workDir, listener);
+        PerforceCall p4Processor = createHaveCall(env, p4exe, p4ticket, p4Input, p4Output, workDir, listener);
         Cleaner cleaner = new Cleaner(workDir, cleanerInput, out);
 
         dsOutput.connect(p4Input);
@@ -87,6 +88,10 @@ public class QuickCleanerCall implements QuickCleaner.RemoteCall {
             cleaner.interrupt();
         }
         return 0;
+    }
+
+    public void setP4Ticket(String p4ticket) {
+        this.p4ticket = p4ticket;
     }
 
     //Scans the specified path for all files
@@ -147,11 +152,18 @@ public class QuickCleanerCall implements QuickCleaner.RemoteCall {
     }
 
     //Ask perforce if they are tracked        
-    private class ProcessByPerforce extends PerforceCall {
-
-        ProcessByPerforce(String[] env, String p4exe, InputStream input, OutputStream output, String workDir, TaskListener listener) {
-            super(env, new String[]{p4exe, "-d", workDir, "-x-", "have"}, input, output, workDir, listener, true);
+    private PerforceCall createHaveCall (String[] env, String p4exe, String p4ticket, InputStream input, OutputStream output, String workDir, TaskListener listener) {
+        ArrayList<String> cmdlist = new ArrayList<String>();
+        cmdlist.add(p4exe);
+        if(p4ticket != null && !p4ticket.trim().isEmpty()){
+            cmdlist.add("-P");
+            cmdlist.add(p4ticket);
         }
+        cmdlist.add("-d");
+        cmdlist.add(workDir);
+        cmdlist.add("-x-");
+        cmdlist.add("have");
+        return new PerforceCall(env, cmdlist.toArray(new String[cmdlist.size()]), input, output, workDir, listener, true);
     }
 
     //Deletes untracked files

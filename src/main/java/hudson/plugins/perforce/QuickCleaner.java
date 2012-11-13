@@ -34,13 +34,15 @@ public class QuickCleaner {
     private FilePath filePath;
     private String p4exe;
     private FileFilter filter;
+    private String p4ticket;
 
-    QuickCleaner(String p4exe, Launcher hudsonLauncher, Depot depot, FilePath filePath, FileFilter filter) {
+    QuickCleaner(String p4exe, String p4ticket, Launcher hudsonLauncher, Depot depot, FilePath filePath, FileFilter filter) {
         this.hudsonLauncher = hudsonLauncher;
         this.env = getEnvFromDepot(depot, filePath.getRemote());
         this.filePath = filePath;
         this.p4exe = p4exe;
         this.filter = filter;
+        this.p4ticket = p4ticket;
     }
 
     public void doClean() throws PerforceException {
@@ -76,6 +78,7 @@ public class QuickCleaner {
             remoteCall.setWorkDir(filePath.getRemote());
             remoteCall.setListener(listener);
             remoteCall.setFilter(filter);
+            remoteCall.setP4Ticket(p4ticket);
             LogPrinter logPrinter = new LogPrinter(listener.getLogger(), p4in);
             logPrinter.start();
             filePath.act(remoteCall);
@@ -151,12 +154,14 @@ public class QuickCleaner {
         void setP4exe(String p4exe);
 
         void setWorkDir(String workDir);
+
+        void setP4Ticket(String p4ticket);
+        
     }
     
     public static class PerforceCall extends Thread {
 
         private String[] env;
-        private String p4exe;
         private InputStream input;
         private OutputStream output;
         private String workDir;
@@ -168,7 +173,6 @@ public class QuickCleaner {
             this.input = input;
             this.output = output;
             this.env = env;
-            this.p4exe = p4exe;
             this.workDir = workDir;
             this.listener = listener;
             this.cmdList = cmdList;

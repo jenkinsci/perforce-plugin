@@ -8,6 +8,7 @@ import hudson.model.TaskListener;
 import hudson.plugins.perforce.QuickCleaner.PerforceCall;
 import hudson.plugins.perforce.QuickCleaner.RemoteCall;
 import java.io.*;
+import java.util.ArrayList;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.ClosedInputStream;
 
@@ -22,6 +23,7 @@ class QuickRestoreCall implements RemoteCall {
     private TaskListener listener;
     private String p4exe;
     private FileFilter filter;
+    private String p4ticket;
 
     public QuickRestoreCall() {
     }
@@ -42,8 +44,35 @@ class QuickRestoreCall implements RemoteCall {
         
         forceSyncInput.connect(diffOutput);
         
-        PerforceCall forceSync = new PerforceCall(env, new String[]{p4exe, "-d", workDir, "-x-", "sync", "-f"}, forceSyncInput, out, workDir, listener, false);
-        PerforceCall findDiffFiles = new PerforceCall(env, new String[]{p4exe, "-d", workDir, "diff", option}, new ClosedInputStream(), diffOutput, workDir, listener, true);    
+        ArrayList<String> forceSyncCmdList = new ArrayList<String>();
+        ArrayList<String> findDiffFilesCmdList = new ArrayList<String>();
+        
+        //build force sync command
+        forceSyncCmdList.add(p4exe);
+        if(p4ticket != null && !p4ticket.trim().isEmpty()){
+            forceSyncCmdList.add("-P");
+            forceSyncCmdList.add(p4ticket);
+        }
+        forceSyncCmdList.add("-d");
+        forceSyncCmdList.add(workDir);
+        forceSyncCmdList.add("-x-");
+        forceSyncCmdList.add("sync");
+        forceSyncCmdList.add("-f");
+        
+        PerforceCall forceSync = new PerforceCall(env, forceSyncCmdList.toArray(new String[forceSyncCmdList.size()]), forceSyncInput, out, workDir, listener, false);
+        
+        //build diff command
+        findDiffFilesCmdList.add(p4exe);
+        if(p4ticket != null && !p4ticket.trim().isEmpty()){
+            findDiffFilesCmdList.add("-P");
+            findDiffFilesCmdList.add(p4ticket);
+        }
+        findDiffFilesCmdList.add("-d");
+        findDiffFilesCmdList.add(workDir);
+        findDiffFilesCmdList.add("diff");
+        findDiffFilesCmdList.add(option);
+        
+        PerforceCall findDiffFiles = new PerforceCall(env, findDiffFilesCmdList.toArray(new String[findDiffFilesCmdList.size()]), new ClosedInputStream(), diffOutput, workDir, listener, true);    
         
         try {
             forceSync.start();
@@ -82,5 +111,9 @@ class QuickRestoreCall implements RemoteCall {
 
     public void setWorkDir(String workDir) {
         this.workDir = workDir;
+    }
+
+    public void setP4Ticket(String p4ticket) {
+        this.p4ticket = p4ticket;
     }
 }

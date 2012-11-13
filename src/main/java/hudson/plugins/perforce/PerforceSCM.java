@@ -816,7 +816,7 @@ public class PerforceSCM extends SCM {
                     forceSync = true;
                 }
                 if (quickCleanBeforeBuild) {
-                    QuickCleaner quickCleaner = new QuickCleaner(depot.getExecutable(), launcher, depot, workspace, wipeFilter);
+                    QuickCleaner quickCleaner = new QuickCleaner(depot.getExecutable(), depot.getP4Ticket(), launcher, depot, workspace, wipeFilter);
                     log.println("Quickly cleaning workspace...");
                     quickCleaner.doClean();
                     log.println("Workspace is clean.");
