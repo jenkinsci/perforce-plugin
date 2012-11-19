@@ -110,8 +110,8 @@ public class ChangelistBuilder implements Builder<Changelist> {
 					boolean getDesc = false;
 					Changelist.JobEntry job = new Changelist.JobEntry();
 					String description = null;
-					do {
-						line = lines.nextToken();
+					line = lines.nextToken();
+					while(!line.startsWith("Affected files")) {
 						logger.debug("Job Line: " + line);
 						if(!getDesc) {
 							// Line looks like:
@@ -120,13 +120,25 @@ public class ChangelistBuilder implements Builder<Changelist> {
 							// EXT-84 on 2007/09/25 *closed*
 							// or
 							// EXT-84 on 2007/09/25
-                                                        // or 
-                                                        // EXT-84 on 2007/09/25 by mwille
+                            // or 
+                            // EXT-84 on 2007/09/25 by mwille
 							StringTokenizer details = new StringTokenizer(line);
 							job = new Changelist.JobEntry();
-							job.setJob(details.nextToken());
-							details.nextToken(); // on
-							details.nextToken(); // date
+							if (details.hasMoreTokens())
+								job.setJob(details.nextToken());
+							else
+								logger.error("We shouldnt be here.  Should be getting job but no nextToken: " + line);
+							
+							if (details.hasMoreTokens())
+								details.nextToken(); // on
+							else
+								logger.error("We shouldnt be here.  Should be popping off on but no nextToken: " + line);
+							
+							if (details.hasMoreTokens())
+								details.nextToken(); // date
+							else
+								logger.error("We shouldnt be here.  Should be popping off date but no nextToken: " + line);
+							
 							String status = "";
 
 							if (details.hasMoreTokens())
@@ -134,9 +146,12 @@ public class ChangelistBuilder implements Builder<Changelist> {
 								String possibleUser = details.nextToken(); // by
 								if ("by".equals(possibleUser))
 								{
-									details.nextToken(); // user
+									if (details.hasMoreTokens())
+										details.nextToken(); // user
+									else
+										logger.error("We shouldnt be here.  Should be popping off user since found by but no nextToken: " + line);
                                                                         if (details.hasMoreTokens()) //status is optional
-                                                                            status = details.nextToken(); // status
+										status = details.nextToken(); // status
 								}
 								else
 								{
@@ -145,13 +160,21 @@ public class ChangelistBuilder implements Builder<Changelist> {
 							}
 
 							job.setStatus(status);
-							description = "";
 							getDesc = true;
-						} else {
-							while(!line.startsWith("Affected files")) {
+							line = lines.nextToken();
+						} else {  //getDesc
+							//What comes back from p4 describe -s is actually the title not description and should only be one line
+							//leave handling of multiple lines because who knows what the future will bring
+							//It is possible to not have a description/title
+							//The title will start with a tab where Affected files or another job will not.
+							//Also possible to have blank lines
+							description = "";							
+							while(line.startsWith("\t") || line.length() == 0) {
 								description += line;
-								if(!lines.hasMoreElements())
+								if(!lines.hasMoreElements()) {
+									logger.error("We shouldnt be here.  We are not out of getting the description for the job but no more lines");
 									break;
+								}
 								description += "\n";
 								line = lines.nextToken();
 							}
@@ -160,7 +183,7 @@ public class ChangelistBuilder implements Builder<Changelist> {
 							getDesc = false;
 						}
 
-					} while(!line.startsWith("Affected files"));
+					}  //while lines
 
 					change.setJobs(jobs);
 
