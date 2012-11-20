@@ -887,11 +887,16 @@ public class PerforceSCM extends SCM {
                         Counter counter = depot.getCounters().getCounter(counterName);
                         newestChange = counter.getValue();
                     } else {
-                        //use the latest submitted change from depot
+                        //use the latest submitted change from workspace, or depot
                         try {
-                            List<Integer> depotChanges = depot.getChanges().getChangeNumbers("//...", 0, 1);
-                            if (depotChanges != null && depotChanges.size() > 0) {
-                                newestChange = depotChanges.get(0);
+                            List<Integer> workspaceChanges = depot.getChanges().getChangeNumbers(p4WorkspacePath, 0, 1);
+                            if (workspaceChanges != null && workspaceChanges.size() > 0) {
+                                newestChange = workspaceChanges.get(0);
+                            } else {
+                                List<Integer> depotChanges = depot.getChanges().getChangeNumbers("//...", 0, 1);
+                                if (depotChanges != null && depotChanges.size() > 0) {
+                                    newestChange = depotChanges.get(0);
+                                }
                             }
                         } catch (PerforceException e) {
                             //fall back onto 'change' counter value
