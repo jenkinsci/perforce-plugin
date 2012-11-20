@@ -20,6 +20,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.List;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.export.Exported;
 
 /**
  * {@link Action} that lets people create tag for the given build.
@@ -65,6 +66,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
         this.owner = tga.owner;
     }
 
+    @Exported
     public int getChangeNumber() {
         return changeNumber;
     }
