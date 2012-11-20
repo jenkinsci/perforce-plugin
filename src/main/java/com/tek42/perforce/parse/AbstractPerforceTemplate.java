@@ -608,12 +608,15 @@ public abstract class AbstractPerforceTemplate {
             String ticket = null;
             BufferedReader reader = login.getReader();
             String line;
-            // The last line output from p4 login will be the ticket
+            int lineCounter = 1;
+            // The second line output from p4 login will be the ticket
             while ((line = reader.readLine()) != null) {
                 int error = checkAuthnErrors(line);
                 if (error != -1)
                     throw new PerforceException("Login attempt failed: " + line);
-                ticket = line;
+                if (lineCounter == 2)
+                    ticket = line;
+                lineCounter++;
             }
             
             return ticket;
