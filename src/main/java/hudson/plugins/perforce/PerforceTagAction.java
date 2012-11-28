@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 import java.util.List;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
 
 /**
  * {@link Action} that lets people create tag for the given build.
