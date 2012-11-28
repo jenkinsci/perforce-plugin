@@ -27,6 +27,7 @@ import org.kohsuke.stapler.export.Exported;
  *
  * @author Mike Wille
  */
+@ExportedBean
 public class PerforceTagAction extends AbstractScmTagAction {
     private final int changeNumber;
     private Depot depot;
