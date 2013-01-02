@@ -608,15 +608,13 @@ public abstract class AbstractPerforceTemplate {
             String ticket = null;
             BufferedReader reader = login.getReader();
             String line;
-            int lineCounter = 1;
-            // The second line output from p4 login will be the ticket
+            // The line matching ^[0-9A-F]{32}$ will be the ticket
             while ((line = reader.readLine()) != null) {
                 int error = checkAuthnErrors(line);
                 if (error != -1)
                     throw new PerforceException("Login attempt failed: " + line);
-                if (lineCounter == 2)
+                if (line.trim().matches("^[0-9A-F]{32}$"))
                     ticket = line;
-                lineCounter++;
             }
             
             return ticket;
