@@ -169,13 +169,26 @@ public abstract class AbstractPerforceTemplate {
 		boolean loop = false;
 		boolean attemptLogin = true;
 
-		//StringBuilder response = new StringBuilder();
+		StringBuilder debugResponse = new StringBuilder();
+
 		do {
 			int mesgIndex = -1;//, count = 0;
 			Executor p4 = depot.getExecFactory().newExecutor();
 			String debugCmd = "";
 			try {
 				String cmds[] = getExtraParams(builder.getSaveCmd(getP4Exe(), object));
+
+                // Add '-v 1' to add some verbosity
+                // If the p4 command fails, the log will show a bit more info, like the local port number
+                
+                String newCmds[] = new String[cmds.length + 2];
+			    newCmds[0] = cmds[0];
+			    newCmds[1] = "-v";
+			    newCmds[2] = "1";
+			    for(int i = 3; (i - 2) < cmds.length; i++) {
+				    newCmds[i] = cmds[i - 2];
+			    }
+			    cmds = newCmds;
 
 				// for exception reporting...
 				for(String cm : cmds) {
@@ -209,6 +222,8 @@ public abstract class AbstractPerforceTemplate {
 				int exitCode = 0;
 
 				while((line = reader.readLine()) != null) {
+
+                    debugResponse.append(line + "\n");
 
 					// Check for authentication errors...
 				    if (mesgIndex == -1)
@@ -256,11 +271,13 @@ public abstract class AbstractPerforceTemplate {
 					    if (log.length() > 0) {
 					        error.append("\nWith Data:\n===================\n");
 					        error.append(log);
-                            error.append("\n===================\n");
+                            error.append("===================\n");
+                            error.append(debugResponse.toString());
+                            error.append("===================\n");
 					    }
                         throw new PerforceException(error.toString());
 					}
-					throw new PerforceException(info.toString());
+					throw new PerforceException("COMMAND: " + debugCmd + "\n---\n" + debugResponse.toString() + "---");
 				}
 
 			} catch(IOException e) {
@@ -304,21 +321,36 @@ public abstract class AbstractPerforceTemplate {
 
 		List<String> lines = null;
 		int totalLength = 0;
-                
+
+		StringBuilder debugResponse = new StringBuilder();
+
 		do {
 			int mesgIndex = -1, count = 0;
 			Executor p4 = depot.getExecFactory().newExecutor();
 			String debugCmd = "";
 			// get entire cmd to execute
-                        String cmd[] = getExtraParams(origcmd);
+                        String cmds[] = getExtraParams(origcmd);
                         
+            // Add '-v 1' to add some verbosity
+            // If the p4 command fails, the log will show a bit more info, like the local port number
+            
+            String newCmds[] = new String[cmds.length + 3];
+            newCmds[0] = cmds[0];
+            newCmds[1] = "-s";
+            newCmds[2] = "-v";
+            newCmds[3] = "1";
+            for(int i = 4; (i - 3) < cmds.length; i++) {
+       	        newCmds[i] = cmds[i - 3];
+            }
+           cmds = newCmds;
+			    
 			// setup information for logging...
-			for(String cm : cmd) {
+			for(String cm : cmds) {
 				debugCmd += cm + " ";
 			}
 
 			// Perform execution and IO
-			p4.exec(cmd);
+			p4.exec(cmds);
 			BufferedReader reader = p4.getReader();
 			String line = null;
 			totalLength = 0;
@@ -326,15 +358,25 @@ public abstract class AbstractPerforceTemplate {
 
 			try
 			{
-                                p4.getWriter().close();
+                p4.getWriter().close();
 				while((line = reader.readLine()) != null) {
-                                    // only check for errors if we have not found one already
-                                    if (mesgIndex == -1)
-                                        mesgIndex = checkAuthnErrors(line);
-                                    if(filter.reject(line)) continue;
-				    lines.add(line);
-				    totalLength += line.length();
-					count++;
+				    debugResponse.append(line + "\n");
+                    // only check for errors if we have not found one already
+                    if (mesgIndex == -1)
+                        mesgIndex = checkAuthnErrors(line);
+                    if(filter.reject(line)) continue;
+                    
+                    if (line.matches("^exit: .*")) {
+                        break;
+                    }
+                    
+                    if (line.matches("^info: .*|^info1: .*|^info2: .*|^text: .*|^error: .*")) {
+                        String strippedline = line.replaceFirst("^info: |^info1: |^info2: |^text: |^error: ", "");
+                        
+                        lines.add(strippedline);
+                        totalLength += strippedline.length();
+                        count++;
+                    }
 				}
 			}
 			catch(IOException ioe)
@@ -379,9 +421,9 @@ public abstract class AbstractPerforceTemplate {
 			if(mesgIndex == 4)
 				throw new PerforceException("Access for user '" + depot.getUser() + "' has not been enabled by 'p4 protect'");
 			if(mesgIndex != -1)
-				throw new PerforceException(p4errors[mesgIndex]);
+				throw new PerforceException(p4errors[mesgIndex] + "\nCOMMAND: " + debugCmd + "\n---\n" + debugResponse.toString() + "---");
 			if(count == 0)
-				throw new PerforceException("No output for: " + debugCmd);
+				throw new PerforceException("No output for:\nCOMMAND: " + debugCmd + "\n---\n" + debugResponse.toString() + "---");
 		} while(loop);
 
 		StringBuilder response = new StringBuilder(totalLength + lines.size());
@@ -407,6 +449,10 @@ public abstract class AbstractPerforceTemplate {
      * @return
      *      The response from perforce as a list
      * @throws PerforceException 
+     *
+     * Used only by src/main/java/com/tek42/perforce/parse/Changes.java
+     * - getHighestLabelChangeNumber
+     * - getChangeNumbersInRangeForSinglePath
      */
     protected List<String> getRawPerforceResponseLines(String cmd[]) throws PerforceException {
         List<String> lines = new ArrayList<String>(1024);
@@ -472,6 +518,9 @@ public abstract class AbstractPerforceTemplate {
      * @param cmd
      * @return
      * @throws PerforceException
+     *
+     * Used only by src/main/java/com/tek42/perforce/parse/Changes.java
+     * - calculateWorkspacePaths
      */
 
     protected byte[] getRawPerforceResponseBytes(String cmd[]) throws PerforceException {
