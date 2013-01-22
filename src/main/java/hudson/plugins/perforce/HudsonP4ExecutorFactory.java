@@ -36,7 +36,11 @@ public class HudsonP4ExecutorFactory implements ExecutorFactory {
     }
 
     public HudsonP4Executor newExecutor() {
-        return new HudsonP4RemoteExecutor(hudsonLauncher, env, filePath);
+        if(hudsonLauncher instanceof RemoteLauncher){
+            return new HudsonP4RemoteExecutor(hudsonLauncher, env, filePath);
+        } else {
+            return new HudsonP4DefaultExecutor(hudsonLauncher, env, filePath);
+        }
     }
 
     public void setEnv(Map<String, String> env) {

@@ -1029,14 +1029,14 @@ public class PerforceSCM extends SCM {
             return true;
 
         } catch (PerforceException e) {
-            log.print("Caught exception communicating with perforce.");
+            log.print("Caught exception communicating with perforce. " + e.getMessage());
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw, true);
             e.printStackTrace(pw);
             pw.flush();
             log.print(sw.toString());
             throw new AbortException(
-                    "Unable to communicate with perforce.");
+                    "Unable to communicate with perforce. " + e.getMessage());
 
         } catch (InterruptedException e) {
             throw new IOException(

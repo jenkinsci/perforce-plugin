@@ -15,9 +15,6 @@ import hudson.CloseProofOutputStream;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Launcher.LocalLauncher;
-import hudson.Launcher.RemoteLauncher;
-import hudson.Launcher.RemoteLauncher.ProcImpl;
-import hudson.Launcher.ProcStarter;
 import hudson.Proc;
 import hudson.Proc.RemoteProc;
 import hudson.model.Hudson;
@@ -62,8 +59,6 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
     private Launcher hudsonLauncher;
     private String[] env;
     private FilePath filePath;
-    
-    private Proc currentProcess;
 
     /**
      * Constructor that takes Hudson specific details for launching the
@@ -91,9 +86,14 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
 
     public void exec(String[] cmd) throws PerforceException {
         try {
-            
+            // ensure we actually have a valid hudson launcher
+            if (null == hudsonLauncher) {
+                hudsonLauncher = Hudson.getInstance().createLauncher(new StreamTaskListener(System.out));
+            }
+            VirtualChannel channel = hudsonLauncher.getChannel();
+
             // hudsonOut->p4in->reader
-            HudsonPipedOutputStream hudsonOut = new HudsonPipedOutputStream();
+            FastPipedOutputStream hudsonOut = new FastPipedOutputStream();
             FastPipedInputStream p4in = new FastPipedInputStream(hudsonOut);
             input = p4in;
 
@@ -102,29 +102,81 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
             FastPipedOutputStream p4out = new FastPipedOutputStream(hudsonIn);
             output = p4out;
 
-            final OutputStream out   = new RemoteOutputStream(hudsonOut);
-            final InputStream  in    = new RemoteInputStream(hudsonIn);
+            final OutputStream out = hudsonOut == null ? null : new RemoteOutputStream(hudsonOut);
+            final InputStream  in  = hudsonIn ==null ? null : new RemoteInputStream(hudsonIn);
 
             String remotePath = filePath.getRemote();
+            TaskListener listener = hudsonLauncher.getListener();
+            RemoteCall remoteCall = new RemoteCall(
+                    Arrays.asList(cmd), env, in, out, null,
+                    remotePath,
+                    listener);
+            Future future = channel.callAsync(remoteCall);
+            Proc proc = new RemoteProc(future);
 
-            ProcStarter ps = hudsonLauncher.new ProcStarter();
-            ps.cmds(Arrays.asList(cmd));
-            ps.envs(env);
-            ps.stdin(in);
-            ps.stdout(out); // stderr is bundled into stdout
-            ps.pwd(remotePath);
-            
-            currentProcess = hudsonLauncher.launch(ps);
-            
-            // Required to close hudsonOut stream
-            hudsonOut.closeOnProcess(currentProcess);
         } catch(IOException e) {
             //try to close all the pipes before throwing an exception
             closeBuffers();
 
             throw new PerforceException("Could not run perforce command.", e);
-	}
+        }
+    }
 
+    public BufferedWriter getWriter() {
+        if(writer==null){
+            writer = new BufferedWriter(new OutputStreamWriter(output));
+        }
+        return writer;
+    }
+
+    public BufferedReader getReader() {
+        if(reader==null){
+            reader = new BufferedReader(new InputStreamReader(input));
+        }
+        return reader;
+    }
+
+    private static class RemoteCall implements Callable<Integer,IOException> {
+        private final List<String> cmd;
+        private final String[] env;
+        private final InputStream in;
+        private final OutputStream out;
+        private final OutputStream err;
+        private final String workDir;
+        private final TaskListener listener;
+
+        RemoteCall(List<String> cmd, String[] env, InputStream in, OutputStream out, OutputStream err, String workDir, TaskListener listener) {
+            this.cmd = new ArrayList<String>(cmd);
+            this.env = env;
+            this.in = in;
+            this.out = out;
+            this.err = err;
+            this.workDir = workDir;
+            this.listener = listener;
+        }
+        public Integer call() throws IOException {
+            Launcher.ProcStarter ps = new LocalLauncher(listener).launch();
+            ps.cmds(cmd).envs(env).stdin(in).stdout(out);
+            if(err != null) ps.stderr(err);
+            if(workDir!=null)   ps.pwd(workDir);
+
+            Proc p;
+            try {
+                p = ps.start();
+                Integer ret = p.join();
+                if(out!=null) out.close();
+                if(err!=null) err.close();
+                return ret;
+            } catch (InterruptedException e) {
+                if(out!=null) out.close();
+                if(err!=null) err.close();
+                return -1;
+            } catch (IOException e) {
+                if(out!=null) out.close();
+                if(err!=null) err.close();
+                throw new IOException(e);
+            }
+        }
     }
 
     /**
@@ -149,18 +201,12 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
         return result;
     }
 
-    public BufferedWriter getWriter() {
-        if(writer==null){
-            writer = new BufferedWriter(new OutputStreamWriter(output));
-        }
-        return writer;
+    public InputStream getInputStream() {
+        return input;
     }
 
-    public BufferedReader getReader() {
-        if(reader==null){
-            reader = new BufferedReader(new InputStreamReader(input));
-        }
-        return reader;
+    public OutputStream getOutputStream() {
+        return output;
     }
 
     private void closeBuffers(){
@@ -172,21 +218,4 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
         } catch(IOException ignoredException) {};
     }
 
-    public InputStream getInputStream() {
-        return input;
-    }
-
-    public OutputStream getOutputStream() {
-        return output;
-    }
-
-    public void kill() {
-        closeBuffers();
-        
-        try {       	
-            currentProcess.kill();
-        }
-        catch(IOException ignoredException) {}
-        catch(InterruptedException ignoredException) {}
-    }
 }
