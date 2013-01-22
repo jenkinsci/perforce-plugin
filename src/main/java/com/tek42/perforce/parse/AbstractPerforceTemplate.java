@@ -62,6 +62,7 @@ public abstract class AbstractPerforceTemplate {
             "Your session has expired, please login again.",
             "You don't have permission for this operation.",
             "Password invalid.",
+            "The authenticity of",
         };
 
     @SuppressWarnings("unused")
@@ -236,12 +237,13 @@ public abstract class AbstractPerforceTemplate {
 
 				loop = false;
 				// If we failed to execute because of an authentication issue, try a p4 login.
-				if(mesgIndex == 1 || mesgIndex == 2 || mesgIndex == 6) {
+				if(mesgIndex == 1 || mesgIndex == 2 || mesgIndex == 6 || mesgIndex == 9) {
 				    if (attemptLogin) {
 	                    // password is unset means that perforce isn't using the environment var P4PASSWD
 	                    // Instead it is using tickets. We must attempt to login via p4 login, then
 	                    // retry this cmd.
 	                    p4.close();
+                            trustIfSSL();
 	                    login();
 	                    loop = true;
 	                    attemptLogin = false;
@@ -364,11 +366,12 @@ public abstract class AbstractPerforceTemplate {
 			}
 			loop = false;
 			// If we failed to execute because of an authentication issue, try a p4 login.
-			if(attemptLogin && (mesgIndex == 1 || mesgIndex == 2 || mesgIndex == 6)) {
+			if(attemptLogin && (mesgIndex == 1 || mesgIndex == 2 || mesgIndex == 6 || mesgIndex == 9)) {
 				// password is unset means that perforce isn't using the environment var P4PASSWD
 				// Instead it is using tickets. We must attempt to login via p4 login, then
 				// retry this cmd.
 				p4.close();
+                                trustIfSSL();
 				login();
 				loop = true;
 				attemptLogin = false;
@@ -620,6 +623,31 @@ public abstract class AbstractPerforceTemplate {
             return ticket;
         } finally {
             login.close();
+        }
+    }
+    
+    /**
+     * Trust the perforce server if using SSL
+     */
+    private void trustIfSSL() throws PerforceException {
+        Executor trust = depot.getExecFactory().newExecutor();
+        String p4Port = depot.getPort();
+        if(p4Port.toLowerCase().startsWith("ssl:")){
+            trust.exec(new String[] { getP4Exe(), "-p", depot.getPort(), "trust", "-y" });
+            try{
+                trust.getWriter().close();
+                BufferedReader reader = trust.getReader();
+                String line;
+                // The line matching ^[0-9A-F]{32}$ will be the ticket
+                while ((line = reader.readLine()) != null) {
+                    int error = checkAuthnErrors(line);
+                    if (error != -1)
+                        throw new PerforceException("Trust attempt failed: " + line);
+                }
+            } catch (IOException e) {
+                throw new PerforceException("Could not establish ssl trust with perforce server", e);
+            }
+            trust.close();
         }
     }
     
