@@ -1041,7 +1041,18 @@ public class PerforceSCM extends SCM {
         } catch (InterruptedException e) {
             throw new IOException(
                     "Unable to get hostname from slave. " + e.getMessage());
-        }
+        } catch (NullPointerException e) {
+			log.print("Caught exception in perforce-plugin. " + e.getMessage());
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw, true);
+            e.printStackTrace(pw);
+            pw.flush();
+            log.print(sw.toString());
+            throw new AbortException(
+                    "Caught exception in perfoce-plugin. " + e.getMessage());
+		}
+
+		
     }
 
     private synchronized int getOrSetMatrixChangeSet(AbstractBuild build, Depot depot, int newestChange, String projectPath, PrintStream log) {
