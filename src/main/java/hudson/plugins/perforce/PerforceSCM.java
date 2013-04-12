@@ -900,6 +900,7 @@ public class PerforceSCM extends SCM {
                             }
                         } catch (PerforceException e) {
                             //fall back onto 'change' counter value
+                            log.println("Failed to get last submitted changeset in the view, falling back to change counter. Error was: " + e.getMessage());
                             Counter counter = depot.getCounters().getCounter("change");
                             newestChange = counter.getValue();
                         }
