@@ -1375,6 +1375,10 @@ public class PerforceSCM extends SCM {
         patternString = patternString.replaceAll("\\*", "[^/]*");
         patternString = patternString.replaceAll("\\.\\.\\.", ".*");
         patternString = patternString.replaceAll("%%[0-9]", "[^/]*");
+        patternString = patternString.replaceAll("^\"", "");
+        patternString = patternString.replaceAll("\"$", "");
+        filename = filename.replaceAll("^\"", "");
+        filename = filename.replaceAll("\"$", "");
         Pattern pattern = Pattern.compile(patternString, !caseSensitive ? Pattern.CASE_INSENSITIVE : 0);
         Matcher matcher = pattern.matcher(filename);
         return matcher.matches();

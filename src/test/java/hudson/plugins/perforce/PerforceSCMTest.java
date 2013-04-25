@@ -279,6 +279,12 @@ public class PerforceSCMTest extends HudsonTestCase {
         assertEquals(false, PerforceSCM.doesFilenameMatchP4Pattern(
                 "//depot/SomeFile/testFile",
                 "//depot/%%9", true));
+        assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
+                "//depot/Some File/testFile",
+                "\"//depot/Some File/testFile\"", true));
+        assertEquals(true, PerforceSCM.doesFilenameMatchP4Pattern(
+                "\"//depot/Some File/testFile\"",
+                "//depot/Some File/testFile", true));
     }
 
     public void testFileInView() throws Exception {
