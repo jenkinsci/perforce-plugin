@@ -757,6 +757,13 @@ public class PerforceSCM extends SCM {
         PrintStream log = listener.getLogger();
         changelogFilename = changelogFile.getAbsolutePath();
 
+        // Use local variables so that substitutions are not saved
+        String p4Label = substituteParameters(this.p4Label, build);
+        String viewMask = substituteParameters(this.viewMask, build);
+        Depot depot = getDepot(launcher,workspace, build.getProject(), build, build.getBuiltOn());
+        String p4Stream = substituteParameters(this.p4Stream, build);
+        
+        // Pull from optional named parameters
         boolean wipeBeforeBuild = overrideWithBooleanParameter(
                 "P4CLEANWORKSPACE", build, this.wipeBeforeBuild);
         boolean quickCleanBeforeBuild = overrideWithBooleanParameter(
@@ -769,12 +776,6 @@ public class PerforceSCM extends SCM {
                 "P4DISABLESYNC", build, this.disableAutoSync);
         boolean disableSyncOnly = overrideWithBooleanParameter(
                 "P4DISABLESYNCONLY", build, this.disableSyncOnly);
-
-        // Use local variables so that substitutions are not saved
-        String p4Label = substituteParameters(this.p4Label, build);
-        String viewMask = substituteParameters(this.viewMask, build);
-        Depot depot = getDepot(launcher,workspace, build.getProject(), build, build.getBuiltOn());
-        String p4Stream = substituteParameters(this.p4Stream, build);
 
         // If we're doing a matrix build, we should always force sync.
         if ((Object)build instanceof MatrixBuild || (Object)build instanceof MatrixRun) {
