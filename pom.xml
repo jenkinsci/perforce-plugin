@@ -97,6 +97,11 @@
       <artifactId>commons-codec</artifactId>
       <version>1.4</version>
     </dependency>
+    <dependency>
+      <groupId>org.hudsonci.plugins</groupId>
+      <artifactId>jdom-shaded-library</artifactId>
+      <version>1.0</version>
+    </dependency>
   </dependencies>
 
   <distributionManagement>

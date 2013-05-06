@@ -14,9 +14,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.nio.charset.Charset;
 
-import org.dom4j.Document;
-import org.dom4j.Node;
-import org.dom4j.io.SAXReader;
+import org.hudson.dom4j.Document;
+import org.hudson.dom4j.Node;
+import org.hudson.dom4j.io.SAXReader;
 import org.xml.sax.SAXException;
 
 import com.tek42.perforce.model.Changelist;
