@@ -130,7 +130,12 @@ public class PerforceSCM extends SCM {
      * Disable Workspace pre-build automatic sync and changelog retrieval
      * This should be renamed if we can implement upgrade logic to handle old configs
      */
+    @Deprecated
     boolean disableAutoSync = false;
+    /**
+     * Disable ChangeLog retrieval
+     */
+    boolean disableChangeLogOnly = false;
     /**
      * Disable Workspace syncing
      */
@@ -292,7 +297,7 @@ public class PerforceSCM extends SCM {
             boolean alwaysForceSync,
             boolean createWorkspace,
             boolean updateView,
-            boolean disableAutoSync,
+            boolean disableChangeLogOnly,
             boolean disableSyncOnly,
             boolean showIntegChanges,
             boolean dontUpdateClient,
@@ -306,7 +311,7 @@ public class PerforceSCM extends SCM {
             String excludedFiles,
             boolean excludedFilesCaseSensitivity) {
 
-        this.configVersion = 0L;
+        this.configVersion = 1L;
 
         this.p4User = p4User;
         this.setP4Passwd(p4Passwd);
@@ -346,7 +351,7 @@ public class PerforceSCM extends SCM {
         this.forceSync = forceSync;
         this.dontUpdateServer = dontUpdateServer;
         this.alwaysForceSync = alwaysForceSync;
-        this.disableAutoSync = disableAutoSync;
+        this.disableChangeLogOnly = disableChangeLogOnly;
         this.disableSyncOnly = disableSyncOnly;
         this.showIntegChanges = showIntegChanges;
         this.browser = browser;
@@ -555,6 +560,13 @@ public class PerforceSCM extends SCM {
 
         if (configVersion == null) {
             configVersion = 0L;
+        }
+        
+        if (configVersion == 0L) {
+            this.disableSyncOnly = this.disableAutoSync;
+            this.disableChangeLogOnly = this.disableAutoSync;
+            
+            configVersion = 1L;
         }
 
         return this;
@@ -772,10 +784,12 @@ public class PerforceSCM extends SCM {
                 "P4CLEANREPOINWORKSPACE", build, this.wipeRepoBeforeBuild);
         boolean forceSync = overrideWithBooleanParameter(
                 "P4FORCESYNC", build, this.forceSync);
-        boolean disableAutoSync = overrideWithBooleanParameter(
-                "P4DISABLESYNC", build, this.disableAutoSync);
+        boolean disableChangeLogOnly = overrideWithBooleanParameter(
+                "P4DISABLECHANGELOG", build, this.disableAutoSync);
         boolean disableSyncOnly = overrideWithBooleanParameter(
                 "P4DISABLESYNCONLY", build, this.disableSyncOnly);
+        disableSyncOnly = overrideWithBooleanParameter(
+                "P4DISABLESYNC", build, this.disableSyncOnly);
 
         // If we're doing a matrix build, we should always force sync.
         if ((Object)build instanceof MatrixBuild || (Object)build instanceof MatrixRun) {
@@ -850,74 +864,75 @@ public class PerforceSCM extends SCM {
                 projectPath = p4workspace.getTrimmedViewsAsString();
             }
 
-            //Get the list of changes since the last time we looked...
             String p4WorkspacePath = "//" + p4workspace.getName() + "/...";
             int lastChange = getLastChange((Run)build.getPreviousBuild());
             log.println("Last build changeset: " + lastChange);
 
+            // Determine changeset number
             int newestChange = lastChange;
 
-            if (!disableAutoSync)
-            {
-                List<Changelist> changes;
-                if (p4Label != null && !p4Label.trim().isEmpty()) {
-                    newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, p4Label.trim(), p4WorkspacePath);
-                } else {
-                    if (p4UpstreamProject != null && p4UpstreamProject.length() > 0) {
-                        log.println("Using last successful or unstable build of upstream project " + p4UpstreamProject);
-                        Job job = Hudson.getInstance().getItemByFullName(p4UpstreamProject, Job.class);
-                        if (job == null) {
-                            throw new AbortException(
-                                    "Configured upstream job does not exist anymore: " + p4UpstreamProject + ". Please update your job configuration.");
-                        }
-                        Run upStreamRun = job.getLastSuccessfulBuild();
-                        int lastUpStreamChange = getLastChangeNoFirstChange(upStreamRun);
-                        if (lastUpStreamChange > 0) {
-                            log.println("Using P4 revision " + lastUpStreamChange + " from upstream project " + p4UpstreamProject);
-                            newestChange = lastUpStreamChange;
-                        } else {
-                            log.println("No P4 revision found in upstream project " + p4UpstreamProject);
-                            throw new AbortException(
-                                    "Configured upstream job has not been run yet: " + p4UpstreamProject + ". Please run it once befor launching a new build.");
-                        }
-                    } else
-                    if (p4Counter != null && !updateCounterValue) {
-                        //use a counter
-                        String counterName;
-                        counterName = substituteParameters(this.p4Counter, build);
-                        Counter counter = depot.getCounters().getCounter(counterName);
-                        newestChange = counter.getValue();
+            List<Changelist> changes;
+            if (p4Label != null && !p4Label.trim().isEmpty()) {
+                newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, p4Label.trim(), p4WorkspacePath);
+            } else {
+                if (p4UpstreamProject != null && p4UpstreamProject.length() > 0) {
+                    log.println("Using last successful or unstable build of upstream project " + p4UpstreamProject);
+                    Job job = Hudson.getInstance().getItemByFullName(p4UpstreamProject, Job.class);
+                    if (job == null) {
+                        throw new AbortException(
+                                "Configured upstream job does not exist anymore: " + p4UpstreamProject + ". Please update your job configuration.");
+                    }
+                    Run upStreamRun = job.getLastSuccessfulBuild();
+                    int lastUpStreamChange = getLastChangeNoFirstChange(upStreamRun);
+                    if (lastUpStreamChange > 0) {
+                        log.println("Using P4 revision " + lastUpStreamChange + " from upstream project " + p4UpstreamProject);
+                        newestChange = lastUpStreamChange;
                     } else {
-                        //use the latest submitted change from workspace, or depot
-                        try {
-                            List<Integer> workspaceChanges = depot.getChanges().getChangeNumbers(p4WorkspacePath, 0, 1);
-                            if (workspaceChanges != null && workspaceChanges.size() > 0) {
-                                newestChange = workspaceChanges.get(0);
-                            } else {
-                                List<Integer> depotChanges = depot.getChanges().getChangeNumbers("//...", 0, 1);
-                                if (depotChanges != null && depotChanges.size() > 0) {
-                                    newestChange = depotChanges.get(0);
-                                }
+                        log.println("No P4 revision found in upstream project " + p4UpstreamProject);
+                        throw new AbortException(
+                                "Configured upstream job has not been run yet: " + p4UpstreamProject + ". Please run it once befor launching a new build.");
+                    }
+                } else
+                if (p4Counter != null && !updateCounterValue) {
+                    //use a counter
+                    String counterName;
+                    counterName = substituteParameters(this.p4Counter, build);
+                    Counter counter = depot.getCounters().getCounter(counterName);
+                    newestChange = counter.getValue();
+                } else {
+                    //use the latest submitted change from workspace, or depot
+                    try {
+                        List<Integer> workspaceChanges = depot.getChanges().getChangeNumbers(p4WorkspacePath, 0, 1);
+                        if (workspaceChanges != null && workspaceChanges.size() > 0) {
+                            newestChange = workspaceChanges.get(0);
+                        } else {
+                            List<Integer> depotChanges = depot.getChanges().getChangeNumbers("//...", 0, 1);
+                            if (depotChanges != null && depotChanges.size() > 0) {
+                                newestChange = depotChanges.get(0);
                             }
-                        } catch (PerforceException e) {
-                            //fall back onto 'change' counter value
-                            log.println("Failed to get last submitted changeset in the view, falling back to change counter. Error was: " + e.getMessage());
-                            Counter counter = depot.getCounters().getCounter("change");
-                            newestChange = counter.getValue();
                         }
+                    } catch (PerforceException e) {
+                        //fall back onto 'change' counter value
+                        log.println("Failed to get last submitted changeset in the view, falling back to change counter. Error was: " + e.getMessage());
+                        Counter counter = depot.getCounters().getCounter("change");
+                        newestChange = counter.getValue();
                     }
                 }
+            }
 
-                if (build instanceof MatrixRun) {
-                    newestChange = getOrSetMatrixChangeSet(build, depot, newestChange, projectPath, log);
-                }
+            if (build instanceof MatrixRun) {
+                newestChange = getOrSetMatrixChangeSet(build, depot, newestChange, projectPath, log);
+            }
 
-                if (lastChange <= 0) {
-                    lastChange = newestChange - MAX_CHANGESETS_ON_FIRST_BUILD;
-                    if (lastChange < 0) {
-                        lastChange = 0;
-                    }
+            if (lastChange <= 0) {
+                lastChange = newestChange - MAX_CHANGESETS_ON_FIRST_BUILD;
+                if (lastChange < 0) {
+                    lastChange = 0;
                 }
+            }
+            
+            // Get ChangeLog
+            if (!disableChangeLogOnly) {
                 if (lastChange >= newestChange) {
                     changes = new ArrayList<Changelist>(0);
                 } else {
@@ -941,51 +956,52 @@ public class PerforceSCM extends SCM {
                     // No new changes discovered (though the definition of the workspace or label may have changed).
                     createEmptyChangeLog(changelogFile, listener, "changelog");
                 }
+            }
 
-                if (!disableSyncOnly) {
-                    // Now we can actually do the sync process...
-                    StringBuilder sbMessage = new StringBuilder("Sync'ing workspace to ");
-                    StringBuilder sbSyncPath = new StringBuilder(p4WorkspacePath);
-                    StringBuilder sbSyncPathSuffix = new StringBuilder();
-                    sbSyncPathSuffix.append("@");
+            // Sync workspace
+            if (!disableSyncOnly) {
+                // Now we can actually do the sync process...
+                StringBuilder sbMessage = new StringBuilder("Sync'ing workspace to ");
+                StringBuilder sbSyncPath = new StringBuilder(p4WorkspacePath);
+                StringBuilder sbSyncPathSuffix = new StringBuilder();
+                sbSyncPathSuffix.append("@");
 
-                    if (p4Label != null && !p4Label.trim().isEmpty()) {
-                        sbMessage.append("label ");
-                        sbMessage.append(p4Label);
-                        sbSyncPathSuffix.append(p4Label);
-                    } else {
-                        sbMessage.append("changelist ");
-                        sbMessage.append(newestChange);
-                        sbSyncPathSuffix.append(newestChange);
-                    }
-
-                    sbSyncPath.append(sbSyncPathSuffix);
-
-                    if (forceSync || alwaysForceSync)
-                        sbMessage.append(" (forcing sync of unchanged files).");
-                    else
-                        sbMessage.append(".");
-
-                    log.println(sbMessage.toString());
-                    String syncPath = sbSyncPath.toString();
-
-                    long startTime = System.currentTimeMillis();
-
-                    if (useViewMaskForSyncing && useViewMask) {
-                        for (String path : viewMask.replaceAll("\r", "").split("\n")) {
-                            StringBuilder sbMaskPath = new StringBuilder(path);
-                            sbMaskPath.append(sbSyncPathSuffix);
-                            String maskPath = sbMaskPath.toString();
-                            depot.getWorkspaces().syncTo(maskPath, forceSync || alwaysForceSync, dontUpdateServer);
-                        }
-                    } else {
-                        depot.getWorkspaces().syncTo(syncPath, forceSync || alwaysForceSync, dontUpdateServer);
-                    }
-                    long endTime = System.currentTimeMillis();
-                    long duration = endTime - startTime;
-
-                    log.println("Sync complete, took " + duration + " ms");
+                if (p4Label != null && !p4Label.trim().isEmpty()) {
+                    sbMessage.append("label ");
+                    sbMessage.append(p4Label);
+                    sbSyncPathSuffix.append(p4Label);
+                } else {
+                    sbMessage.append("changelist ");
+                    sbMessage.append(newestChange);
+                    sbSyncPathSuffix.append(newestChange);
                 }
+
+                sbSyncPath.append(sbSyncPathSuffix);
+
+                if (forceSync || alwaysForceSync)
+                    sbMessage.append(" (forcing sync of unchanged files).");
+                else
+                    sbMessage.append(".");
+
+                log.println(sbMessage.toString());
+                String syncPath = sbSyncPath.toString();
+
+                long startTime = System.currentTimeMillis();
+
+                if (useViewMaskForSyncing && useViewMask) {
+                    for (String path : viewMask.replaceAll("\r", "").split("\n")) {
+                        StringBuilder sbMaskPath = new StringBuilder(path);
+                        sbMaskPath.append(sbSyncPathSuffix);
+                        String maskPath = sbMaskPath.toString();
+                        depot.getWorkspaces().syncTo(maskPath, forceSync || alwaysForceSync, dontUpdateServer);
+                    }
+                } else {
+                    depot.getWorkspaces().syncTo(syncPath, forceSync || alwaysForceSync, dontUpdateServer);
+                }
+                long endTime = System.currentTimeMillis();
+                long duration = endTime - startTime;
+
+                log.println("Sync complete, took " + duration + " ms");
             }
 
             boolean doSaveProject = false;
@@ -2837,6 +2853,14 @@ public class PerforceSCM extends SCM {
 
     public void setShowIntegChanges(boolean showIntegChanges) {
         this.showIntegChanges = showIntegChanges;
+    }
+
+    public boolean isDisableChangeLogOnly() {
+        return disableChangeLogOnly;
+    }
+
+    public void setDisableChangeLogOnly(boolean disableChangeLogOnly) {
+        this.disableChangeLogOnly = disableChangeLogOnly;
     }
 
     public boolean isDisableSyncOnly() {

@@ -115,8 +115,8 @@
       <f:checkbox field="alwaysForceSync" value="True" id="alwaysForceSync" />
     </f:entry>
   
-    <f:entry title="Disable Sync and Changelog" help="/plugin/perforce/help/disableAutoSync.html">
-      <f:checkbox field="disableAutoSync" value="False"/>
+    <f:entry title="Disable Changelog" help="/plugin/perforce/help/disableChangeLogOnly.html">
+      <f:checkbox field="disableChangeLogOnly" value="False"/>
     </f:entry>
   
     <f:entry title="Disable Syncing Only" help="/plugin/perforce/help/disableSyncOnly.html">
