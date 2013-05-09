@@ -188,12 +188,16 @@ public class QuickCleanerCall implements QuickCleaner.RemoteCall {
                         String filename = line.replace("- file(s) not on client.", "").trim();
                         File file = new File(workDir, filename);
                         if (!safelyDelete(file)) {
-                            log("Error deleting file: " + filename);
+                            log("WARNING: Problem deleting file during quick clean: " + filename);
                         }
                     }
                 }
             } catch (IOException e) {
-                // TODO: Handle IO errors
+                try {
+                    log("Exception occurred while cleaning files: " + e.getMessage());
+                } catch (IOException ignored) {
+                    // can't do anything about this
+                }
             } finally {
                 IOUtils.closeQuietly(in);
                 IOUtils.closeQuietly(log);
@@ -206,7 +210,11 @@ public class QuickCleanerCall implements QuickCleaner.RemoteCall {
             while ((testPath = testPath.getParentFile()) != null) {
                 if (testPath.equals(parent)) {
                     Util.deleteFile(file);
-                    return true;
+                    if(!file.exists()) {
+                        return true;
+                    } else {
+                        return false;
+                    }
                 }
             }
             log("Warning, file outside workspace not cleaned: " + file.getPath());
