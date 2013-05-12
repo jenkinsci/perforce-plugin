@@ -55,6 +55,9 @@ public class PerforceChangeLogParserTest extends HudsonTestCase {
         assertEquals(
                 originalSet.getHistory().get(0).getChange().getFiles().get(0).toString(),
                 reloadedSet.getHistory().get(0).getChange().getFiles().get(0).toString());
+        assertEquals(
+                originalSet.getHistory().get(0).getChange().getUser(),
+                reloadedSet.getHistory().get(0).getChange().getUser());
     }
     
 }
