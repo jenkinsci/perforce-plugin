@@ -11,7 +11,7 @@
   <artifactId>perforce</artifactId>
   <name>Perforce Plugin</name>
   <packaging>hpi</packaging>
-  <version>1.3.23</version>
+  <version>1.3.24-SNAPSHOT</version>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Perforce+Plugin</url>
 
   <developers>
