@@ -787,7 +787,7 @@ public class PerforceSCM extends SCM {
         boolean forceSync = overrideWithBooleanParameter(
                 "P4FORCESYNC", build, this.forceSync);
         boolean disableChangeLogOnly = overrideWithBooleanParameter(
-                "P4DISABLECHANGELOG", build, this.disableAutoSync);
+                "P4DISABLECHANGELOG", build, this.disableChangeLogOnly);
         boolean disableSyncOnly = overrideWithBooleanParameter(
                 "P4DISABLESYNCONLY", build, this.disableSyncOnly);
         disableSyncOnly = overrideWithBooleanParameter(
