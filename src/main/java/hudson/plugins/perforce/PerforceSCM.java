@@ -768,7 +768,9 @@ public class PerforceSCM extends SCM {
 
         PrintStream log = listener.getLogger();
         changelogFilename = changelogFile.getAbsolutePath();
-
+        // HACK: Force build env vars to initialize
+        substituteParameters("", build);
+        
         // Use local variables so that substitutions are not saved
         String p4Label = substituteParameters(this.p4Label, build);
         String viewMask = substituteParameters(this.viewMask, build);
