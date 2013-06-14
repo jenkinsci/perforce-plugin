@@ -44,6 +44,7 @@ import java.util.logging.Logger;
  * @author Mike Wille
  * @author Brian Westrich
  * @author Victor Szoltysek
+ * @author Rob Petti
  * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
  * @since 1.3.25
  */
@@ -79,15 +80,25 @@ public class MacroStringHelper {
         return result;
     }
     
+    /**
+     * Checks string from unsubstituted variable references.
+     * @param string Input string (should be substituted before call)
+     * @throws ParameterSubstitutionException Substitution error
+     */
     public static void checkString(String string) throws ParameterSubstitutionException
     {
+        if (string == null) {
+            return;
+        }
+        
         // Conditional fail on substitution error
         if ( true && string.matches(".*\\$\\{.*\\}.*")) {
             throw new ParameterSubstitutionException(string, "Found unresolved macro at '"+string+"'");
         }
         
-        // TODO: Check single brackets
-        
+        //TODO: manage validation by global params?
+        //TODO: Check single brackets
+        //TODO: Add checks for '$' without brackets 
     }
 
     /**
