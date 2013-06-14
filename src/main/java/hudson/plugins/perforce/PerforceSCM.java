@@ -829,9 +829,15 @@ public class PerforceSCM extends SCM {
             saveWorkspaceIfDirty(depot, p4workspace, log);
 
             //Wipe/clean workspace
-            String p4config = MacroStringHelper.substituteParameters("${P4CONFIG}", build);
-            WipeWorkspaceExcludeFilter wipeFilter = new WipeWorkspaceExcludeFilter(".p4config",p4config);
-            
+            String p4config;
+            WipeWorkspaceExcludeFilter wipeFilter;
+            try {
+                p4config = MacroStringHelper.substituteParameters("${P4CONFIG}", build);
+                wipeFilter = new WipeWorkspaceExcludeFilter(".p4config",p4config);
+            } catch (ParameterSubstitutionException ex) {
+                wipeFilter = new WipeWorkspaceExcludeFilter();
+            }
+                    
             if (wipeBeforeBuild || quickCleanBeforeBuild) {
                 long cleanStartTime = System.currentTimeMillis();
                 if (wipeRepoBeforeBuild) {
