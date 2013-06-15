@@ -30,6 +30,8 @@
   <licenses>
     <license>
       <name>MIT License</name>
+      <url>http://www.opensource.org/licenses/mit-license.php</url>
+      <distribution>repo</distribution>
       <comments>
         All source code is under the MIT license.
       </comments>
