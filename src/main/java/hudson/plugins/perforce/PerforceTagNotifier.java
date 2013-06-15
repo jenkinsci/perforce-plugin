@@ -1,5 +1,6 @@
 package hudson.plugins.perforce;
 
+import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.model.AbstractProject;
@@ -12,6 +13,8 @@ import hudson.model.Hudson;
 import hudson.model.Result;
 import hudson.model.AbstractBuild;
 import hudson.model.TaskListener;
+import hudson.plugins.perforce.utils.MacroStringHelper;
+import hudson.plugins.perforce.utils.ParameterSubstitutionException;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Publisher;
 import java.io.IOException;
@@ -110,10 +113,16 @@ public class PerforceTagNotifier extends Notifier {
 
             listener.getLogger().println("Labelling Build in Perforce using " + rawLabelName);
 
-            String labelName = PerforceSCM.substituteParameters(rawLabelName, build);
-            String labelDesc = PerforceSCM.substituteParameters(rawLabelDesc, build);
-            String labelOwner = PerforceSCM.substituteParameters(rawLabelOwner, build);
-
+            String labelName, labelDesc, labelOwner;
+            try {
+                labelName = MacroStringHelper.substituteParameters(rawLabelName, build);
+                labelDesc = MacroStringHelper.substituteParameters(rawLabelDesc, build);
+                labelOwner = MacroStringHelper.substituteParameters(rawLabelOwner, build);
+            } catch (ParameterSubstitutionException ex) {
+                listener.getLogger().println("Parameter substitution error in label items. "+ex.getMessage());
+                return false;
+            }
+            
             if (labelName == null || labelName.equals("")) {
                 listener.getLogger().println("Label Name is empty, cannot label.");
                 return false;
