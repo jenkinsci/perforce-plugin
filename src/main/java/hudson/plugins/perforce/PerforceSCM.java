@@ -1747,6 +1747,8 @@ public class PerforceSCM extends SCM {
 
     @Extension
     public static final class PerforceSCMDescriptor extends SCMDescriptor<PerforceSCM> {
+        private String p4ClientPattern;
+        
         public PerforceSCMDescriptor() {
             super(PerforceSCM.class, PerforceRepositoryBrowser.class);
             load();
@@ -1806,6 +1808,34 @@ public class PerforceSCM extends SCM {
         public List<PerforceToolInstallation> getP4Tools() {
             PerforceToolInstallation[] p4ToolInstallations = Hudson.getInstance().getDescriptorByType(PerforceToolInstallation.DescriptorImpl.class).getInstallations();
             return Arrays.asList(p4ToolInstallations);
+        }
+        
+        public String getP4ClientPattern() {
+            if (p4ClientPattern == null) {
+                return ".*";
+            } else {
+                return p4ClientPattern;
+            }
+        }
+
+        
+        @Override
+        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+            p4ClientPattern = Util.fixEmpty(req.getParameter("p4.clientPattern").trim());
+            save();
+            return true;
+        }
+        
+        public FormValidation doValidateNamePattern(StaplerRequest req) {
+            String namePattern = Util.fixEmptyAndTrim(req.getParameter("value"));
+            if (namePattern != null) {
+                try {
+                    Pattern.compile(namePattern);
+                } catch (PatternSyntaxException exception) {
+                    return FormValidation.error("Pattern format error: "+exception.getMessage());
+                }
+            }
+            return FormValidation.ok();
         }
 
         public String isValidProjectPath(String path) {
@@ -1878,19 +1908,26 @@ public class PerforceSCM extends SCM {
          * Checks to see if the specified workspace is valid.
          */
         public FormValidation doValidateP4Client(StaplerRequest req) {
-            Depot depot = getDepotFromRequest(req);
-            if (depot == null) {
-                return FormValidation.error(
-                        "Unable to check workspace against depot");
-            }
-            String workspace = Util.fixEmptyAndTrim(req.getParameter("client"));
+            String workspace = Util.fixEmptyAndTrim(req.getParameter("client"));          
             if (workspace == null) {
                 return FormValidation.error("You must enter a workspaces name");
             }
             try {
+                // Check P4 client pattern first, because workspace check fails on valid client names with variables
+                if (!workspace.matches(getP4ClientPattern())) {
+                    return FormValidation.error("Client name doesn't meet global pattern: "+getP4ClientPattern());
+                }
+                
+                // Then, check depot 
+                Depot depot = getDepotFromRequest(req);
+                if (depot == null) {
+                    return FormValidation.error(
+                            "Unable to check workspace against depot");
+                }
+                
+                // Then, check workspace
                 Workspace p4Workspace =
                     depot.getWorkspaces().getWorkspace(workspace, "");
-
                 if (p4Workspace.getAccess() == null ||
                         p4Workspace.getAccess().equals(""))
                     return FormValidation.warning("Workspace does not exist. " +
