@@ -59,6 +59,8 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
     private Launcher hudsonLauncher;
     private String[] env;
     private FilePath filePath;
+    
+    private Proc currentProcess;
 
     /**
      * Constructor that takes Hudson specific details for launching the
@@ -112,7 +114,7 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
                     remotePath,
                     listener);
             Future future = channel.callAsync(remoteCall);
-            Proc proc = new RemoteProc(future);
+            currentProcess = new RemoteProc(future);
 
         } catch(IOException e) {
             //try to close all the pipes before throwing an exception
@@ -217,5 +219,9 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
             output.close();
         } catch(IOException ignoredException) {};
     }
-
+    
+    @Override
+    public boolean isAlive() throws IOException, InterruptedException {
+        return currentProcess != null ? currentProcess.isAlive() : false;
+    }
 }
