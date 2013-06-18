@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.process.Executor;
+import hudson.plugins.perforce.PerforceSCM;
 import java.io.InputStream;
 import org.slf4j.LoggerFactory;
 
@@ -328,6 +329,7 @@ public abstract class AbstractPerforceTemplate {
 
 			try
 			{
+                                PerforceSCM.PerforceSCMDescriptor scmDescr = PerforceSCM.getInstance();
                                 p4.getWriter().close();
 				while((line = reader.readLine()) != null) {
                                     // only check for errors if we have not found one already
