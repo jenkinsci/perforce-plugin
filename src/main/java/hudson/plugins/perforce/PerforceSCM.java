@@ -1764,7 +1764,7 @@ public class PerforceSCM extends SCM {
          */
         private Integer p4ReadlineTimeout;
         private final static int P4_INFINITE_TIMEOUT_SEC = 0;
-        private final static int P4_MINIMAL_TIMEOUT_SEC = 5;
+        private final static int P4_MINIMAL_TIMEOUT_SEC = 30;
         
         public PerforceSCMDescriptor() {
             super(PerforceSCM.class, PerforceRepositoryBrowser.class);
