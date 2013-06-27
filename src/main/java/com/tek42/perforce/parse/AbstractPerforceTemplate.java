@@ -43,8 +43,10 @@ import org.slf4j.Logger;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.process.Executor;
+import hudson.plugins.perforce.PerforceSCM;
 import java.io.InputStream;
 import org.slf4j.LoggerFactory;
+import org.apache.commons.lang.time.StopWatch;
 
 /**
  * Provides default functionality for interacting with Perforce using the template design pattern.
@@ -64,6 +66,8 @@ public abstract class AbstractPerforceTemplate {
             "Password invalid.",
             "The authenticity of",
         };
+    
+    private static final int P4_EXECUTOR_CHECK_PERIOD = 2000;
 
     @SuppressWarnings("unused")
     private transient Logger logger;   // Obsolete field, present just to keep demarshaller happy
@@ -310,6 +314,7 @@ public abstract class AbstractPerforceTemplate {
 		do {
 			int mesgIndex = -1, count = 0;
 			Executor p4 = depot.getExecFactory().newExecutor();
+                        
 			String debugCmd = "";
 			// get entire cmd to execute
                         String cmd[] = getExtraParams(origcmd);
@@ -328,6 +333,47 @@ public abstract class AbstractPerforceTemplate {
 
 			try
 			{
+                             PerforceSCM.PerforceSCMDescriptor scmDescr = PerforceSCM.getInstance();
+                               
+                             if(scmDescr.hasP4ReadlineTimeout()) { // Implementation with timeout
+                               StopWatch stopWatch = new StopWatch();
+                               int timeout = scmDescr.getP4ReadLineTimeout() * 1000;
+                               stopWatch.start();
+                               
+                               try {
+                                    while (reader.ready() || p4.isAlive()) {
+                                        if (reader.ready()) {
+                                            stopWatch.reset();
+                                            stopWatch.start();
+                                            line = reader.readLine();
+                                            if (line == null) {
+                                                break;
+                                            }
+                                            
+                                            //FIXME: Remove code duplication
+                                            // only check for errors if we have not found one already
+                                            if (mesgIndex == -1)
+                                                mesgIndex = checkAuthnErrors(line);
+                                            if(filter.reject(line)) continue;
+                                            lines.add(line);
+                                            totalLength += line.length();
+                                            count++;
+                                        }
+                                        else {                                            
+                                            if (stopWatch.getTime() > timeout) {
+                                                throw new PerforceException("Timeout. Haven't received new line from external executor after "
+                                                        +scmDescr.getP4ReadLineTimeout()+" seconds. ");
+                                            }
+                                            
+                                            // Sleep for check period
+                                            Thread.sleep(P4_EXECUTOR_CHECK_PERIOD);
+                                        }
+                                    } 
+                               } catch(InterruptedException ex) {
+                                   throw new PerforceException("Interrupted", ex);
+                               }
+                               
+                             } else { // legacy behavior
                                 p4.getWriter().close();
 				while((line = reader.readLine()) != null) {
                                     // only check for errors if we have not found one already
@@ -336,8 +382,9 @@ public abstract class AbstractPerforceTemplate {
                                     if(filter.reject(line)) continue;
 				    lines.add(line);
 				    totalLength += line.length();
-					count++;
+                                    count++;
 				}
+                             }
 			}
 			catch(IOException ioe)
 			{
