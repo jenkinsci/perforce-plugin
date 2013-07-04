@@ -56,10 +56,10 @@
             </f:entry>
           </f:radioBlock>
           <f:radioBlock name="p4.depotType" title="View Map" value="map" checked="${!instance.useClientSpec and !instance.useStreamDepot}" help="/plugin/perforce/help/projectPath.html">
-            <f:entry>
+            <f:entry>  
               <f:textarea name="projectPath" field="projectPath" />
-            </f:entry>
-          </f:radioBlock>
+              </f:entry> 
+            </f:radioBlock>
         </table>
       </f:entry>
 

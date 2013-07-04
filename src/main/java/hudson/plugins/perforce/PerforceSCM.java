@@ -1,5 +1,6 @@
 package hudson.plugins.perforce;
 
+import com.synopsys.arc.jenkinsci.plugins.perforce.DepotType;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Changelist;
@@ -311,7 +312,8 @@ public class PerforceSCM extends SCM {
             PerforceRepositoryBrowser browser,
             String excludedUsers,
             String excludedFiles,
-            boolean excludedFilesCaseSensitivity) {
+            boolean excludedFilesCaseSensitivity,
+            DepotType depotType) {
 
         this.configVersion = 1L;
 
@@ -338,8 +340,14 @@ public class PerforceSCM extends SCM {
 
         this.p4UpstreamProject = Util.fixEmptyAndTrim(p4UpstreamProject);
 
-        this.projectPath = Util.fixEmptyAndTrim(projectPath);
-
+        // Get data from the depot type
+        this.p4Stream = depotType.getP4Stream();
+        this.clientSpec = depotType.getClientSpec();
+        this.projectPath = Util.fixEmptyAndTrim(depotType.getProjectPath());
+        this.useStreamDepot = depotType.useP4Stream();
+        this.useClientSpec = depotType.useClientSpec();
+        this.useViewMask = depotType.useProjectPath();
+        
         this.clientOwner = Util.fixEmptyAndTrim(clientOwner);
 
         if (p4SysRoot != null) {
@@ -461,6 +469,7 @@ public class PerforceSCM extends SCM {
         return depot;
     }
 
+     
     /**
      * Override of SCM.buildEnvVars() in order to setup the last change we have
      * sync'd to as a Hudson
@@ -470,7 +479,7 @@ public class PerforceSCM extends SCM {
      * @param env
      */
     @Override
-    public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
+    public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
         super.buildEnvVars(build, env);
         try {
             env.put("P4PORT", MacroStringHelper.substituteParameters(p4Port, build));
