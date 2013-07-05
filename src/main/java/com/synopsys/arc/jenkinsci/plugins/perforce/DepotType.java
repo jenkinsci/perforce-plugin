@@ -23,7 +23,6 @@
  */
 package com.synopsys.arc.jenkinsci.plugins.perforce;
 
-import hudson.plugins.perforce.PerforceSCM;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -45,7 +44,7 @@ public class DepotType {
     
     @DataBoundConstructor
     public DepotType(String value, String p4Stream, String clientSpec, String projectPath) {
-        this.value = value;
+        this.value = (value != null) ? value : "";
         this.p4Stream = p4Stream;
         this.clientSpec = clientSpec;
         this.projectPath = projectPath;
