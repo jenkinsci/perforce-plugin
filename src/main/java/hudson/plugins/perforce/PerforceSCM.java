@@ -341,12 +341,14 @@ public class PerforceSCM extends SCM {
         this.p4UpstreamProject = Util.fixEmptyAndTrim(p4UpstreamProject);
 
         // Get data from the depot type
-        this.p4Stream = depotType.getP4Stream();
-        this.clientSpec = depotType.getClientSpec();
-        this.projectPath = Util.fixEmptyAndTrim(depotType.getProjectPath());
-        this.useStreamDepot = depotType.useP4Stream();
-        this.useClientSpec = depotType.useClientSpec();
-        this.useViewMask = depotType.useProjectPath();
+        if (depotType != null) {
+            this.p4Stream = depotType.getP4Stream();
+            this.clientSpec = depotType.getClientSpec();
+            this.projectPath = Util.fixEmptyAndTrim(depotType.getProjectPath());
+            this.useStreamDepot = depotType.useP4Stream();
+            this.useClientSpec = depotType.useClientSpec();
+            this.useViewMask = depotType.useProjectPath();
+        }
         
         this.clientOwner = Util.fixEmptyAndTrim(clientOwner);
 
