@@ -33,5 +33,9 @@
       <f:textbox name="p4.clientPattern" value="${descriptor.p4ClientPattern}"
                  checkUrl="'${rootURL}/scm/PerforceSCM/validateNamePattern?value='+escape(this.value)"/>
     </f:entry>
+    <f:entry title="P4 Read Line wait timeout, seconds" help="/plugin/perforce/help/p4ReadLineTimeout.html">
+      <f:textbox name="p4.readLineTimeout" value="${descriptor.p4ReadLineTimeoutStr}"
+                 checkUrl="'${rootURL}/scm/PerforceSCM/validateP4ReadLineTimeout?value='+escape(this.value)"/>
+    </f:entry>
   </f:section>
 </j:jelly>

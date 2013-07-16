@@ -141,6 +141,21 @@ public class CmdLineExecutor implements Executor {
 		return currentProcess;
 	}
 
+    @Override
+    public boolean isAlive() {
+        if (currentProcess == null) {
+            return false;
+        }
+        
+        //FIXME: Usage of exceptions isn't good approach
+        try {
+            int exitValue = currentProcess.exitValue();
+            return false;
+        } catch (IllegalThreadStateException ex) {
+            return false;
+        }
+    }
+        
     public OutputStream getOutputStream() {
         throw new UnsupportedOperationException("Not supported yet.");
     }
