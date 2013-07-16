@@ -191,7 +191,7 @@
       </table>
     </f:entry>
 
-    <f:entry title="Perforce Charset Options" help="/plugins/perforce/help/charset.html">
+    <f:entry title="Perforce Charset Options" help="/plugin/perforce/help/charset.html">
         <table width="100%">
         <f:entry title="P4CHARSET">
             <f:textbox field="p4Charset"/>
