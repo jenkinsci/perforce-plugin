@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='UTF-8' ?> 
+<!--
+  - The MIT License
+  -
+  - Copyright (c) 2013, Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+  -
+  - OriginalFile: manage-project-roles.jelly
+  - Thomas Maurel & Romain Seguy, Manufacture Française des Pneumatiques Michelin,
+  - 
+  -
+  - Permission is hereby granted, free of charge, to any person obtaining a copy
+  - of this software and associated documentation files (the "Software"), to deal
+  - in the Software without restriction, including without limitation the rights
+  - to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  - copies of the Software, and to permit persons to whom the Software is
+  - furnished to do so, subject to the following conditions:
+  -
+  - The above copyright notice and this permission notice shall be included in
+  - all copies or substantial portions of the Software.
+  -
+  - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  - IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  - FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  - AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  - LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  - THE SOFTWARE.
+  -->
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
+         xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <f:section title="Perforce SCM">
+    <f:entry title="P4 Client name pattern"  help="/plugin/perforce/help/clientNamePattern.html">
+      <f:textbox name="p4.clientPattern" value="${descriptor.p4ClientPattern}"
+                 checkUrl="'${rootURL}/scm/PerforceSCM/validateNamePattern?value='+escape(this.value)"/>
+    </f:entry>
+    <f:entry title="P4 Read Line wait timeout, seconds" help="/plugin/perforce/help/p4ReadLineTimeout.html">
+      <f:textbox name="p4.readLineTimeout" value="${descriptor.p4ReadLineTimeoutStr}"
+                 checkUrl="'${rootURL}/scm/PerforceSCM/validateP4ReadLineTimeout?value='+escape(this.value)"/>
+    </f:entry>
+  </f:section>
+</j:jelly>

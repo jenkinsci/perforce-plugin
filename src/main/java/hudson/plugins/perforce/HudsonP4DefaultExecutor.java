@@ -34,6 +34,8 @@ public class HudsonP4DefaultExecutor implements HudsonP4Executor {
     private Launcher hudsonLauncher;
     private String[] env;
     private FilePath filePath;
+    
+    private Proc currentProcess;
 
     /**
      * Constructor that takes Hudson specific details for launching the
@@ -76,10 +78,10 @@ public class HudsonP4DefaultExecutor implements HudsonP4Executor {
             FastPipedOutputStream p4out = new FastPipedOutputStream(hudsonIn);
             output = p4out;
             
-            Proc process = hudsonLauncher.launch().cmds(cmd).envs(env).stdin(hudsonIn).stdout(hudsonOut).pwd(filePath).start();
+            currentProcess = hudsonLauncher.launch().cmds(cmd).envs(env).stdin(hudsonIn).stdout(hudsonOut).pwd(filePath).start();
             
             // Required to close hudsonOut stream
-            hudsonOut.closeOnProcess(process);
+            hudsonOut.closeOnProcess(currentProcess);
 
         } catch(IOException e) {
             //try to close all the pipes before throwing an exception
@@ -141,5 +143,12 @@ public class HudsonP4DefaultExecutor implements HudsonP4Executor {
     public OutputStream getOutputStream() {
         return output;
     }
+
+    @Override
+    public boolean isAlive() throws IOException, InterruptedException {
+        return currentProcess != null ? currentProcess.isAlive() : false;
+    }
+    
+    
 
 }

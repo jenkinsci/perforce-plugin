@@ -371,6 +371,16 @@ public class PerforceSCM extends SCM {
         this.excludedFiles = Util.fixEmptyAndTrim(excludedFiles);
         this.excludedFilesCaseSensitivity = excludedFilesCaseSensitivity;
     }
+    
+    /**
+     * Gets instance of the PerforceSCM
+     * @return Instance of the PerforceSCM
+     * @since 1.4.0
+     */
+    public static PerforceSCMDescriptor getInstance() {
+        String scmName = PerforceSCM.class.getSimpleName();
+        return (PerforceSCMDescriptor)Hudson.getInstance().getScm(scmName);
+    }
 
     /**
      * This only exists because we need to do initialization after we have been brought
@@ -1747,6 +1757,15 @@ public class PerforceSCM extends SCM {
 
     @Extension
     public static final class PerforceSCMDescriptor extends SCMDescriptor<PerforceSCM> {
+        private String p4ClientPattern;
+        /**
+         * Defines timeout for BufferedReader::readLine() operations (in seconds).
+         * Zero value means "infinite";
+         */
+        private Integer p4ReadlineTimeout;
+        private final static int P4_INFINITE_TIMEOUT_SEC = 0;
+        private final static int P4_MINIMAL_TIMEOUT_SEC = 30;
+        
         public PerforceSCMDescriptor() {
             super(PerforceSCM.class, PerforceRepositoryBrowser.class);
             load();
@@ -1755,7 +1774,7 @@ public class PerforceSCM extends SCM {
         public String getDisplayName() {
             return "Perforce";
         }
-
+        
         @Override
         public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             PerforceSCM newInstance = (PerforceSCM)super.newInstance(req, formData);
@@ -1806,6 +1825,89 @@ public class PerforceSCM extends SCM {
         public List<PerforceToolInstallation> getP4Tools() {
             PerforceToolInstallation[] p4ToolInstallations = Hudson.getInstance().getDescriptorByType(PerforceToolInstallation.DescriptorImpl.class).getInstallations();
             return Arrays.asList(p4ToolInstallations);
+        }
+        
+        /**
+         * Gets client workspace name pattern
+         */
+        public String getP4ClientPattern() {
+            if (p4ClientPattern == null) {
+                return ".*";
+            } else {
+                return p4ClientPattern;
+            }
+        }
+        
+        /**
+         * Gets ReadLine timeout.
+         * @since 1.4.0 
+         */
+        public int getP4ReadLineTimeout() {
+            if (p4ReadlineTimeout == null) {
+                return P4_INFINITE_TIMEOUT_SEC;
+            } else {
+                return p4ReadlineTimeout;
+            }
+        }
+
+        public String getP4ReadLineTimeoutStr() {
+            return hasP4ReadlineTimeout() ? p4ReadlineTimeout.toString() : "";
+        }
+        
+        /**
+         * Checks if plugin has ReadLine timeout.
+         * @since 1.4.0
+         */
+        public boolean hasP4ReadlineTimeout() {
+            return getP4ReadLineTimeout() != P4_INFINITE_TIMEOUT_SEC;
+        }
+        
+        @Override
+        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+            p4ClientPattern = Util.fixEmpty(req.getParameter("p4.clientPattern").trim());
+            
+            // ReadLine timeout
+            String p4timeoutStr = Util.fixEmpty(req.getParameter("p4.readLineTimeout").trim());            
+            p4ReadlineTimeout = P4_INFINITE_TIMEOUT_SEC;
+            if (p4timeoutStr != null)
+            {
+                try {
+                    int val = Integer.parseInt(p4timeoutStr);
+                    p4ReadlineTimeout = val<P4_MINIMAL_TIMEOUT_SEC ? P4_INFINITE_TIMEOUT_SEC : val;
+                } catch (NumberFormatException ex) {
+                    //Do nothing - just ignore user's value
+                }
+            }
+            
+            save();
+            return true;
+        }
+        
+        public FormValidation doValidateNamePattern(StaplerRequest req) {
+            String namePattern = Util.fixEmptyAndTrim(req.getParameter("value"));
+            if (namePattern != null) {
+                try {
+                    Pattern.compile(namePattern);
+                } catch (PatternSyntaxException exception) {
+                    return FormValidation.error("Pattern format error:\n"+exception.getMessage());
+                }
+            }
+            return FormValidation.ok();
+        }
+        
+        public FormValidation doValidateP4ReadLineTimeout(StaplerRequest req) {
+            String valueStr = Util.fixEmptyAndTrim(req.getParameter("value"));
+              if (valueStr != null) {
+                try {
+                    int val = Integer.parseInt(valueStr);
+                    if (val < P4_MINIMAL_TIMEOUT_SEC) {
+                        return FormValidation.error("P4 ReadLine timeout should exceed "+P4_MINIMAL_TIMEOUT_SEC+" seconds. Value will be ignored");
+                    }
+                } catch (NumberFormatException ex) {
+                    return FormValidation.error("Number format error: "+ex.getMessage());
+                }
+            }
+            return FormValidation.ok();
         }
 
         public String isValidProjectPath(String path) {
@@ -1878,19 +1980,26 @@ public class PerforceSCM extends SCM {
          * Checks to see if the specified workspace is valid.
          */
         public FormValidation doValidateP4Client(StaplerRequest req) {
-            Depot depot = getDepotFromRequest(req);
-            if (depot == null) {
-                return FormValidation.error(
-                        "Unable to check workspace against depot");
-            }
-            String workspace = Util.fixEmptyAndTrim(req.getParameter("client"));
+            String workspace = Util.fixEmptyAndTrim(req.getParameter("client"));          
             if (workspace == null) {
                 return FormValidation.error("You must enter a workspaces name");
             }
             try {
+                // Check P4 client pattern first, because workspace check fails on valid client names with variables
+                if (!workspace.matches(getP4ClientPattern())) {
+                    return FormValidation.error("Client name doesn't meet global pattern: "+getP4ClientPattern());
+                }
+                
+                // Then, check depot 
+                Depot depot = getDepotFromRequest(req);
+                if (depot == null) {
+                    return FormValidation.error(
+                            "Unable to check workspace against depot");
+                }
+                
+                // Then, check workspace
                 Workspace p4Workspace =
                     depot.getWorkspaces().getWorkspace(workspace, "");
-
                 if (p4Workspace.getAccess() == null ||
                         p4Workspace.getAccess().equals(""))
                     return FormValidation.warning("Workspace does not exist. " +
