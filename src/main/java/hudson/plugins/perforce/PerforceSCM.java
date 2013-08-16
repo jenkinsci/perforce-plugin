@@ -263,6 +263,7 @@ public class PerforceSCM extends SCM {
     private String viewMask = null;
     private boolean useViewMaskForPolling = true;
     private boolean useViewMaskForSyncing = false;
+    private boolean useViewMaskForChangeLog = false;
 
     /**
      * Sync only on master option.
@@ -595,6 +596,10 @@ public class PerforceSCM extends SCM {
             configVersion = 1L;
         }
 
+        if (configVersion == 1L) {
+            this.useViewMaskForChangeLog = this.useViewMaskForSyncing;
+        }
+        
         return this;
     }
 
@@ -972,7 +977,7 @@ public class PerforceSCM extends SCM {
                     changes = new ArrayList<Changelist>(0);
                 } else {
                     List<Integer> changeNumbersTo;
-                    if (useViewMaskForSyncing && useViewMask) {
+                    if (useViewMaskForChangeLog) {
                         changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange, viewMask, showIntegChanges);
                     } else {
                         changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange, showIntegChanges);
@@ -1798,6 +1803,7 @@ public class PerforceSCM extends SCM {
             newInstance.setViewMask(Util.fixEmptyAndTrim(req.getParameter("p4.viewMask")));
             newInstance.setUseViewMaskForPolling(req.getParameter("p4.useViewMaskForPolling") != null);
             newInstance.setUseViewMaskForSyncing(req.getParameter("p4.useViewMaskForSyncing") != null);
+            newInstance.setUseViewMaskForChangeLog(req.getParameter("p4.useViewMaskForChangeLog") != null);
             
             String cleanType = req.getParameter("p4.cleanType");
             boolean useWipe = false;
@@ -2881,6 +2887,14 @@ public class PerforceSCM extends SCM {
         this.useViewMaskForSyncing = useViewMaskForSyncing;
     }
 
+    public boolean isUseViewMaskForChangeLog() {
+        return useViewMaskForChangeLog;
+    }
+
+    public void setUseViewMaskForChangeLog(boolean useViewMaskForChangeLog) {
+        this.useViewMaskForChangeLog = useViewMaskForChangeLog;
+    }
+    
     public String getViewMask() {
         return viewMask;
     }

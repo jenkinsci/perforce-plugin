@@ -228,6 +228,9 @@
         <f:entry title="Use mask when syncing" help="/plugin/perforce/help/useViewMaskForSyncing.html">
             <f:checkbox name="p4.useViewMaskForSyncing" checked="${instance.useViewMaskForSyncing}"/>
         </f:entry>
+        <f:entry title="Use mask when determining changelog" help="/plugin/perforce/help/useViewMaskForChangeLog.html">
+            <f:checkbox name="p4.useViewMaskForChangeLog" checked="${instance.useViewMaskForChangeLog}"/>
+        </f:entry>
     </f:optionalBlock>
   </f:advanced>
 
