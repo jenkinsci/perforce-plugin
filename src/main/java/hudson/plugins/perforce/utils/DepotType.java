@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.synopsys.arc.jenkinsci.plugins.perforce;
+package hudson.plugins.perforce.utils;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 

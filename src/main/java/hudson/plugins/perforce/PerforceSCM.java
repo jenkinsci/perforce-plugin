@@ -1,6 +1,6 @@
 package hudson.plugins.perforce;
 
-import com.synopsys.arc.jenkinsci.plugins.perforce.DepotType;
+import hudson.plugins.perforce.utils.DepotType;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Changelist;
