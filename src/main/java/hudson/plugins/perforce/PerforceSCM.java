@@ -481,7 +481,7 @@ public class PerforceSCM extends SCM {
      * @param env
      */
     @Override
-    public void buildEnvVars(AbstractBuild<?, ?> build, Map<String, String> env) {
+    public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
         super.buildEnvVars(build, env);
         try {
             env.put("P4PORT", MacroStringHelper.substituteParameters(p4Port, build));
