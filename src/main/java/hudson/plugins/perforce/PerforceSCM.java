@@ -98,6 +98,8 @@ public class PerforceSCM extends SCM {
 
     private static final int MAX_CHANGESETS_ON_FIRST_BUILD = 50;
 
+    private static final String WORKSPACE_COMBINATOR = System.getProperty(hudson.slaves.WorkspaceList.class.getName(),"@");
+
     /**
      * Name of the p4 tool installation
      */
@@ -1751,7 +1753,7 @@ public class PerforceSCM extends SCM {
     private String getConcurrentClientName(FilePath workspace, String p4Client) {
         if (workspace != null) {
             // Match @ followed by an integer at the end of the workspace path
-            Pattern p = Pattern.compile(".*@(\\d+)$");
+            Pattern p = Pattern.compile(".*" + Pattern.quote(WORKSPACE_COMBINATOR) + "(\\d+)$");
             Matcher matcher = p.matcher(workspace.getRemote());
             if (matcher.find()) {
                 p4Client += "_" + matcher.group(1);
