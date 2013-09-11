@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.kohsuke.stapler.framework.io.WriterOutputStream;
 
 /**
@@ -69,17 +70,17 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
         for (Changelist change : changes) {
             stream.println("\t<entry>");
             stream.println("\t\t<changenumber>" + change.getChangeNumber() + "</changenumber>");
-            stream.println("\t\t<date>" + Util.xmlEscape(PerforceChangeLogParser.javaDateToStringDate(change.getDate())) + "</date>");
-            stream.println("\t\t<description>" + Util.xmlEscape(change.getDescription()) + "</description>");
-            stream.println("\t\t<user>" + Util.xmlEscape(change.getUser()) + "</user>");
-            stream.println("\t\t<workspace>" + Util.xmlEscape(change.getWorkspace()) + "</workspace>");
+            stream.println("\t\t<date>" + StringEscapeUtils.escapeXml(PerforceChangeLogParser.javaDateToStringDate(change.getDate())) + "</date>");
+            stream.println("\t\t<description>" + StringEscapeUtils.escapeXml(change.getDescription()) + "</description>");
+            stream.println("\t\t<user>" + StringEscapeUtils.escapeXml(change.getUser()) + "</user>");
+            stream.println("\t\t<workspace>" + StringEscapeUtils.escapeXml(change.getWorkspace()) + "</workspace>");
             stream.println("\t\t<files>");
             for (Changelist.FileEntry entry : change.getFiles()) {
                 stream.println("\t\t\t<file>");
-                stream.println("\t\t\t\t<name>" + Util.xmlEscape(entry.getFilename()) + "</name>");
-                stream.println("\t\t\t\t<workspacePath>" + Util.xmlEscape(entry.getWorkspacePath()) + "</workspacePath>");
-                stream.println("\t\t\t\t<rev>" + Util.xmlEscape(entry.getRevision()) + "</rev>");
-                stream.println("\t\t\t\t<changenumber>" + Util.xmlEscape(entry.getChangenumber()) + "</changenumber>");
+                stream.println("\t\t\t\t<name>" + StringEscapeUtils.escapeXml(entry.getFilename()) + "</name>");
+                stream.println("\t\t\t\t<workspacePath>" + StringEscapeUtils.escapeXml(entry.getWorkspacePath()) + "</workspacePath>");
+                stream.println("\t\t\t\t<rev>" + StringEscapeUtils.escapeXml(entry.getRevision()) + "</rev>");
+                stream.println("\t\t\t\t<changenumber>" + StringEscapeUtils.escapeXml(entry.getChangenumber()) + "</changenumber>");
                 stream.println("\t\t\t\t<action>" + entry.getAction() + "</action>");
                 stream.println("\t\t\t</file>");
             }
@@ -87,9 +88,9 @@ public class PerforceChangeLogSet extends ChangeLogSet<PerforceChangeLogEntry> {
             stream.println("\t\t<jobs>");
             for (Changelist.JobEntry entry : change.getJobs()) {
                 stream.println("\t\t\t<job>");
-                stream.println("\t\t\t\t<name>" + Util.xmlEscape(entry.getJob()) + "</name>");
-                stream.println("\t\t\t\t<description>" + Util.xmlEscape(entry.getDescription()) + "</description>");
-                stream.println("\t\t\t\t<status>" + Util.xmlEscape(entry.getStatus()) + "</status>");
+                stream.println("\t\t\t\t<name>" + StringEscapeUtils.escapeXml(entry.getJob()) + "</name>");
+                stream.println("\t\t\t\t<description>" + StringEscapeUtils.escapeXml(entry.getDescription()) + "</description>");
+                stream.println("\t\t\t\t<status>" + StringEscapeUtils.escapeXml(entry.getStatus()) + "</status>");
                 stream.println("\t\t\t</job>");
             }
             stream.println("\t\t</jobs>");

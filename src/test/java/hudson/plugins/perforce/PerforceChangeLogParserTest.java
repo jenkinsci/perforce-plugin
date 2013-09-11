@@ -27,7 +27,7 @@ public class PerforceChangeLogParserTest extends HudsonTestCase {
         List<Changelist> changes = new ArrayList<Changelist>();
         Changelist cl = new Changelist();
         cl.setChangeNumber(1000);
-        cl.setDescription("test change");
+        cl.setDescription("test change <this is broken XML&>");
         cl.setUser("test.user");
         cl.setWorkspace("test_workspace");
         List<Changelist.FileEntry> files = new ArrayList<Changelist.FileEntry>();
@@ -53,7 +53,7 @@ public class PerforceChangeLogParserTest extends HudsonTestCase {
         jobEntry.setStatus("submitted");
         jobs.add(jobEntry);
         jobEntry = new Changelist.JobEntry();
-        jobEntry.setDescription("test job2");
+        jobEntry.setDescription("test job2 <!--Contains some nonsense-->\n<[[ like, really broken ]]>\n");
         jobEntry.setJob("test-job2");
         jobEntry.setStatus("rejected");
         jobs.add(jobEntry);
