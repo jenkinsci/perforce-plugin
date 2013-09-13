@@ -334,12 +334,11 @@ public abstract class AbstractPerforceTemplate {
 			try
 			{
                              PerforceSCM.PerforceSCMDescriptor scmDescr = PerforceSCM.getInstance();
-                               
+                             p4.getWriter().close();
                              if(scmDescr.hasP4ReadlineTimeout()) { // Implementation with timeout
                                StopWatch stopWatch = new StopWatch();
                                int timeout = scmDescr.getP4ReadLineTimeout() * 1000;
                                stopWatch.start();
-                               p4.getWriter().close();
                                try {
                                     while (reader.ready() || p4.isAlive()) {
                                         if (reader.ready()) {
