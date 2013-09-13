@@ -339,7 +339,7 @@ public abstract class AbstractPerforceTemplate {
                                StopWatch stopWatch = new StopWatch();
                                int timeout = scmDescr.getP4ReadLineTimeout() * 1000;
                                stopWatch.start();
-                               
+                               p4.getWriter().close();
                                try {
                                     while (reader.ready() || p4.isAlive()) {
                                         if (reader.ready()) {
@@ -374,7 +374,6 @@ public abstract class AbstractPerforceTemplate {
                                }
                                
                              } else { // legacy behavior
-                                p4.getWriter().close();
 				while((line = reader.readLine()) != null) {
                                     // only check for errors if we have not found one already
                                     if (mesgIndex == -1)
