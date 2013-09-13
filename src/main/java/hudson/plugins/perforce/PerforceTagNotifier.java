@@ -115,9 +115,9 @@ public class PerforceTagNotifier extends Notifier {
 
             String labelName, labelDesc, labelOwner;
             try {
-                labelName = MacroStringHelper.substituteParameters(rawLabelName, build);
-                labelDesc = MacroStringHelper.substituteParameters(rawLabelDesc, build);
-                labelOwner = MacroStringHelper.substituteParameters(rawLabelOwner, build);
+                labelName = MacroStringHelper.substituteParameters(rawLabelName, build, null);
+                labelDesc = MacroStringHelper.substituteParameters(rawLabelDesc, build, null);
+                labelOwner = MacroStringHelper.substituteParameters(rawLabelOwner, build, null);
             } catch (ParameterSubstitutionException ex) {
                 listener.getLogger().println("Parameter substitution error in label items. "+ex.getMessage());
                 return false;
