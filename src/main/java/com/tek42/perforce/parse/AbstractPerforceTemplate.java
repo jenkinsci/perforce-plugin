@@ -340,7 +340,7 @@ public abstract class AbstractPerforceTemplate {
                                int timeout = scmDescr.getP4ReadLineTimeout() * 1000;
                                stopWatch.start();
                                try {
-                                    while (reader.ready() || p4.isAlive()) {
+                                    while (true) {
                                         if (reader.ready()) {
                                             stopWatch.reset();
                                             stopWatch.start();
