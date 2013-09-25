@@ -22,9 +22,11 @@
             checkUrl="'${rootURL}/scm/PerforceSCM/validatePerforceLogin?port='+escape(this.form.elements['p4Port'].value)+'&amp;tool='+escape(this.form.elements['p4Tool'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)"/>
       </f:entry>
 
-      <f:entry title="Expose P4PASSWD in environment" help="/plugin/perforce/help/exposeP4Passwd.html">
-        <f:checkbox field="exposeP4Passwd" default="false"/>
-      </f:entry>
+      <j:if test="${not descriptor.passwordExposeDisabled}">
+        <f:entry title="Expose P4PASSWD in environment" help="/plugin/perforce/help/exposeP4Passwd.html">
+            <f:checkbox field="exposeP4Passwd" default="false"/>
+        </f:entry>
+      </j:if>
     </table>
   </f:entry>
 

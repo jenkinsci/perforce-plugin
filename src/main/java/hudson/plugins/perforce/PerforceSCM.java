@@ -320,7 +320,7 @@ public class PerforceSCM extends SCM {
 
         this.p4User = p4User;
         this.setP4Passwd(p4Passwd);
-        this.exposeP4Passwd = exposeP4Passwd;
+        this.setExposeP4Passwd(exposeP4Passwd);
         this.p4Client = p4Client;
         this.p4Port = p4Port;
         this.p4Tool = p4Tool;
@@ -1770,6 +1770,8 @@ public class PerforceSCM extends SCM {
          * Zero value means "infinite";
          */
         private Integer p4ReadlineTimeout;
+        /**DIsables expose of Perforce password to the build environment*/
+        private boolean passwordExposeDisabled;
         private final static int P4_INFINITE_TIMEOUT_SEC = 0;
         private final static int P4_MINIMAL_TIMEOUT_SEC = 30;
         
@@ -1861,7 +1863,11 @@ public class PerforceSCM extends SCM {
         public String getP4ReadLineTimeoutStr() {
             return hasP4ReadlineTimeout() ? p4ReadlineTimeout.toString() : "";
         }
-        
+
+        public boolean isPasswordExposeDisabled() {
+            return passwordExposeDisabled;
+        }
+            
         /**
          * Checks if plugin has ReadLine timeout.
          * @since 1.4.0
@@ -2694,14 +2700,14 @@ public class PerforceSCM extends SCM {
      * @return True if the P4PASSWD value must be set in the environment
      */
     public boolean isExposeP4Passwd() {
-        return exposeP4Passwd;
+        return getInstance().isPasswordExposeDisabled() ? false : exposeP4Passwd;
     }
 
     /**
      * @param exposeP4Passwd True if the P4PASSWD value must be set in the environment
      */
     public void setExposeP4Passwd(boolean exposeP4Passwd) {
-        this.exposeP4Passwd = exposeP4Passwd;
+        this.exposeP4Passwd =  getInstance().isPasswordExposeDisabled() ? false : exposeP4Passwd;
     }
 
     /**
