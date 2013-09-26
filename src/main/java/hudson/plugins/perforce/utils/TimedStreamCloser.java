@@ -45,6 +45,7 @@ public class TimedStreamCloser extends Thread {
     private InputStream in;
     private long timeout;
     private boolean keepRunning = true;
+    private boolean timedOut = false;
     private Object lock;
     
     public TimedStreamCloser(InputStream in, long timeout) throws IOException {
@@ -75,6 +76,7 @@ public class TimedStreamCloser extends Thread {
         
         while(keepRunning) {
             if(seconds > timeout){
+                timedOut = true;
                 close();
                 break;
             }
@@ -87,6 +89,10 @@ public class TimedStreamCloser extends Thread {
                 break;
             }
         }
+    }
+    
+    public boolean timedOut() {
+        return timedOut;
     }
 
 }

@@ -355,6 +355,9 @@ public abstract class AbstractPerforceTemplate {
                                 totalLength += line.length();
                                 count++;
                             }
+                            if(timedStreamCloser.timedOut()) {
+                                throw new PerforceException("Perforce operation timed out after " + timeout + " seconds.");
+                            }
 			}
 			catch(IOException ioe)
 			{
