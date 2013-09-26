@@ -119,14 +119,14 @@ public class HudsonP4DefaultExecutor implements HudsonP4Executor {
         }
         return writer;
     }
-
+    
     public BufferedReader getReader() {
         if(reader==null){
             reader = new BufferedReader(new InputStreamReader(input));
         }
         return reader;
     }
-
+    
     private void closeBuffers(){
         try {
             input.close();
