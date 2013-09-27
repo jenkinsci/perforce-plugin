@@ -306,7 +306,7 @@ public class PerforceSCM extends SCM {
             boolean disableSyncOnly,
             boolean showIntegChanges,
             boolean dontUpdateClient,
-            boolean exposeP4Passwd,
+            Boolean exposeP4Passwd,
             boolean pollOnlyOnMaster,
             String slaveClientNameFormat,
             int firstChange,
@@ -320,7 +320,7 @@ public class PerforceSCM extends SCM {
 
         this.p4User = p4User;
         this.setP4Passwd(p4Passwd);
-        this.setExposeP4Passwd(exposeP4Passwd);
+        this.setExposeP4Passwd(exposeP4Passwd != null ? exposeP4Passwd.booleanValue() : false );
         this.p4Client = p4Client;
         this.p4Port = p4Port;
         this.p4Tool = p4Tool;
@@ -484,7 +484,7 @@ public class PerforceSCM extends SCM {
         }
         
         // if we want to allow p4 commands in script steps this helps
-        if (exposeP4Passwd) {
+        if (isExposeP4Passwd()) {
             PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
             env.put("P4PASSWD", encryptor.decryptString(p4Passwd));
         }
@@ -1879,6 +1879,7 @@ public class PerforceSCM extends SCM {
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
             p4ClientPattern = Util.fixEmpty(req.getParameter("p4.clientPattern").trim());
+            passwordExposeDisabled = json.getBoolean("passwordExposeDisabled");
             
             // ReadLine timeout
             String p4timeoutStr = Util.fixEmpty(req.getParameter("p4.readLineTimeout").trim());            
