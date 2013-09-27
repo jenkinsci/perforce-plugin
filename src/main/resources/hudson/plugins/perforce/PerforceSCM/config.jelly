@@ -26,9 +26,11 @@
         <f:entry title="Expose P4PASSWD in environment" help="/plugin/perforce/help/exposeP4Passwd.html">
             <f:checkbox field="exposeP4Passwd" default="false"/>
         </f:entry>
-      </j:if>
-      <j:if test="descriptor.passwordExposeDisabled}">
-        <f:invisibleEntry name="exposeP4Passwd" value="false"/>
+      </j:if>    
+      <j:if test="${descriptor.passwordExposeDisabled}">
+        <f:invisibleEntry >
+            <input type="hidden" name="exposeP4Passwd" value="false" />
+        </f:invisibleEntry>
       </j:if>
     </table>
   </f:entry>

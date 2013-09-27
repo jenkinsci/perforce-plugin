@@ -306,7 +306,7 @@ public class PerforceSCM extends SCM {
             boolean disableSyncOnly,
             boolean showIntegChanges,
             boolean dontUpdateClient,
-            Boolean exposeP4Passwd,
+            boolean exposeP4Passwd,
             boolean pollOnlyOnMaster,
             String slaveClientNameFormat,
             int firstChange,
@@ -320,7 +320,7 @@ public class PerforceSCM extends SCM {
 
         this.p4User = p4User;
         this.setP4Passwd(p4Passwd);
-        this.setExposeP4Passwd(exposeP4Passwd != null ? exposeP4Passwd.booleanValue() : false );
+        this.setExposeP4Passwd(exposeP4Passwd);
         this.p4Client = p4Client;
         this.p4Port = p4Port;
         this.p4Tool = p4Tool;
@@ -1785,7 +1785,7 @@ public class PerforceSCM extends SCM {
         }
         
         @Override
-        public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+        public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {           
             PerforceSCM newInstance = (PerforceSCM)super.newInstance(req, formData);
             String depotType = req.getParameter("p4.depotType");
             boolean useStreamDepot = depotType.equals("stream");
