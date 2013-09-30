@@ -1788,8 +1788,9 @@ public class PerforceSCM extends SCM {
         
         @Override
         public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
-            PerforceSCM newInstance = (PerforceSCM)super.newInstance(req, formData);
-            String depotType = req.getParameter("p4.depotType");
+            PerforceSCM newInstance = (PerforceSCM)super.newInstance(req, formData);                                  
+            final String p4InstanceId = req.hasParameter("p4InstanceID") ? req.getParameter("p4InstanceID") : "p4";            
+            String depotType = req.getParameter(p4InstanceId+".depotType");
             boolean useStreamDepot = depotType.equals("stream");
             boolean useClientSpec = depotType.equals("file");
             newInstance.setUseStreamDepot(useStreamDepot);
@@ -1810,7 +1811,7 @@ public class PerforceSCM extends SCM {
             newInstance.setUseViewMaskForPolling(req.getParameter("p4.useViewMaskForPolling") != null);
             newInstance.setUseViewMaskForSyncing(req.getParameter("p4.useViewMaskForSyncing") != null);
             
-            String cleanType = req.getParameter("p4.cleanType");
+            String cleanType = req.getParameter(p4InstanceId+".cleanType");
             boolean useWipe = false;
             boolean useQuickClean = false;
             if(cleanType != null && req.getParameter("p4.cleanWorkspace") != null){
@@ -1847,6 +1848,12 @@ public class PerforceSCM extends SCM {
             } else {
                 return p4ClientPattern;
             }
+        }
+        
+        /**Generates random key for p4InstanceID*/
+        private static java.security.SecureRandom random = new java.security.SecureRandom();
+        public String generateP4InstanceID() {
+            return new java.math.BigInteger(128, random).toString(32);
         }
         
         /**

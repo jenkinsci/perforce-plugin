@@ -7,8 +7,12 @@
     <j:set var="streamDepotUsed" value="${instance.useStreamDepot}"/>
   </j:if>
   
-    <!--Workaround for radioBlock unique groups-->  
-  <j:set var="instanceID" value="${instance.hashCode()}"/>
+  <!--Workaround for radioBlock unique groups-->  
+  <j:set var="instanceID" value="${descriptor.generateP4InstanceID()}"/>
+  
+  <f:invisibleEntry >
+      <input type="hidden" name="p4InstanceID" value="${instanceID}" />
+  </f:invisibleEntry> 
     
   <f:entry title="Depot" help="/plugin/perforce/help/depot.html">
     <table width="100%">
