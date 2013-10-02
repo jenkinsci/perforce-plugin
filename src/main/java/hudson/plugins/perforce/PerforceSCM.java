@@ -1839,12 +1839,6 @@ public class PerforceSCM extends SCM {
             }
         }
         
-        /**Generates random key for p4InstanceID*/
-        private static java.security.SecureRandom random = new java.security.SecureRandom();
-        public String generateP4InstanceID() {
-            return new java.math.BigInteger(128, random).toString(32);
-        }
-        
         /**
          * Gets ReadLine timeout.
          * @since 1.4.0 
