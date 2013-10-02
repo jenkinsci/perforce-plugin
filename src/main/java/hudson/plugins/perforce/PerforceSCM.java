@@ -23,6 +23,9 @@ import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixRun;
 import hudson.model.*;
 import hudson.model.listeners.ItemListener;
+import hudson.plugins.perforce.config.CleanTypeConfig;
+import hudson.plugins.perforce.config.MaskViewConfig;
+import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
 import hudson.plugins.perforce.utils.MacroStringHelper;
 import hudson.plugins.perforce.utils.ParameterSubstitutionException;
 import hudson.remoting.VirtualChannel;
@@ -313,7 +316,10 @@ public class PerforceSCM extends SCM {
             String excludedUsers,
             String excludedFiles,
             boolean excludedFilesCaseSensitivity,
-            DepotType depotType) {
+            DepotType depotType, 
+            WorkspaceCleanupConfig cleanWorkspace,
+            MaskViewConfig useViewMask
+            ) {
 
         this.configVersion = 1L;
 
@@ -340,6 +346,7 @@ public class PerforceSCM extends SCM {
 
         this.p4UpstreamProject = Util.fixEmptyAndTrim(p4UpstreamProject);
 
+        //TODO: move optional entries to external classes
         // Get data from the depot type
         if (depotType != null) {
             this.p4Stream = depotType.getP4Stream();
@@ -348,6 +355,26 @@ public class PerforceSCM extends SCM {
             this.useStreamDepot = depotType.useP4Stream();
             this.useClientSpec = depotType.useClientSpec();
             this.useViewMask = depotType.useProjectPath();
+        }
+            
+        // Get data from workspace cleanup settings
+        if (cleanWorkspace != null) {          
+            setWipeRepoBeforeBuild(cleanWorkspace.isWipeRepoBeforeBuild());
+            
+            CleanTypeConfig cleanType = cleanWorkspace.getCleanType();
+            if (cleanType != null) {
+                setWipeBeforeBuild(cleanType.isWipe());
+                setQuickCleanBeforeBuild(cleanType.isQuick());
+                setRestoreChangedDeletedFiles(cleanType.isRestoreChangedDeletedFiles());
+            }          
+        }
+        
+        // Setup view mask
+        if (useViewMask != null) {
+            setUseViewMask(true);
+            setViewMask(hudson.Util.fixEmptyAndTrim(useViewMask.getViewMask()));
+            setUseViewMaskForPolling(useViewMask.isUseViewMaskForPolling());
+            setUseViewMaskForSyncing(useViewMask.isUseViewMaskForSyncing());          
         }
         
         this.clientOwner = Util.fixEmptyAndTrim(clientOwner);
