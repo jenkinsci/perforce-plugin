@@ -1,18 +1,11 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
-  <j:if test="${empty(instance)}">
-    <j:set var="streamDepotUsed" value="true"/>
-  </j:if>
-  <j:if test="${!empty(instance)}">
-    <j:set var="streamDepotUsed" value="${instance.useStreamDepot}"/>
-  </j:if>
-  
-  <!--Workaround for radioBlock unique groups-->  
-  <j:set var="instanceID" value="${descriptor.generateP4InstanceID()}"/>
-  
-  <f:invisibleEntry >
-      <input type="hidden" name="p4InstanceID" value="${instanceID}" />
-  </f:invisibleEntry> 
+    <j:if test="${empty(instance)}">
+       <j:set var="streamDepotUsed" value="true"/>
+    </j:if>
+    <j:if test="${!empty(instance)}">
+       <j:set var="streamDepotUsed" value="${instance.useStreamDepot}"/>
+    </j:if>
     
   <f:entry title="Depot" help="/plugin/perforce/help/depot.html">
     <table width="100%">
@@ -50,23 +43,23 @@
 
       <f:entry title="Client View Type">
         <table width="100%">
-          <f:radioBlock name="${instanceID}.depotType" title="Stream" value="stream" checked="${instance.useStreamDepot}" help="/plugin/perforce/help/streamDepot.html">
+          <f:radioBlock name="p4.depotType" title="Stream" value="stream" checked="${instance.useStreamDepot}" help="/plugin/perforce/help/streamDepot.html">
             <f:entry title="Stream" help="/plugin/perforce/help/p4Stream.html">
               <f:textbox name="p4Stream" field="p4Stream"
               checkUrl="'${rootURL}/scm/PerforceSCM/validateStream?port='+escape(this.form.elements['p4Port'].value)+'&amp;tool='+escape(this.form.elements['p4Tool'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)+'&amp;client='+escape(this.form.elements['p4Client'].value)+'&amp;stream='+escape(this.form.elements['p4Stream'].value)"/>
             </f:entry>
           </f:radioBlock>
-          <f:radioBlock name="${instanceID}.depotType" title="View Map from File" value="file" checked="${instance.useClientSpec and !instance.useStreamDepot}" help="/plugin/perforce/help/clientSpec.html">
+          <f:radioBlock name="p4.depotType" title="View Map from File" value="file" checked="${instance.useClientSpec and !instance.useStreamDepot}" help="/plugin/perforce/help/clientSpec.html">
             <f:entry>
               <f:textbox name="clientSpec" field="clientSpec"
               checkUrl="'${rootURL}/scm/PerforceSCM/validateClientSpec?port='+escape(this.form.elements['p4Port'].value)+'&amp;tool='+escape(this.form.elements['p4Tool'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)+'&amp;client='+escape(this.form.elements['p4Client'].value)+'&amp;clientSpec='+escape(this.form.elements['clientSpec'].value)"/>
             </f:entry>
           </f:radioBlock>
-          <f:radioBlock name="${instanceID}.depotType" title="View Map" value="map" checked="${!instance.useClientSpec and !instance.useStreamDepot}" help="/plugin/perforce/help/projectPath.html">
+          <f:radioBlock name="p4.depotType" title="View Map" value="map" checked="${!instance.useClientSpec and !instance.useStreamDepot}" help="/plugin/perforce/help/projectPath.html">
             <f:entry>  
-              <f:textarea name="projectPath" field="projectPath"/>
-            </f:entry> 
-          </f:radioBlock>
+              <f:textarea name="projectPath" field="projectPath" />
+              </f:entry> 
+            </f:radioBlock>
         </table>
       </f:entry>
 
@@ -92,8 +85,8 @@
     
     <f:optionalBlock name="p4.cleanWorkspace" title="Clean Workspace Before Each Build" help="/plugin/perforce/help/cleanBeforeBuild.html" checked="${instance.cleanWorkspaceBeforeBuild}">
         <f:entry><table width="100%">
-        <f:radioBlock title="Full Wipe" name="${instanceID}.cleanType" value="wipe" id="p4.wipeClean" checked="${instance.wipeBeforeBuild}" help="/plugin/perforce/help/wipeBeforeBuild.html"/>
-        <f:radioBlock title="Quick Clean" name="${instanceID}.cleanType" value="quick" id="p4.quickClean" checked="${instance.quickCleanBeforeBuild}" help="/plugin/perforce/help/quickCleanBeforeBuild.html"> 
+        <f:radioBlock title="Full Wipe" name="p4.cleanType" value="wipe" id="p4.wipeClean" checked="${instance.wipeBeforeBuild}" help="/plugin/perforce/help/wipeBeforeBuild.html"/>
+        <f:radioBlock title="Quick Clean" name="p4.cleanType" value="quick" id="p4.quickClean" checked="${instance.quickCleanBeforeBuild}" help="/plugin/perforce/help/quickCleanBeforeBuild.html"> 
           <f:entry title="Restore Changed/Deleted Files" help="/plugin/perforce/help/quickCleanRestore.html">
             <f:checkbox name="p4.restoreChangedDeletedFiles" id="p4.restoreChangedDeletedFiles" checked="${instance.restoreChangedDeletedFiles}"/>
           </f:entry>

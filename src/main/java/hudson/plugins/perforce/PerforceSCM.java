@@ -1815,45 +1815,7 @@ public class PerforceSCM extends SCM {
         
         @Override
         public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
-            PerforceSCM newInstance = (PerforceSCM)super.newInstance(req, formData);                                  
-            final String p4InstanceId = formData.has("p4InstanceID") ? formData.getString("p4InstanceID") : "p4";            
-            String depotType = req.getParameter(p4InstanceId+".depotType");
-            boolean useStreamDepot = depotType.equals("stream");
-            boolean useClientSpec = depotType.equals("file");
-            newInstance.setUseStreamDepot(useStreamDepot);
-            if (useStreamDepot) {
-                newInstance.setP4Stream(formData.getString("p4Stream"));
-            }
-            else {
-                newInstance.setUseClientSpec(useClientSpec);
-                if (useClientSpec) {
-                    newInstance.setClientSpec(formData.getString("clientSpec"));
-                }
-                else {
-                    newInstance.setProjectPath(formData.getString("projectPath"));
-                }
-            }
-            newInstance.setUseViewMask(req.getParameter(p4InstanceId+".useViewMask") != null);
-            newInstance.setViewMask(Util.fixEmptyAndTrim(req.getParameter(p4InstanceId+".viewMask")));
-            newInstance.setUseViewMaskForPolling(req.getParameter(p4InstanceId+".useViewMaskForPolling") != null);
-            newInstance.setUseViewMaskForSyncing(req.getParameter(p4InstanceId+".useViewMaskForSyncing") != null);
-            
-            String cleanType = req.getParameter(p4InstanceId+".cleanType");
-            boolean useWipe = false;
-            boolean useQuickClean = false;
-            if(cleanType != null && req.getParameter(p4InstanceId+".cleanWorkspace") != null){
-                useWipe = cleanType.equals("wipe");
-                useQuickClean = cleanType.equals("quick");
-            }
-            newInstance.setWipeBeforeBuild(useWipe);
-            newInstance.setQuickCleanBeforeBuild(useQuickClean);
-            
-            String wipeRepo = req.getParameter(p4InstanceId+".wipeRepoBeforeBuild");
-            newInstance.setWipeRepoBeforeBuild(wipeRepo != null);
-            
-            newInstance.setRestoreChangedDeletedFiles(req.getParameter(p4InstanceId+".restoreChangedDeletedFiles") != null);
-            
-            return newInstance;
+            return (PerforceSCM)super.newInstance(req, formData);
         }
 
         /**
