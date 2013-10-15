@@ -37,5 +37,10 @@
       <f:textbox name="p4.readLineTimeout" value="${descriptor.p4ReadLineTimeoutStr}"
                  checkUrl="'${rootURL}/scm/PerforceSCM/validateP4ReadLineTimeout?value='+escape(this.value)"/>
     </f:entry>
+    <f:entry title="${%Disable exposal of passwords to environment}">
+        <f:checkbox name="p4.passwordExposeDisabled" checked="${descriptor.passwordExposeDisabled}"/>
+        <f:description>Option globally disables exposal of Perforce passwords</f:description>
+    </f:entry>
+        
   </f:section>
 </j:jelly>
