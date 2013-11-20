@@ -986,17 +986,20 @@ public class PerforceSCM extends SCM {
             
             // Get ChangeLog
             if (!disableChangeLogOnly) {
-                if (lastChange >= newestChange) {
-                    changes = new ArrayList<Changelist>(0);
-                } else {
-                    List<Integer> changeNumbersTo;
-                    if (useViewMaskForChangeLog) {
-                        changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange, viewMask, showIntegChanges);
-                    } else {
-                        changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange, showIntegChanges);
-                    }
-                    changes = depot.getChanges().getChangelistsFromNumbers(changeNumbersTo, fileLimit);
+                int lastChangeToDisplay = lastChange+1;
+                if (lastChange > newestChange) {
+                    // If we're building an older change, display it anyway
+                    // TODO: This can be considered inconsistent behavior
+                    lastChangeToDisplay = newestChange-1;
                 }
+                    
+                List<Integer> changeNumbersTo;
+                if (useViewMaskForChangeLog) {
+                    changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeToDisplay, newestChange, viewMask, showIntegChanges);
+                } else {
+                    changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeToDisplay, newestChange, showIntegChanges);
+                }
+                changes = depot.getChanges().getChangelistsFromNumbers(changeNumbersTo, fileLimit);
 
                 if (changes.size() > 0) {
                     // Save the changes we discovered.
