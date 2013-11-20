@@ -826,6 +826,8 @@ public class PerforceSCM extends SCM {
                 "P4DISABLESYNCONLY", build, this.disableSyncOnly);
         disableSyncOnly = overrideWithBooleanParameter(
                 "P4DISABLESYNC", build, this.disableSyncOnly);
+        boolean oneChangelistOnly = overrideWithBooleanParameter(
+                "P4ONECHANGELIST", build, false);
 
         // If we're doing a matrix build, we should always force sync.
         if ((Object)build instanceof MatrixBuild || (Object)build instanceof MatrixRun) {
@@ -962,10 +964,19 @@ public class PerforceSCM extends SCM {
                 }
             }
 
+            // Set newestChange down to the next available changeset if we're building one change at a time
+            if (oneChangelistOnly && build.getPreviousBuild() != null
+                    && lastChange > 0 && newestChange > lastChange) {
+                List<Integer> changeNumbersToBuild = depot.getChanges().getChangeNumbersTo(p4WorkspacePath, lastChange+1);
+                newestChange = changeNumbersToBuild.get(changeNumbersToBuild.size()-1);
+                log.println("Remaining changes: " + changeNumbersToBuild);
+                log.println("Building next changeset in sequence: " + newestChange);
+            }
+            
             if (build instanceof MatrixRun) {
                 newestChange = getOrSetMatrixChangeSet(build, depot, newestChange, projectPath, log);
             }
-
+            
             if (lastChange <= 0) {
                 lastChange = newestChange - MAX_CHANGESETS_ON_FIRST_BUILD;
                 if (lastChange < 0) {
