@@ -826,6 +826,8 @@ public class PerforceSCM extends SCM {
                 "P4DISABLESYNCONLY", build, this.disableSyncOnly);
         disableSyncOnly = overrideWithBooleanParameter(
                 "P4DISABLESYNC", build, this.disableSyncOnly);
+        boolean oneChangelistOnly = overrideWithBooleanParameter(
+        		"P4ONECHANGELIST", build, false);
 
         // If we're doing a matrix build, we should always force sync.
         if ((Object)build instanceof MatrixBuild || (Object)build instanceof MatrixRun) {
@@ -947,6 +949,16 @@ public class PerforceSCM extends SCM {
                         List<Integer> workspaceChanges = depot.getChanges().getChangeNumbers(p4WorkspacePath, 0, 1);
                         if (workspaceChanges != null && workspaceChanges.size() > 0) {
                             newestChange = workspaceChanges.get(0);
+                        
+	                        if (oneChangelistOnly && build.getPreviousBuild() != null 
+	                        	&& lastChange > 0 && newestChange > lastChange
+	                        ) {
+			                    workspaceChanges = depot.getChanges().getChangeNumbersTo(p4WorkspacePath, lastChange+1);
+			                    if (workspaceChanges != null && workspaceChanges.size() > 0) {
+				                    log.println("Remaining changes: " + workspaceChanges);
+		                        	newestChange = workspaceChanges.get(workspaceChanges.size()-1);
+			                    }
+	                        }
                         } else {
                             List<Integer> depotChanges = depot.getChanges().getChangeNumbers("//...", 0, 1);
                             if (depotChanges != null && depotChanges.size() > 0) {
@@ -975,9 +987,10 @@ public class PerforceSCM extends SCM {
             
             // Get ChangeLog
             if (!disableChangeLogOnly) {
+	            // Always get at least one ChangeLog entry
                 if (lastChange >= newestChange) {
-                    changes = new ArrayList<Changelist>(0);
-                } else {
+                    lastChange = newestChange-1;
+                } // else {
                     List<Integer> changeNumbersTo;
                     if (useViewMaskForChangeLog) {
                         changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange, viewMask, showIntegChanges);
@@ -985,7 +998,7 @@ public class PerforceSCM extends SCM {
                         changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChange+1, newestChange, showIntegChanges);
                     }
                     changes = depot.getChanges().getChangelistsFromNumbers(changeNumbersTo, fileLimit);
-                }
+                // }
 
                 if (changes.size() > 0) {
                     // Save the changes we discovered.
