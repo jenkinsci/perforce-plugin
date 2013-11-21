@@ -967,9 +967,9 @@ public class PerforceSCM extends SCM {
             // Set newestChange down to the next available changeset if we're building one change at a time
             if (oneChangelistOnly && build.getPreviousBuild() != null
                     && lastChange > 0 && newestChange > lastChange) {
-                List<Integer> changeNumbersToBuild = depot.getChanges().getChangeNumbersTo(p4WorkspacePath, lastChange+1);
-                newestChange = changeNumbersToBuild.get(changeNumbersToBuild.size()-1);
-                log.println("Remaining changes: " + changeNumbersToBuild);
+                List<Integer> workspaceChanges = depot.getChanges().getChangeNumbersTo(p4WorkspacePath, lastChange+1);
+                newestChange = workspaceChanges.get(workspaceChanges.size()-1);
+                log.println("Remaining changes: " + workspaceChanges);
                 log.println("Building next changeset in sequence: " + newestChange);
             }
             
