@@ -990,7 +990,7 @@ public class PerforceSCM extends SCM {
                 if (lastChange > newestChange) {
                     // If we're building an older change, display it anyway
                     // TODO: This can be considered inconsistent behavior
-                    lastChangeToDisplay = newestChange-1;
+                    lastChangeToDisplay = newestChange;
                 }
                     
                 List<Integer> changeNumbersTo;
