@@ -967,8 +967,17 @@ public class PerforceSCM extends SCM {
             // Set newestChange down to the next available changeset if we're building one change at a time
             if (oneChangelistOnly && build.getPreviousBuild() != null
                     && lastChange > 0 && newestChange > lastChange) {
-                List<Integer> workspaceChanges = depot.getChanges().getChangeNumbersTo(p4WorkspacePath, lastChange+1);
-                newestChange = workspaceChanges.get(workspaceChanges.size()-1);
+                List<Integer> workspaceChanges = depot.getChanges().getChangeNumbersInRange(
+                        p4workspace, lastChange+1, newestChange, viewMask, showIntegChanges);
+                for (int i = workspaceChanges.size()-1; i >= 0; --i) {
+                    int changeNumber = workspaceChanges.get(i);
+                    Changelist changelist = depot.getChanges().getChangelist(changeNumber, fileLimit);
+                    if (!isChangelistExcluded(changelist, build.getProject(), p4workspace.getViewsAsString(), log)) {
+                        newestChange = changeNumber;
+                        break;
+                    }
+                    log.println("Changelist "+changeNumber+" is composed of file(s) and/or user(s) that are excluded.");
+                }
                 log.println("Remaining changes: " + workspaceChanges);
                 log.println("Building next changeset in sequence: " + newestChange);
             }
