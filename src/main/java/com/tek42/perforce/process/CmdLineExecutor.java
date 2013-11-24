@@ -48,6 +48,8 @@ public class CmdLineExecutor implements Executor {
 	List<String> args;
 	BufferedWriter writer;
 	BufferedReader reader;
+        InputStream input;
+        OutputStream output;
 	private final Logger logger = LoggerFactory.getLogger("perforce");
 
 	/**
@@ -83,6 +85,8 @@ public class CmdLineExecutor implements Executor {
 		builder.redirectErrorStream(true);
 		try {
 			currentProcess = builder.start();
+                        input = currentProcess.getInputStream();
+                        output = currentProcess.getOutputStream();
 			reader = new BufferedReader(new InputStreamReader(currentProcess.getInputStream()));
 			writer = new BufferedWriter(new OutputStreamWriter(currentProcess.getOutputStream()));
 
@@ -157,11 +161,11 @@ public class CmdLineExecutor implements Executor {
     }
         
     public OutputStream getOutputStream() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return output;
     }
 
     public InputStream getInputStream() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return input;
     }
 
 }

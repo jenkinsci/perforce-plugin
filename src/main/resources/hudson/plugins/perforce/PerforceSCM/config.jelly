@@ -29,9 +29,16 @@
             checkUrl="'${rootURL}/scm/PerforceSCM/validatePerforceLogin?port='+escape(this.form.elements['p4Port'].value)+'&amp;tool='+escape(this.form.elements['p4Tool'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)"/>
       </f:entry>
 
-      <f:entry title="Expose P4PASSWD in environment" help="/plugin/perforce/help/exposeP4Passwd.html">
-        <f:checkbox field="exposeP4Passwd" default="false"/>
-      </f:entry>
+      <j:if test="${not descriptor.passwordExposeDisabled}">
+        <f:entry title="Expose P4PASSWD in environment" help="/plugin/perforce/help/exposeP4Passwd.html">
+            <f:checkbox field="exposeP4Passwd" default="false"/>
+        </f:entry>
+      </j:if>    
+      <j:if test="${descriptor.passwordExposeDisabled}">
+        <f:invisibleEntry >
+            <input type="hidden" name="exposeP4Passwd" value="false" />
+        </f:invisibleEntry>
+      </j:if>
     </table>
   </f:entry>
 
@@ -198,7 +205,7 @@
       </table>
     </f:entry>
 
-    <f:entry title="Perforce Charset Options" help="/plugins/perforce/help/charset.html">
+    <f:entry title="Perforce Charset Options" help="/plugin/perforce/help/charset.html">
         <table width="100%">
         <f:entry title="P4CHARSET">
             <f:textbox field="p4Charset"/>
@@ -234,6 +241,9 @@
         </f:entry>
         <f:entry title="Use mask when syncing" help="/plugin/perforce/help/useViewMaskForSyncing.html">
             <f:checkbox name="p4.useViewMaskForSyncing" checked="${instance.useViewMaskForSyncing}"/>
+        </f:entry>
+        <f:entry title="Use mask when determining changelog" help="/plugin/perforce/help/useViewMaskForChangeLog.html">
+            <f:checkbox name="p4.useViewMaskForChangeLog" checked="${instance.useViewMaskForChangeLog}"/>
         </f:entry>
     </f:optionalBlock>
   </f:advanced>

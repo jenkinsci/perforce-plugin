@@ -24,7 +24,6 @@
  */
 package hudson.plugins.perforce.utils;
 
-import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -36,6 +35,7 @@ import hudson.slaves.NodeProperty;
 import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -49,7 +49,7 @@ import java.util.logging.Logger;
  * @since 1.3.25
  */
 public class MacroStringHelper {
-    
+    public static final Level SUBSTITUTION_ERROR_LEVEL = Level.WARNING;
     /**
      * Substitute parameters and validate contents of the resulting string
      * @param string Input string
@@ -69,13 +69,14 @@ public class MacroStringHelper {
      * Substitute parameters and validate contents of the resulting string
      * @param string Input string
      * @param build Related build
+     * @param env Additional variables to be substituted. Used as a workaround for build environment
      * @return Substituted string
      * @throws ParameterSubstitutionException Format error (unresolved variable, etc.)
      */
-    public static String substituteParameters(String string, AbstractBuild build) 
+    public static String substituteParameters(String string, AbstractBuild build, Map<String, String> env) 
             throws ParameterSubstitutionException
     {
-        String result = substituteParametersNoCheck(string, build);
+        String result = substituteParametersNoCheck(string, build, env);
         checkString(result);
         return result;
     }
@@ -118,6 +119,10 @@ public class MacroStringHelper {
         }
         return newString;
     }
+    
+    public static boolean containsMacro(String str) {
+        return str != null && str.contains("${");
+    }
 
     /**
      * Substitute parameters and validate contents of the resulting string
@@ -126,8 +131,39 @@ public class MacroStringHelper {
      * @return Substituted string
      * @deprecated Use checked methods instead
      */        
-    public static String substituteParametersNoCheck(String string, AbstractBuild build) {
-        Hashtable<String, String> subst = new Hashtable<String, String>();
+    public static String substituteParametersNoCheck(String inputString, AbstractBuild build, Map<String, String> env) {
+        if (!containsMacro(inputString)) {
+            return inputString;
+        }
+        
+        // Substitute environment if possible
+        String string = inputString;
+        if (env != null && !env.isEmpty()) {
+            string = substituteParametersNoCheck(string, env);
+            
+            //exit if no macros left
+            if (!containsMacro(inputString)) {
+                return string;
+            }
+        }
+        
+        // Try to substitute via node and global environment
+        for (NodeProperty nodeProperty : Hudson.getInstance().getGlobalNodeProperties()) {
+            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
+                string = ((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars().expand(string);
+            }
+        }
+        for (NodeProperty nodeProperty : build.getBuiltOn().getNodeProperties()) {
+            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
+                string = ((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars().expand(string);
+            }
+        }
+        if (!containsMacro(string)) {
+            return string;
+        }
+        
+        // The last attempts: Try to build the full environment
+        Map<String, String> subst = new TreeMap<String, String>();
         boolean useEnvironment = true;
         for (StackTraceElement ste : (new Throwable()).getStackTrace()) {
             if (ste.getMethodName().equals("buildEnvVars") && ste.getClassName().equals(PerforceSCM.class.getName())) {
@@ -144,26 +180,22 @@ public class MacroStringHelper {
                 Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        if (!containsMacro(string)) {
+            return string;
+        }
+       
+        //TODO: remove? 
         subst.put("JOB_NAME", getSafeJobName(build));
         String hudsonName = Hudson.getInstance().getDisplayName().toLowerCase();
         subst.put("BUILD_TAG", hudsonName + "-" + build.getProject().getName() + "-" + String.valueOf(build.getNumber()));
         subst.put("BUILD_ID", build.getId());
         subst.put("BUILD_NUMBER", String.valueOf(build.getNumber()));
-        for (NodeProperty nodeProperty : Hudson.getInstance().getGlobalNodeProperties()) {
-            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                subst.putAll(((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars());
-            }
-        }
-        for (NodeProperty nodeProperty : build.getBuiltOn().getNodeProperties()) {
-            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                subst.putAll(((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars());
-            }
-        }
+        
         String result = MacroStringHelper.substituteParametersNoCheck(string, subst);
         result = MacroStringHelper.substituteParametersNoCheck(result, build.getBuildVariables());
         return result;
     }
-
+    
     public static String getSafeJobName(AbstractBuild build) {
         return getSafeJobName(build.getProject());
     }

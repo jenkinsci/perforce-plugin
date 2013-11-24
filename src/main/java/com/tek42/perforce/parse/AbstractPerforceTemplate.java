@@ -44,7 +44,10 @@ import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.process.Executor;
 import hudson.plugins.perforce.PerforceSCM;
+import hudson.plugins.perforce.utils.TimedStreamCloser;
 import java.io.InputStream;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.lang.time.StopWatch;
 
@@ -330,61 +333,31 @@ public abstract class AbstractPerforceTemplate {
 			String line = null;
 			totalLength = 0;
 			lines = new ArrayList<String>(1024);
-
+                        TimedStreamCloser timedStreamCloser=null;
 			try
 			{
                              PerforceSCM.PerforceSCMDescriptor scmDescr = PerforceSCM.getInstance();
-                               
+                             p4.getWriter().close();
+                             int timeout = -1;
                              if(scmDescr.hasP4ReadlineTimeout()) { // Implementation with timeout
-                               StopWatch stopWatch = new StopWatch();
-                               int timeout = scmDescr.getP4ReadLineTimeout() * 1000;
-                               stopWatch.start();
-                               
-                               try {
-                                    while (reader.ready() || p4.isAlive()) {
-                                        if (reader.ready()) {
-                                            stopWatch.reset();
-                                            stopWatch.start();
-                                            line = reader.readLine();
-                                            if (line == null) {
-                                                break;
-                                            }
-                                            
-                                            //FIXME: Remove code duplication
-                                            // only check for errors if we have not found one already
-                                            if (mesgIndex == -1)
-                                                mesgIndex = checkAuthnErrors(line);
-                                            if(filter.reject(line)) continue;
-                                            lines.add(line);
-                                            totalLength += line.length();
-                                            count++;
-                                        }
-                                        else {                                            
-                                            if (stopWatch.getTime() > timeout) {
-                                                throw new PerforceException("Timeout. Haven't received new line from external executor after "
-                                                        +scmDescr.getP4ReadLineTimeout()+" seconds. ");
-                                            }
-                                            
-                                            // Sleep for check period
-                                            Thread.sleep(P4_EXECUTOR_CHECK_PERIOD);
-                                        }
-                                    } 
-                               } catch(InterruptedException ex) {
-                                   throw new PerforceException("Interrupted", ex);
-                               }
-                               
-                             } else { // legacy behavior
-                                p4.getWriter().close();
-				while((line = reader.readLine()) != null) {
-                                    // only check for errors if we have not found one already
-                                    if (mesgIndex == -1)
-                                        mesgIndex = checkAuthnErrors(line);
-                                    if(filter.reject(line)) continue;
-				    lines.add(line);
-				    totalLength += line.length();
-                                    count++;
-				}
-                             }
+                               timeout = scmDescr.getP4ReadLineTimeout();
+                             }  
+                             timedStreamCloser = new TimedStreamCloser(p4.getInputStream(), timeout);
+                             timedStreamCloser.start();
+
+                             while((line = reader.readLine()) != null) {
+                                timedStreamCloser.reset();
+                                // only check for errors if we have not found one already
+                                if (mesgIndex == -1)
+                                    mesgIndex = checkAuthnErrors(line);
+                                if(filter.reject(line)) continue;
+                                lines.add(line);
+                                totalLength += line.length();
+                                count++;
+                            }
+                            if(timedStreamCloser.timedOut()) {
+                                throw new PerforceException("Perforce operation timed out after " + timeout + " seconds.");
+                            }
 			}
 			catch(IOException ioe)
 			{
@@ -399,6 +372,7 @@ public abstract class AbstractPerforceTemplate {
 				getLogger().warn(sw.toString());
 			}
 			finally{
+                            if(timedStreamCloser!=null) timedStreamCloser.interrupt();
                             try{
                                 p4.getWriter().close();
                             } catch (IOException e) {

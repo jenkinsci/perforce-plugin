@@ -34,12 +34,15 @@ public class MaskViewConfig {
     String viewMask;
     boolean useViewMaskForPolling;
     boolean useViewMaskForSyncing;
+    boolean useViewMaskForChangeLog;
 
     @DataBoundConstructor
-    public MaskViewConfig(String viewMask, boolean useViewMaskForPolling, boolean useViewMaskForSyncing) {
+    public MaskViewConfig(String viewMask, boolean useViewMaskForPolling, 
+            boolean useViewMaskForSyncing, boolean useViewMaskForChangeLog) {
         this.viewMask = viewMask;
         this.useViewMaskForPolling = useViewMaskForPolling;
         this.useViewMaskForSyncing = useViewMaskForSyncing;
+        this.useViewMaskForChangeLog = useViewMaskForChangeLog;
     }
 
     public String getViewMask() {
@@ -52,5 +55,9 @@ public class MaskViewConfig {
 
     public boolean isUseViewMaskForSyncing() {
         return useViewMaskForSyncing;
+    }
+
+    public boolean isUseViewMaskForChangeLog() {
+        return useViewMaskForChangeLog;
     }
 }
