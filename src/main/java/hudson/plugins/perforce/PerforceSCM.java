@@ -2221,6 +2221,16 @@ public class PerforceSCM extends SCM {
             return FormValidation.ok();
         }
 
+        public FormValidation doCheckExposeP4Passwd(StaplerRequest req) {
+            boolean optionIsEnabled = req.getParameter("exposeP4Passwd").equals("true");
+            if (passwordExposeDisabled && optionIsEnabled) {
+                return FormValidation.warning(
+                        hudson.plugins.perforce.Messages.PerforceSCM_exposePasswordIsDisabled());
+            }
+            
+            return FormValidation.ok();
+        }
+        
         public FormValidation doCheckViewMask(StaplerRequest req) {
             String view = Util.fixEmptyAndTrim(req.getParameter("viewMask"));
             if (view != null) {
@@ -2744,10 +2754,12 @@ public class PerforceSCM extends SCM {
     }
 
     /**
+     * Enables exposure of P4PASSWD variable.
+     * This option can be overridden by global settings. 
      * @param exposeP4Passwd True if the P4PASSWD value must be set in the environment
      */
     public void setExposeP4Passwd(boolean exposeP4Passwd) {
-        this.exposeP4Passwd =  getInstance().isPasswordExposeDisabled() ? false : exposeP4Passwd;
+        this.exposeP4Passwd =  exposeP4Passwd;
     }
 
     /**
