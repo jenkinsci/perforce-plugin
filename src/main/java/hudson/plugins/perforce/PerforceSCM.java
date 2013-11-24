@@ -1,5 +1,6 @@
 package hudson.plugins.perforce;
 
+import hudson.plugins.perforce.config.DepotType;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Changelist;
@@ -22,6 +23,9 @@ import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixRun;
 import hudson.model.*;
 import hudson.model.listeners.ItemListener;
+import hudson.plugins.perforce.config.CleanTypeConfig;
+import hudson.plugins.perforce.config.MaskViewConfig;
+import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
 import hudson.plugins.perforce.utils.MacroStringHelper;
 import hudson.plugins.perforce.utils.ParameterSubstitutionException;
 import hudson.remoting.VirtualChannel;
@@ -54,6 +58,7 @@ import java.io.Serializable;
 import java.io.StringWriter;
 import java.net.InetAddress;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -278,7 +283,13 @@ public class PerforceSCM extends SCM {
     private String p4Charset = null;
     private String p4CommandCharset = null;
 
-    // Plugin constructor, (only?) used when a job configuration is saved
+    /**
+     * SCM constructor, (only?) used when a job configuration is saved.
+     * This constructor uses data classes from {@link hudson.plugins.perforce.config}
+     * to allow proper handling of hierarchical data in Stapler. In the current 
+     * state, these classes are not being used outside this constructor.
+     */
+    // TODO: move data to configuration classes during the refactoring
     @DataBoundConstructor
     public PerforceSCM(
             String p4User,
@@ -314,7 +325,11 @@ public class PerforceSCM extends SCM {
             PerforceRepositoryBrowser browser,
             String excludedUsers,
             String excludedFiles,
-            boolean excludedFilesCaseSensitivity) {
+            boolean excludedFilesCaseSensitivity,
+            DepotType depotType, 
+            WorkspaceCleanupConfig cleanWorkspace,
+            MaskViewConfig useViewMask
+            ) {
 
         this.configVersion = 1L;
 
@@ -341,8 +356,39 @@ public class PerforceSCM extends SCM {
 
         this.p4UpstreamProject = Util.fixEmptyAndTrim(p4UpstreamProject);
 
-        this.projectPath = Util.fixEmptyAndTrim(projectPath);
-
+        //TODO: move optional entries to external classes
+        // Get data from the depot type
+        if (depotType != null) {
+            this.p4Stream = depotType.getP4Stream();
+            this.clientSpec = depotType.getClientSpec();
+            this.projectPath = Util.fixEmptyAndTrim(depotType.getProjectPath());
+            this.useStreamDepot = depotType.useP4Stream();
+            this.useClientSpec = depotType.useClientSpec();
+            this.useViewMask = depotType.useProjectPath();
+        }
+            
+        // Get data from workspace cleanup settings
+        if (cleanWorkspace != null) {          
+            setWipeRepoBeforeBuild(cleanWorkspace.isWipeRepoBeforeBuild());
+            
+            CleanTypeConfig cleanType = cleanWorkspace.getCleanType();
+            if (cleanType != null) {
+                setWipeBeforeBuild(cleanType.isWipe());
+                setQuickCleanBeforeBuild(cleanType.isQuick());
+                setRestoreChangedDeletedFiles(cleanType.isRestoreChangedDeletedFiles());
+            }          
+        }
+        
+        // Setup view mask
+        if (useViewMask != null) {
+            setUseViewMask(true);
+            setViewMask(hudson.Util.fixEmptyAndTrim(useViewMask.getViewMask()));
+            setUseViewMaskForPolling(useViewMask.isUseViewMaskForPolling());
+            setUseViewMaskForSyncing(useViewMask.isUseViewMaskForSyncing());         
+            setUseViewMaskForChangeLog(useViewMask.isUseViewMaskForChangeLog());
+            
+        }
+        
         this.clientOwner = Util.fixEmptyAndTrim(clientOwner);
 
         if (p4SysRoot != null) {
@@ -464,6 +510,7 @@ public class PerforceSCM extends SCM {
         return depot;
     }
 
+     
     /**
      * Override of SCM.buildEnvVars() in order to setup the last change we have
      * sync'd to as a Hudson
@@ -1809,45 +1856,14 @@ public class PerforceSCM extends SCM {
         
         @Override
         public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {           
-            PerforceSCM newInstance = (PerforceSCM)super.newInstance(req, formData);
-            String depotType = req.getParameter("p4.depotType");
-            boolean useStreamDepot = depotType.equals("stream");
-            boolean useClientSpec = depotType.equals("file");
-            newInstance.setUseStreamDepot(useStreamDepot);
-            if (useStreamDepot) {
-                newInstance.setP4Stream(req.getParameter("p4Stream"));
-            }
-            else {
-                newInstance.setUseClientSpec(useClientSpec);
-                if (useClientSpec) {
-                    newInstance.setClientSpec(req.getParameter("clientSpec"));
-                }
-                else {
-                    newInstance.setProjectPath(req.getParameter("projectPath"));
-                }
-            }
-            newInstance.setUseViewMask(req.getParameter("p4.useViewMask") != null);
-            newInstance.setViewMask(Util.fixEmptyAndTrim(req.getParameter("p4.viewMask")));
-            newInstance.setUseViewMaskForPolling(req.getParameter("p4.useViewMaskForPolling") != null);
-            newInstance.setUseViewMaskForSyncing(req.getParameter("p4.useViewMaskForSyncing") != null);
-            newInstance.setUseViewMaskForChangeLog(req.getParameter("p4.useViewMaskForChangeLog") != null);
-            
-            String cleanType = req.getParameter("p4.cleanType");
-            boolean useWipe = false;
-            boolean useQuickClean = false;
-            if(cleanType != null && req.getParameter("p4.cleanWorkspace") != null){
-                useWipe = cleanType.equals("wipe");
-                useQuickClean = cleanType.equals("quick");
-            }
-            newInstance.setWipeBeforeBuild(useWipe);
-            newInstance.setQuickCleanBeforeBuild(useQuickClean);
-            
-            String wipeRepo = req.getParameter("p4.wipeRepoBeforeBuild");
-            newInstance.setWipeRepoBeforeBuild(wipeRepo != null);
-            
-            newInstance.setRestoreChangedDeletedFiles(req.getParameter("p4.restoreChangedDeletedFiles") != null);
-            
-            return newInstance;
+            return (PerforceSCM)super.newInstance(req, formData);
+        }
+        
+        /**Generates a random key for p4.config.instanceID*/
+        private static final AtomicLong P4_INSTANCE_COUNTER = new AtomicLong();
+        public String generateP4InstanceID() {
+            // There's no problem even if the counter reaches overflow 
+            return Long.toString(P4_INSTANCE_COUNTER.incrementAndGet());
         }
 
         /**
