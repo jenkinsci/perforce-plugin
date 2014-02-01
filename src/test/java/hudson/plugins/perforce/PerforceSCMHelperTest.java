@@ -167,6 +167,11 @@ public class PerforceSCMHelperTest extends TestCase {
                     "//[]/.../SomeFile.xml",
                     "/home/jenkins/workspace/.../SomeFile.xml",
                     "//[]/trunk/SomeFile.xml"));
+            assertEquals("/home/jenkins/workspace/[some-directory]/[some-file].xml",
+                    PerforceSCMHelper.doMapping(
+                    "//[]/.../[some-file].xml",
+                    "/home/jenkins/workspace/.../[some-file].xml",
+                    "//[]/[some-directory]/[some-file].xml"));
         }
 
 }
