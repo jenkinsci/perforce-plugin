@@ -210,7 +210,11 @@ public final class PerforceSCMHelper {
 
     static public Pattern getTokenPattern(String str) {
         String regex;
-        regex = str.replaceAll("\\*", "([^/]*)");
+        regex = str.replaceAll("\\[(.*)\\]",
+                Matcher.quoteReplacement("\\[") +
+                "$1" + Matcher.quoteReplacement("\\]"));
+        regex = regex.replaceAll("\\-", Matcher.quoteReplacement("\\-"));
+        regex = regex.replaceAll("\\*", "([^/]*)");
         regex = regex.replaceAll("([^\\.])\\.([^\\.])", "$1\\\\.$2");
         regex = regex.replaceAll("\\.\\.\\.", "(.*)");
         regex = regex.replaceAll("%%[0-9]", "([^/]*)");
