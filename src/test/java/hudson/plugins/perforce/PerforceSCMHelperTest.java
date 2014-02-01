@@ -137,6 +137,36 @@ public class PerforceSCMHelperTest extends TestCase {
                     "//Install/.../*$Sub.class",
                     "/home/jenkins/workspace/.../*$Sub.class",
                     "//Install/trunk/SomeClass$Sub.class"));
+            assertEquals("/home/jenkins/workspace/trunk/SomeFile.xml",
+                    PerforceSCMHelper.doMapping(
+                    "//[S-B_Src]/.../SomeFile.xml",
+                    "/home/jenkins/workspace/.../SomeFile.xml",
+                    "//[S-B_Src]/trunk/SomeFile.xml"));
+            assertEquals("/home/jenkins/workspace/trunk/SomeFile.xml",
+                    PerforceSCMHelper.doMapping(
+                    "//[-B_Src]/.../SomeFile.xml",
+                    "/home/jenkins/workspace/.../SomeFile.xml",
+                    "//[-B_Src]/trunk/SomeFile.xml"));
+            assertEquals("/home/jenkins/workspace/trunk/SomeFile.xml",
+                    PerforceSCMHelper.doMapping(
+                    "//[S-_Src]/.../SomeFile.xml",
+                    "/home/jenkins/workspace/.../SomeFile.xml",
+                    "//[S-_Src]/trunk/SomeFile.xml"));
+            assertEquals("/home/jenkins/workspace/trunk/SomeFile.xml",
+                    PerforceSCMHelper.doMapping(
+                    "//[-Src]/.../SomeFile.xml",
+                    "/home/jenkins/workspace/.../SomeFile.xml",
+                    "//[-Src]/trunk/SomeFile.xml"));
+            assertEquals("/home/jenkins/workspace/trunk/SomeFile.xml",
+                    PerforceSCMHelper.doMapping(
+                    "//[Src]/.../SomeFile.xml",
+                    "/home/jenkins/workspace/.../SomeFile.xml",
+                    "//[Src]/trunk/SomeFile.xml"));
+            assertEquals("/home/jenkins/workspace/trunk/SomeFile.xml",
+                    PerforceSCMHelper.doMapping(
+                    "//[]/.../SomeFile.xml",
+                    "/home/jenkins/workspace/.../SomeFile.xml",
+                    "//[]/trunk/SomeFile.xml"));
         }
 
 }
