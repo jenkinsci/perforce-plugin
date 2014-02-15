@@ -377,6 +377,8 @@ public class PerforceSCM extends SCM {
                 setQuickCleanBeforeBuild(cleanType.isQuick());
                 setRestoreChangedDeletedFiles(cleanType.isRestoreChangedDeletedFiles());
             }          
+        } else {
+            setWipeRepoBeforeBuild(false);
         }
         
         // Setup view mask
@@ -387,6 +389,8 @@ public class PerforceSCM extends SCM {
             setUseViewMaskForSyncing(useViewMask.isUseViewMaskForSyncing());         
             setUseViewMaskForChangeLog(useViewMask.isUseViewMaskForChangeLog());
             
+        } else {
+            setUseViewMask(false);
         }
         
         this.clientOwner = Util.fixEmptyAndTrim(clientOwner);
