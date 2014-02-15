@@ -29,8 +29,8 @@
             checkUrl="'${rootURL}/scm/PerforceSCM/validatePerforceLogin?port='+escape(this.form.elements['p4Port'].value)+'&amp;tool='+escape(this.form.elements['p4Tool'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)"/>
       </f:entry>
       
-      <f:entry title="${%Credential Provider}">
-        <f:hetero-radio field="credentialsProvider" descriptors="${descriptor.credentialProviders}" />
+      <f:entry title="${%Credentials Provider}">
+        <f:hetero-radio field="credentialsProvider" descriptors="${descriptor.credentialsProviders}" />
       </f:entry>
 
       <j:if test="${not descriptor.passwordExposeDisabled}">

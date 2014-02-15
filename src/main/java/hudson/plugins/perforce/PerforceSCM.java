@@ -81,7 +81,7 @@ public class PerforceSCM extends SCM {
 
     String p4User;
     String p4Passwd;
-    P4CredentialsProvider credentialProvider;
+    P4CredentialsProvider credentialsProvider;
     String p4Port;
     String p4Client;
     String clientSpec;
@@ -340,7 +340,7 @@ public class PerforceSCM extends SCM {
 
         this.p4User = p4User;
         this.setP4Passwd(p4Passwd);
-        this.credentialProvider = credentialsProvider;
+        this.credentialsProvider = credentialsProvider;
         
         this.setExposeP4Passwd(exposeP4Passwd);
         this.p4Client = p4Client;
@@ -1889,7 +1889,8 @@ public class PerforceSCM extends SCM {
          * @return all available {@link P4CredentialsProvider}s
          * @since TODO
          */
-        public DescriptorExtensionList<P4CredentialsProvider, P4CredentialsProviderDescriptor> getCredentialProviders() {
+        public DescriptorExtensionList<P4CredentialsProvider, P4CredentialsProviderDescriptor> 
+                getCredentialsProviders() {
             return P4CredentialsProvider.all();
         }
         
@@ -2589,8 +2590,8 @@ public class PerforceSCM extends SCM {
         return p4Passwd;
     }
 
-    public P4CredentialsProvider getCredentialProvider() {
-        return credentialProvider;
+    public P4CredentialsProvider getCredentialsProvider() {
+        return credentialsProvider;
     }
 
     public String getDecryptedP4Passwd() {
