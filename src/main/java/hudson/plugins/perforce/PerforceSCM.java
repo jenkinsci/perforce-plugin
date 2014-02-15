@@ -2594,8 +2594,7 @@ public class PerforceSCM extends SCM {
     }
 
     public String getDecryptedP4Passwd() {
-        PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
-        return encryptor.decryptString(p4Passwd);
+        return PerforcePasswordEncryptor.decryptString2(p4Passwd);
     }
 
     public String getDecryptedP4Passwd(AbstractBuild build) throws ParameterSubstitutionException {
@@ -2610,11 +2609,7 @@ public class PerforceSCM extends SCM {
      * @param passwd the p4Passwd to set
      */
     public void setP4Passwd(String passwd) {
-        PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
-        if (encryptor.appearsToBeAnEncryptedPassword(passwd))
-            p4Passwd = passwd;
-        else
-            p4Passwd = encryptor.encryptString(passwd);
+        p4Passwd = PerforcePasswordEncryptor.encryptString2(passwd);
     }
 
     /**

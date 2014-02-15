@@ -51,7 +51,18 @@ public class PerforcePasswordEncryptor {
 
         return ENCRYPTION_PREFIX + encodedString;
     }
-
+    
+    /**
+     * Encrypts string if it has not been encrypted before.
+     * @param str String to be encrypted
+     * @return Encrypted string
+     * @since TODO
+     */
+    public static String encryptString2(String str) {
+        PerforcePasswordEncryptor enc = new PerforcePasswordEncryptor();
+        return (enc.appearsToBeAnEncryptedPassword(str)) ? str : enc.encryptString(str);
+    }
+    
     public String decryptString(String toDecrypt) {
         if (toDecrypt == null || toDecrypt.length() == 0)
             return "";
@@ -72,6 +83,17 @@ public class PerforcePasswordEncryptor {
         }
 
         return convertBytesToString(cleartext);
+    }
+    
+    /**
+     * Decrypts string.
+     * @param str String to be deecrypted
+     * @return Raw string
+     * @since TODO
+     */
+    public static String decryptString2(String str) {
+        PerforcePasswordEncryptor enc = new PerforcePasswordEncryptor();
+        return enc.decryptString(str);
     }
 
     private static SecretKey desKeyFromString(String keystr) {

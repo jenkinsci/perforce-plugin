@@ -27,6 +27,6 @@
         <f:textbox field="user" id="user"/>
     </f:entry>
     <f:entry title="${%Password}">
-        <f:password field="password" id="password"/>
+        <f:password field="encryptedPassword" id="encryptedPassword"/>
     </f:entry>
 </j:jelly>
