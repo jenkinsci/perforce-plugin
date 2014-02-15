@@ -44,6 +44,27 @@ public abstract class P4CredentialsProvider implements ExtensionPoint,
     
     public abstract String getPassword();
     
+    /**
+     * Sets a new user.
+     * @deprecated This method is designed to retain the backward compatibility for
+     * {@link P4LocalPassword}. Other providers may ignore this call.
+     * @param user A user name to be set.
+     */
+    public void setUser(String user) {
+        // do nothing by default
+    }
+    
+    /**
+     * Sets a new password.
+     * @deprecated This method is designed to retain the backward compatibility for
+     * {@link P4LocalPassword}. Other providers may ignore this call.
+     * @param password A password to be set.
+     */
+    public void setPassword(String password) {
+        // do nothing by default
+    }
+    
+    
     @Override
     public P4CredentialsProviderDescriptor getDescriptor() {
         return (P4CredentialsProviderDescriptor) Hudson.getInstance().getDescriptorOrDie(getClass());

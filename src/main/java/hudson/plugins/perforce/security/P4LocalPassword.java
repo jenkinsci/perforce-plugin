@@ -35,20 +35,25 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class P4LocalPassword extends P4CredentialsProvider {
 
-    public final String user;
-    public final String encryptedPassword;
+    public String user;
+    public String encryptedPassword;
 
     @DataBoundConstructor
     public P4LocalPassword(String user, String encryptedPassword) {
         this.user = user;
         this.encryptedPassword = PerforcePasswordEncryptor.encryptString2(encryptedPassword);
     }
-    
+     
     @Override
     public String getUser() {
         return user;
     }
 
+    @Override
+    public void setUser(String user) {
+        this.user = user;
+    }
+    
     public String getEncryptedPassword() {
         return encryptedPassword;
     }
@@ -56,6 +61,11 @@ public class P4LocalPassword extends P4CredentialsProvider {
     @Override
     public String getPassword() {
         return PerforcePasswordEncryptor.decryptString2(encryptedPassword);
+    }
+
+    @Override
+    public void setPassword(String password) {
+        encryptedPassword = PerforcePasswordEncryptor.encryptString2(password);
     }
     
     @Extension

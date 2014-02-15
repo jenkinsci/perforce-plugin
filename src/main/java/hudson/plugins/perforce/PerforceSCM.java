@@ -29,6 +29,7 @@ import hudson.plugins.perforce.config.MaskViewConfig;
 import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
 import hudson.plugins.perforce.security.P4CredentialsProvider;
 import hudson.plugins.perforce.security.P4CredentialsProviderDescriptor;
+import hudson.plugins.perforce.security.P4LocalPassword;
 import hudson.plugins.perforce.utils.MacroStringHelper;
 import hudson.plugins.perforce.utils.ParameterSubstitutionException;
 import hudson.remoting.VirtualChannel;
@@ -79,8 +80,14 @@ public class PerforceSCM extends SCM {
 
     private Long configVersion;
 
-    String p4User;
-    String p4Passwd;
+    /**
+     * @deprecated Replaced by {@link #credentialsProvider}
+     */
+    transient String p4User;
+    /**
+     * @deprecated Replaced by {@link #credentialsProvider}
+     */
+    transient String p4Passwd;
     P4CredentialsProvider credentialsProvider;
     String p4Port;
     String p4Client;
@@ -337,9 +344,6 @@ public class PerforceSCM extends SCM {
             ) {
 
         this.configVersion = 1L;
-
-        this.p4User = p4User;
-        this.setP4Passwd(p4Passwd);
         this.credentialsProvider = credentialsProvider;
         
         this.setExposeP4Passwd(exposeP4Passwd);
@@ -463,17 +467,17 @@ public class PerforceSCM extends SCM {
         
         if (build != null) {
             depot.setClient(MacroStringHelper.substituteParameters(p4Client, build, null));
-            depot.setUser(MacroStringHelper.substituteParameters(p4User, build, null));
+            depot.setUser(MacroStringHelper.substituteParameters(getP4User(), build, null));
             depot.setPort(MacroStringHelper.substituteParameters(p4Port, build, null));
             depot.setPassword(getDecryptedP4Passwd(build));
         } else if (project != null) {
             depot.setClient(MacroStringHelper.substituteParameters(p4Client, getDefaultSubstitutions(project)));
-            depot.setUser(MacroStringHelper.substituteParameters(p4User, getDefaultSubstitutions(project)));
+            depot.setUser(MacroStringHelper.substituteParameters(getP4User(), getDefaultSubstitutions(project)));
             depot.setPort(MacroStringHelper.substituteParameters(p4Port, getDefaultSubstitutions(project)));
             depot.setPassword(getDecryptedP4Passwd(project));
         } else {
             depot.setClient(p4Client);
-            depot.setUser(p4User);
+            depot.setUser(getP4User());
             depot.setPort(p4Port);
             depot.setPassword(getDecryptedP4Passwd());
         }
@@ -531,7 +535,7 @@ public class PerforceSCM extends SCM {
         super.buildEnvVars(build, env);
         try {
             env.put("P4PORT", MacroStringHelper.substituteParameters(p4Port, build, env));
-            env.put("P4USER", MacroStringHelper.substituteParameters(p4User, build, env));
+            env.put("P4USER", MacroStringHelper.substituteParameters(getP4User(), build, env));
         } catch (ParameterSubstitutionException ex) {
             LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Can't substitute P4USER or P4PORT", ex);
             //TODO: exit?
@@ -539,8 +543,7 @@ public class PerforceSCM extends SCM {
         
         // if we want to allow p4 commands in script steps this helps
         if (isExposeP4Passwd()) {
-            PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
-            env.put("P4PASSWD", encryptor.decryptString(p4Passwd));
+            env.put("P4PASSWD", credentialsProvider.getPassword());
         }
         // this may help when tickets are used since we are
         // not storing the ticket on the client during login
@@ -619,7 +622,8 @@ public class PerforceSCM extends SCM {
     /**
      * Use the old job configuration data. This method is called after the object is read by XStream.
      * We want to create tool installations for each individual "p4Exe" path as field "p4Exe" has been removed.
-     *
+     * The method also converts p4User and p4Passwd to p4CredentialsProvider.
+     * 
      * @return the new object which is an instance of PerforceSCM
      */
     @SuppressWarnings( "deprecation" )
@@ -632,7 +636,11 @@ public class PerforceSCM extends SCM {
             PerforceToolInstallation.migrateOldData(p4Exe);
             p4Tool = p4Exe;
         }
-
+             
+        if (p4User != null) {
+            credentialsProvider = new P4LocalPassword(p4User, p4Passwd);
+        }
+        
         if (excludedFilesCaseSensitivity == null) {
             excludedFilesCaseSensitivity = Boolean.TRUE;
         }
@@ -681,7 +689,7 @@ public class PerforceSCM extends SCM {
                 }
             }
         }
-        subst.put("P4USER", MacroStringHelper.substituteParametersNoCheck(p4User, subst));
+        subst.put("P4USER", MacroStringHelper.substituteParametersNoCheck(getP4User(), subst));
         return subst;
     }
 
@@ -1144,7 +1152,7 @@ public class PerforceSCM extends SCM {
             // Add tagging action that enables the user to create a label
             // for this build.
             build.addAction(new PerforceTagAction(
-                build, depot, newestChange, projectPath, MacroStringHelper.substituteParameters(p4User, build, null)));
+                build, depot, newestChange, projectPath, MacroStringHelper.substituteParameters(getP4User(), build, null)));
 
             build.addAction(new PerforceSCMRevisionState(newestChange));
 
@@ -1210,7 +1218,7 @@ public class PerforceSCM extends SCM {
                     // no changeset on parent, set it for other
                     // matrixruns to use
                     log.println("No change number has been set by parent/siblings. Using latest.");
-                    parentBuild.addAction(new PerforceTagAction(build, depot, newestChange, projectPath, MacroStringHelper.substituteParameters(p4User,build,null)));
+                    parentBuild.addAction(new PerforceTagAction(build, depot, newestChange, projectPath, MacroStringHelper.substituteParameters(getP4User(),build,null)));
                 }
             }
         }
@@ -2573,21 +2581,22 @@ public class PerforceSCM extends SCM {
      * @return the p4User
      */
     public String getP4User() {
-        return p4User;
+        return credentialsProvider.getUser();
     }
 
     /**
      * @param user the p4User to set
+     * @deprecated Please avoid this method. Several {@link P4CredentialsProvider}s may ignore the method.
      */
     public void setP4User(String user) {
-        p4User = user;
+        credentialsProvider.setUser(user);
     }
 
     /**
      * @return the p4Passwd
      */
     public String getP4Passwd() {
-        return p4Passwd;
+        return credentialsProvider.getPassword();
     }
 
     public P4CredentialsProvider getCredentialsProvider() {
@@ -2595,7 +2604,7 @@ public class PerforceSCM extends SCM {
     }
 
     public String getDecryptedP4Passwd() {
-        return PerforcePasswordEncryptor.decryptString2(p4Passwd);
+        return credentialsProvider.getPassword();
     }
 
     public String getDecryptedP4Passwd(AbstractBuild build) throws ParameterSubstitutionException {
@@ -2608,9 +2617,10 @@ public class PerforceSCM extends SCM {
 
     /**
      * @param passwd the p4Passwd to set
+     * @deprecated Please avoid this method. Several {@link P4CredentialsProvider}s may ignore the method.
      */
     public void setP4Passwd(String passwd) {
-        p4Passwd = PerforcePasswordEncryptor.encryptString2(passwd);
+        credentialsProvider.setPassword(passwd);
     }
 
     /**

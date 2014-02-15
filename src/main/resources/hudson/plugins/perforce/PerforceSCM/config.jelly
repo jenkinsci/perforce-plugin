@@ -21,14 +21,14 @@
       </f:entry>
 
       <f:entry title="Username">
-        <f:textbox field="p4User" id="p4User"/>
+        <f:textbox value="p4User" id="p4User"/>
       </f:entry>
 
       <f:entry title="Password">
-        <f:password field="p4Passwd" id="p4Passwd"
+        <f:password value="p4Passwd" id="p4Passwd"
             checkUrl="'${rootURL}/scm/PerforceSCM/validatePerforceLogin?port='+escape(this.form.elements['p4Port'].value)+'&amp;tool='+escape(this.form.elements['p4Tool'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)"/>
       </f:entry>
-      
+
       <f:entry title="${%Credentials Provider}">
         <f:hetero-radio field="credentialsProvider" descriptors="${descriptor.credentialsProviders}" />
       </f:entry>
