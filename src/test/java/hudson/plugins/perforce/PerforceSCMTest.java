@@ -5,6 +5,7 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Hudson;
 import hudson.plugins.perforce.PerforceToolInstallation.DescriptorImpl;
 import hudson.plugins.perforce.browsers.P4Web;
+import hudson.plugins.perforce.config.CleanTypeConfig;
 import hudson.plugins.perforce.config.MaskViewConfig;
 import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
 import hudson.tools.ToolProperty;
@@ -23,8 +24,11 @@ import org.jvnet.hudson.test.recipes.LocalData;
 public class PerforceSCMTest extends HudsonTestCase {
     /// Preserves original behavior of the tests
     public static final DepotType EMPTY_DEPOT = null;
+    public static final DepotType TEST_DEPOT = new DepotType(DepotType.USE_PROJECTPATH_MARKER, null, null, "//...");
     public static final MaskViewConfig EMPTY_MASKVIEW = null;
+    public static final MaskViewConfig TEST_MASKVIEW = new MaskViewConfig("//...", true, false, false);
     public static final WorkspaceCleanupConfig EMPTY_WORKSPACE_CLEANUP = null;
+    public static final WorkspaceCleanupConfig TEST_WORKSPACE_CLEANUP = new WorkspaceCleanupConfig(new CleanTypeConfig("quick", true), true);
     
     /**
      * Makes sure that the configuration survives the round-trip.
@@ -35,7 +39,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", "pass", "client", "port", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW);
+                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, TEST_DEPOT, TEST_WORKSPACE_CLEANUP, TEST_MASKVIEW);
         scm.setProjectPath("path");
         project.setScm(scm);
 

@@ -331,7 +331,7 @@ public class PerforceSCM extends SCM {
             MaskViewConfig useViewMask
             ) {
 
-        this.configVersion = 1L;
+        this.configVersion = 2L;
 
         this.p4User = p4User;
         this.setP4Passwd(p4Passwd);
@@ -651,6 +651,8 @@ public class PerforceSCM extends SCM {
 
         if (configVersion == 1L) {
             this.useViewMaskForChangeLog = this.useViewMaskForSyncing;
+            
+            configVersion = 2L;
         }
         
         return this;
@@ -1054,7 +1056,7 @@ public class PerforceSCM extends SCM {
                 }
                     
                 List<Integer> changeNumbersTo;
-                if (useViewMaskForChangeLog) {
+                if (useViewMaskForChangeLog && useViewMask) {
                     changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeToDisplay, newestChange, viewMask, showIntegChanges);
                 } else {
                     changeNumbersTo = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeToDisplay, newestChange, showIntegChanges);
