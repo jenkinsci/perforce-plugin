@@ -12,6 +12,7 @@ import com.tek42.perforce.parse.Workspaces;
 import com.tek42.perforce.model.Changelist.FileEntry;
 
 import hudson.AbortException;
+import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -26,6 +27,8 @@ import hudson.model.listeners.ItemListener;
 import hudson.plugins.perforce.config.CleanTypeConfig;
 import hudson.plugins.perforce.config.MaskViewConfig;
 import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
+import hudson.plugins.perforce.security.P4CredentialsProvider;
+import hudson.plugins.perforce.security.P4CredentialsProviderDescriptor;
 import hudson.plugins.perforce.utils.MacroStringHelper;
 import hudson.plugins.perforce.utils.ParameterSubstitutionException;
 import hudson.remoting.VirtualChannel;
@@ -78,6 +81,7 @@ public class PerforceSCM extends SCM {
 
     String p4User;
     String p4Passwd;
+    P4CredentialsProvider credentialProvider;
     String p4Port;
     String p4Client;
     String clientSpec;
@@ -328,13 +332,16 @@ public class PerforceSCM extends SCM {
             boolean excludedFilesCaseSensitivity,
             DepotType depotType, 
             WorkspaceCleanupConfig cleanWorkspace,
-            MaskViewConfig useViewMask
+            MaskViewConfig useViewMask,
+            P4CredentialsProvider credentialsProvider
             ) {
 
         this.configVersion = 1L;
 
         this.p4User = p4User;
         this.setP4Passwd(p4Passwd);
+        this.credentialProvider = credentialsProvider;
+        
         this.setExposeP4Passwd(exposeP4Passwd);
         this.p4Client = p4Client;
         this.p4Port = p4Port;
@@ -1877,6 +1884,16 @@ public class PerforceSCM extends SCM {
         }
         
         /**
+         * Gets a list of available credential providers.
+         * A utility method for the configuration page.
+         * @return all available {@link P4CredentialsProvider}s
+         * @since TODO
+         */
+        public DescriptorExtensionList<P4CredentialsProvider, P4CredentialsProviderDescriptor> getCredentialProviders() {
+            return P4CredentialsProvider.all();
+        }
+        
+        /**
          * Gets client workspace name pattern
          */
         public String getP4ClientPattern() {
@@ -2570,6 +2587,10 @@ public class PerforceSCM extends SCM {
      */
     public String getP4Passwd() {
         return p4Passwd;
+    }
+
+    public P4CredentialsProvider getCredentialProvider() {
+        return credentialProvider;
     }
 
     public String getDecryptedP4Passwd() {
