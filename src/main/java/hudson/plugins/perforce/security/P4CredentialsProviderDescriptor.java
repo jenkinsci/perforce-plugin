@@ -25,8 +25,13 @@
 package hudson.plugins.perforce.security;
 
 import hudson.model.Descriptor;
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class P4CredentialsProviderDescriptor extends Descriptor<P4CredentialsProvider> {
+    
+    private static final String P4CREDENTIALS_GLOBAL_CONFIG = "global.jelly";
+    
     protected P4CredentialsProviderDescriptor(Class<? extends P4CredentialsProvider> clazz) {
         super(clazz); 
     }
@@ -37,4 +42,34 @@ public abstract class P4CredentialsProviderDescriptor extends Descriptor<P4Crede
         return (P4CredentialsProviderDescriptor)P4CredentialsProvider
                 .all().find(P4CredentialsProvider.DEFAULT);
     } 
+    
+    /**
+     * Gets the global credentials configuration page.
+     * @return A page name or null if not present
+     */
+    public String getGlobalCredentialsConfigPage() {
+        String page = getViewPage(clazz, P4CREDENTIALS_GLOBAL_CONFIG);
+        if (page != null && !page.equals(P4CREDENTIALS_GLOBAL_CONFIG)) {
+            return page;
+        }
+        return null;
+    }
+    
+    /**
+     * Gets all descriptors, which define the global credentials page.
+     * @return List of descriptors having {@link #P4CREDENTIALS_GLOBAL_CONFIG}. 
+     */
+    public static List<P4CredentialsProviderDescriptor> getDescriptorsForGlobaConfigPage() {
+        List<P4CredentialsProviderDescriptor> all = P4CredentialsProvider.all();
+        List<P4CredentialsProviderDescriptor> r = new ArrayList<P4CredentialsProviderDescriptor>(all.size());
+        for (Descriptor<P4CredentialsProvider> d: all) {
+            if (
+                    d instanceof P4CredentialsProviderDescriptor
+                    && ((P4CredentialsProviderDescriptor)d).getGlobalCredentialsConfigPage() != null
+            ) {
+                r.add((P4CredentialsProviderDescriptor)d);
+            }
+        }
+        return r;
+    }
 }

@@ -41,6 +41,21 @@
         <f:checkbox name="p4.passwordExposeDisabled" checked="${descriptor.passwordExposeDisabled}"/>
         <f:description>Option globally disables exposal of Perforce passwords</f:description>
     </f:entry>
+    
+    <!-- configurations for P4CredentialsProvider -->
+    
+    <j:forEach var="d" items="${descriptor.p4CredentialsProvidersForGlobalConfigPage}">
+      <j:set var="instance" value="${d}" />
+      <f:block>
+     <!-- <div class="repeated-container"> -->
+        <f:entry title="${d.displayName}">
+            <f:rowSet name="${d.jsonSafeClassName}">
+              <st:include page="${d.globalCredentialsConfigPage}" from="${d}" />
+            </f:rowSet>
+        </f:entry>
+      <!--</div> -->
+      </f:block>
+    </j:forEach> 
         
   </f:section>
 </j:jelly>

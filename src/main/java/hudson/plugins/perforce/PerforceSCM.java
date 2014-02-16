@@ -1941,6 +1941,10 @@ public class PerforceSCM extends SCM {
             return getP4ReadLineTimeout() != P4_INFINITE_TIMEOUT_SEC;
         }
         
+        public List<P4CredentialsProviderDescriptor> getP4CredentialsProvidersForGlobalConfigPage() {
+            return P4CredentialsProviderDescriptor.getDescriptorsForGlobaConfigPage();
+        }
+        
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
             p4ClientPattern = Util.fixEmpty(req.getParameter("p4.clientPattern").trim());
@@ -1959,6 +1963,19 @@ public class PerforceSCM extends SCM {
                 }
             }
             
+            // Read global configs of P4GlobalCredentials
+            JSONObject formData;
+            try {
+                formData = req.getSubmittedForm();
+            } catch (ServletException ex) {
+                throw new FormException("Cannot get the form data", ex, "globalCredentials");
+            }         
+            for (P4CredentialsProviderDescriptor d : getP4CredentialsProvidersForGlobalConfigPage()) {
+                String name = d.getJsonSafeClassName();
+                JSONObject js = formData.has(name) ? formData.getJSONObject(name) : new JSONObject();
+                d.configure(req, js);
+            }
+                        
             save();
             return true;
         }
