@@ -76,7 +76,7 @@ public class P4LocalPassword extends P4CredentialsProvider {
     public static class DescriptorImpl extends P4CredentialsProviderDescriptor {
         @Override
         public String getDisplayName() {
-            return Messages.Security_P4LocalPassword_displayName();
+            return Messages.Credentials_P4LocalPassword_displayName();
         }       
     }
 }
