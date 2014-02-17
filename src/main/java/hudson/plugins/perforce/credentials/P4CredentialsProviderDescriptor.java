@@ -28,6 +28,11 @@ import hudson.model.Descriptor;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A descriptor for {@link P4CredentialsProvider} extension.
+ * @author Oleg Nenashev <nenashev@synopsys.com>
+ * @since TODO
+ */
 public abstract class P4CredentialsProviderDescriptor extends Descriptor<P4CredentialsProvider> {
     
     private static final String P4CREDENTIALS_GLOBAL_CONFIG = "global.jelly";

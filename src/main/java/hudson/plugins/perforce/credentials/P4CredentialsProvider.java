@@ -29,19 +29,42 @@ import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
+import hudson.plugins.perforce.PerforceSCM;
 import java.util.List;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * 
+ * This {@link ExtensionPoint} allows to specify custom credential sources
+ * for {@link PerforceSCM}.
+ * Extension point should have {@link DataBoundConstructor} and {@link P4CredentialsProviderDescriptor}.  
+ * <p>
+ * <b>Configuration files.</b><br/>
+ * <i>config.jelly</i> file defines configuration properties inside a job's
+ * configuration. This file is mandatory.<br/>
+ * <i>global.jelly</i> file allows to setup the global configuration, which
+ * will appear inside the {@link PerforceSCM} section.
+ * </p>
+ * @see P4GlobalPassword
+ * @see P4LocalPassword
  * @author Oleg Nenashev <nenashev@synopsys.com>
+ * @since TODO
  */
 public abstract class P4CredentialsProvider implements ExtensionPoint, 
         Describable<P4CredentialsProvider> {
     
     public static final Class<? extends P4CredentialsProvider> DEFAULT = P4LocalPassword.class;
 
+    /**
+     * Retrieves a user name to be used for authentication in {@link PerforceSCM}.
+     * @return User ID
+     */
     public abstract String getUser();
-    
+
+    /**
+     * Gets a password to be used for authentication in {@link PerforceSCM}.
+     * All encryption methods should be implemented inside {@link P4CredentialsProvider}.
+     * @return Decrypted password to be used for authentication.
+     */
     public abstract String getPassword();
     
     /**
@@ -53,7 +76,7 @@ public abstract class P4CredentialsProvider implements ExtensionPoint,
     public void setUser(String user) {
         // do nothing by default
     }
-    
+   
     /**
      * Sets a new password.
      * @deprecated This method is designed to retain the backward compatibility for

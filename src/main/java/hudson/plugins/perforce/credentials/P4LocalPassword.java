@@ -30,8 +30,10 @@ import hudson.plugins.perforce.PerforcePasswordEncryptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- *
- * @author nenashev
+ * Allows to define credentials inside a job's configuration.
+ * This method is a replacement for the legacy approach.
+ * @author Oleg Nenashev <nenashev@synopsys.com>
+ * @since TODO
  */
 public class P4LocalPassword extends P4CredentialsProvider {
 

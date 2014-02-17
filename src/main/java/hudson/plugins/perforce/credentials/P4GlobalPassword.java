@@ -34,6 +34,7 @@ import org.kohsuke.stapler.StaplerRequest;
 /**
  * Provides credentials defined on global configuration page.
  * @author Oleg Nenashev <nenashev@synopsys.com>
+ * @since TODO
  */
 public class P4GlobalPassword extends P4CredentialsProvider {
 
