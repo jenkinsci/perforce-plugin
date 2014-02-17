@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package hudson.plugins.perforce.security;
+package hudson.plugins.perforce.credentials;
 
 import hudson.DescriptorExtensionList;
 import hudson.ExtensionPoint;
