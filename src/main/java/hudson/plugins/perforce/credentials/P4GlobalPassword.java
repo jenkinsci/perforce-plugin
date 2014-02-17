@@ -87,6 +87,11 @@ public class P4GlobalPassword extends P4CredentialsProvider {
         @Override
         public String getDisplayName() {
             return Messages.Security_P4GlobalPassword_displayName();
-        }       
+        }      
+
+        @Override
+        public String getTitleName() {
+            return Messages.Security_P4GlobalPassword_titleName();
+        }
     }
 }

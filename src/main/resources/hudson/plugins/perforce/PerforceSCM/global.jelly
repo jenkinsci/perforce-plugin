@@ -43,12 +43,12 @@
     </f:entry>
     
     <!-- configurations for P4CredentialsProvider -->
-    
     <j:forEach var="d" items="${descriptor.p4CredentialsProvidersForGlobalConfigPage}">
       <j:set var="instance" value="${d}" />
       <f:block>
+     <!--TODO: improve the layout-->
      <!-- <div class="repeated-container"> -->
-        <f:entry title="${d.displayName}">
+        <f:entry title="${d.titleName}">
             <f:rowSet name="${d.jsonSafeClassName}">
               <st:include page="${d.globalCredentialsConfigPage}" from="${d}" />
             </f:rowSet>

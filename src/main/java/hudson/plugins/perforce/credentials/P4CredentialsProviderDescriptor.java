@@ -77,4 +77,17 @@ public abstract class P4CredentialsProviderDescriptor extends Descriptor<P4Crede
         }
         return r;
     }
+
+
+    /**
+     * Gets a short title to be used on the global configuration page and
+     * other selectors.
+     * Returns a display name by default.
+     * @return A short title of the ${@link P4CredentialsProvider}
+     */
+    public String getTitleName() {
+        return getDisplayName();
+    }
+    
+    
 }
