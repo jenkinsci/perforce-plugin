@@ -30,7 +30,7 @@
       </f:entry>
 
       <f:entry title="${%Credentials Provider}">
-        <f:hetero-radio field="credentialsProvider" descriptors="${descriptor.credentialsProviders}" />
+        <f:hetero-radio field="p4CredentialsProvider" descriptors="${descriptor.p4CredentialsProviders}" />
       </f:entry>
 
       <j:if test="${not descriptor.passwordExposeDisabled}">

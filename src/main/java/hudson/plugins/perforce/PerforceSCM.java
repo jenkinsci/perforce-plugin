@@ -88,7 +88,8 @@ public class PerforceSCM extends SCM {
      * @deprecated Replaced by {@link #credentialsProvider}
      */
     transient String p4Passwd;
-    P4CredentialsProvider credentialsProvider;
+    /**Provides credentials for Perforce SCM*/
+    P4CredentialsProvider p4CredentialsProvider;
     String p4Port;
     String p4Client;
     String clientSpec;
@@ -299,12 +300,12 @@ public class PerforceSCM extends SCM {
      * This constructor uses data classes from {@link hudson.plugins.perforce.config}
      * to allow proper handling of hierarchical data in Stapler. In the current 
      * state, these classes are not being used outside this constructor.
+     * @param p4CredentialsProvider An extension, which provides credentials
      */
     // TODO: move data to configuration classes during the refactoring
     @DataBoundConstructor
     public PerforceSCM(
-            String p4User,
-            String p4Passwd,
+            P4CredentialsProvider p4CredentialsProvider,
             String p4Client,
             String p4Port,
             String projectOptions,
@@ -339,12 +340,11 @@ public class PerforceSCM extends SCM {
             boolean excludedFilesCaseSensitivity,
             DepotType depotType, 
             WorkspaceCleanupConfig cleanWorkspace,
-            MaskViewConfig useViewMask,
-            P4CredentialsProvider credentialsProvider
+            MaskViewConfig useViewMask
             ) {
 
         this.configVersion = 1L;
-        this.credentialsProvider = credentialsProvider;
+        this.p4CredentialsProvider = p4CredentialsProvider;
         
         this.setExposeP4Passwd(exposeP4Passwd);
         this.p4Client = p4Client;
@@ -543,7 +543,7 @@ public class PerforceSCM extends SCM {
         
         // if we want to allow p4 commands in script steps this helps
         if (isExposeP4Passwd()) {
-            env.put("P4PASSWD", credentialsProvider.getPassword());
+            env.put("P4PASSWD", p4CredentialsProvider.getPassword());
         }
         // this may help when tickets are used since we are
         // not storing the ticket on the client during login
@@ -638,7 +638,7 @@ public class PerforceSCM extends SCM {
         }
              
         if (p4User != null) {
-            credentialsProvider = new P4LocalPassword(p4User, p4Passwd);
+            p4CredentialsProvider = new P4LocalPassword(p4User, p4Passwd);
         }
         
         if (excludedFilesCaseSensitivity == null) {
@@ -1898,7 +1898,7 @@ public class PerforceSCM extends SCM {
          * @since TODO
          */
         public DescriptorExtensionList<P4CredentialsProvider, P4CredentialsProviderDescriptor> 
-                getCredentialsProviders() {
+                getP4CredentialsProviders() {
             return P4CredentialsProvider.all();
         }
         
@@ -2598,7 +2598,7 @@ public class PerforceSCM extends SCM {
      * @return the p4User
      */
     public String getP4User() {
-        return credentialsProvider.getUser();
+        return p4CredentialsProvider.getUser();
     }
 
     /**
@@ -2606,22 +2606,22 @@ public class PerforceSCM extends SCM {
      * @deprecated Please avoid this method. Several {@link P4CredentialsProvider}s may ignore the method.
      */
     public void setP4User(String user) {
-        credentialsProvider.setUser(user);
+        p4CredentialsProvider.setUser(user);
     }
 
     /**
      * @return the p4Passwd
      */
     public String getP4Passwd() {
-        return credentialsProvider.getPassword();
+        return p4CredentialsProvider.getPassword();
     }
 
-    public P4CredentialsProvider getCredentialsProvider() {
-        return credentialsProvider;
+    public P4CredentialsProvider getP4CredentialsProvider() {
+        return p4CredentialsProvider;
     }
 
     public String getDecryptedP4Passwd() {
-        return credentialsProvider.getPassword();
+        return p4CredentialsProvider.getPassword();
     }
 
     public String getDecryptedP4Passwd(AbstractBuild build) throws ParameterSubstitutionException {
@@ -2637,7 +2637,7 @@ public class PerforceSCM extends SCM {
      * @deprecated Please avoid this method. Several {@link P4CredentialsProvider}s may ignore the method.
      */
     public void setP4Passwd(String passwd) {
-        credentialsProvider.setPassword(passwd);
+        p4CredentialsProvider.setPassword(passwd);
     }
 
     /**
