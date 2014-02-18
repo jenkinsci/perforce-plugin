@@ -342,7 +342,7 @@ public class PerforceSCM extends SCM {
             WorkspaceCleanupConfig cleanWorkspace,
             MaskViewConfig useViewMask
             ) {
-
+  
         this.configVersion = 1L;
         this.p4CredentialsProvider = p4CredentialsProvider;
         
@@ -430,6 +430,77 @@ public class PerforceSCM extends SCM {
         this.excludedUsers = Util.fixEmptyAndTrim(excludedUsers);
         this.excludedFiles = Util.fixEmptyAndTrim(excludedFiles);
         this.excludedFilesCaseSensitivity = excludedFilesCaseSensitivity;
+    }
+    
+    /**
+     * A raw constructor.
+     * @deprecated This constructor is a legacy implementation for old
+     * plugin's versions. Please use extension-points-based constructor 
+     * instead.
+     */
+    public PerforceSCM(
+            String p4User,
+            String p4Password,
+            String p4Client,
+            String p4Port,
+            String projectOptions,
+            String p4Tool,
+            String p4SysRoot,
+            String p4SysDrive,
+            String p4Label,
+            String p4Counter,
+            String p4UpstreamProject,
+            String lineEndValue,
+            String p4Charset,
+            String p4CommandCharset,
+            String clientOwner,
+            boolean updateCounterValue,
+            boolean forceSync,
+            boolean dontUpdateServer,
+            boolean alwaysForceSync,
+            boolean createWorkspace,
+            boolean updateView,
+            boolean disableChangeLogOnly,
+            boolean disableSyncOnly,
+            boolean showIntegChanges,
+            boolean dontUpdateClient,
+            boolean exposeP4Passwd,
+            boolean pollOnlyOnMaster,
+            String slaveClientNameFormat,
+            int firstChange,
+            int fileLimit,
+            PerforceRepositoryBrowser browser,
+            String excludedUsers, 
+            String excludedFiles, 
+            boolean excludedFilesCaseSensitivity,
+            DepotType depotType,
+            WorkspaceCleanupConfig cleanWorkspace,
+            MaskViewConfig useViewMask
+    ) {
+        this(
+                new P4LocalPassword(p4User, p4Password),
+                p4Client, p4Port,
+                projectOptions,
+                p4Tool,
+                p4SysRoot, p4SysDrive,
+                p4Label, p4Counter, p4UpstreamProject,
+                lineEndValue, p4Charset, p4CommandCharset,
+                clientOwner,
+                updateCounterValue,
+                forceSync, dontUpdateServer, alwaysForceSync,
+                createWorkspace, updateView,
+                disableChangeLogOnly, disableSyncOnly,
+                showIntegChanges,
+                dontUpdateClient, 
+                exposeP4Passwd,
+                pollOnlyOnMaster,
+                slaveClientNameFormat,
+                firstChange, fileLimit,
+                browser,
+                excludedUsers, excludedFiles, excludedFilesCaseSensitivity,
+                depotType,
+                cleanWorkspace,
+                useViewMask);
     }
     
     /**
