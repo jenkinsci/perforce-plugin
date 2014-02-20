@@ -29,7 +29,7 @@ import hudson.plugins.perforce.config.MaskViewConfig;
 import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
 import hudson.plugins.perforce.credentials.P4CredentialsProvider;
 import hudson.plugins.perforce.credentials.P4CredentialsProviderDescriptor;
-import hudson.plugins.perforce.credentials.P4LocalPassword;
+import hudson.plugins.perforce.credentials.P4LocalCredentialsProvider;
 import hudson.plugins.perforce.utils.MacroStringHelper;
 import hudson.plugins.perforce.utils.ParameterSubstitutionException;
 import hudson.remoting.VirtualChannel;
@@ -478,7 +478,7 @@ public class PerforceSCM extends SCM {
             MaskViewConfig useViewMask
     ) {
         this(
-                new P4LocalPassword(p4User, p4Password),
+                new P4LocalCredentialsProvider(p4User, p4Password),
                 p4Client, p4Port,
                 projectOptions,
                 p4Tool,
@@ -709,7 +709,7 @@ public class PerforceSCM extends SCM {
         }
              
         if (p4User != null) {
-            p4CredentialsProvider = new P4LocalPassword(p4User, p4Passwd);
+            p4CredentialsProvider = new P4LocalCredentialsProvider(p4User, p4Passwd);
         }
         
         if (excludedFilesCaseSensitivity == null) {

@@ -45,14 +45,15 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * will appear inside the {@link PerforceSCM} section.
  * </p>
  * @see P4GlobalPassword
- * @see P4LocalPassword
+ * @see P4LocalCredentialsProvider
  * @author Oleg Nenashev <nenashev@synopsys.com>
  * @since TODO
  */
 public abstract class P4CredentialsProvider implements ExtensionPoint, 
         Describable<P4CredentialsProvider> {
     
-    public static final Class<? extends P4CredentialsProvider> DEFAULT = P4LocalPassword.class;
+    public static final Class<? extends P4CredentialsProvider> DEFAULT = 
+            P4LocalCredentialsProvider.class;
 
     /**
      * Retrieves a user name to be used for authentication in {@link PerforceSCM}.

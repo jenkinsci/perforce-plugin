@@ -27,71 +27,56 @@ package hudson.plugins.perforce.credentials;
 import hudson.Extension;
 import hudson.plugins.perforce.Messages;
 import hudson.plugins.perforce.PerforcePasswordEncryptor;
-import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
 
 /**
- * Provides credentials defined on global configuration page.
+ * Allows to define credentials inside a job's configuration.
+ * This method is a replacement for the legacy approach.
  * @author Oleg Nenashev <nenashev@synopsys.com>
  * @since TODO
  */
-public class P4GlobalPassword extends P4CredentialsProvider {
+public class P4LocalCredentialsProvider extends P4CredentialsProvider {
+
+    public String user;
+    public String encryptedPassword;
 
     @DataBoundConstructor
-    public P4GlobalPassword() {
+    public P4LocalCredentialsProvider(String user, String encryptedPassword) {
+        this.user = user;
+        this.encryptedPassword = PerforcePasswordEncryptor.encryptString2(encryptedPassword);
+    }
+     
+    @Override
+    public String getUser() {
+        return user;
     }
 
     @Override
-    public String getUser() {
-        return DESCRIPTOR.getUser();
+    public void setUser(String user) {
+        this.user = user;
     }
-   
+    
+    public String getEncryptedPassword() {
+        return encryptedPassword;
+    }
+    
     @Override
     public String getPassword() {
-        return DESCRIPTOR.getPassword();
+        return PerforcePasswordEncryptor.decryptString2(encryptedPassword);
     }
- 
+
+    @Override
+    public void setPassword(String password) {
+        encryptedPassword = PerforcePasswordEncryptor.encryptString2(password);
+    }
+    
     @Extension
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
     
     public static class DescriptorImpl extends P4CredentialsProviderDescriptor {
-        
-        public String user;
-        public String encryptedPassword;
-
-        public DescriptorImpl() {
-            load();
-        }
-
-        public String getUser() {
-            return user;
-        }
-
-        public String getEncryptedPassword() {
-            return encryptedPassword;
-        }
-
-        public String getPassword() {
-            return PerforcePasswordEncryptor.decryptString2(encryptedPassword);
-        }
-        
-        @Override
-        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
-            user = json.getString("user");
-            encryptedPassword = PerforcePasswordEncryptor.encryptString2(json.getString("encryptedPassword"));
-            save();
-            return true;
-        }
-              
         @Override
         public String getDisplayName() {
-            return Messages.Credentials_P4GlobalPassword_displayName();
-        }      
-
-        @Override
-        public String getTitleName() {
-            return Messages.Credentials_P4GlobalPassword_titleName();
-        }
+            return Messages.Credentials_P4LocalPassword_displayName();
+        }       
     }
 }

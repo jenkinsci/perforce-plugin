@@ -8,7 +8,7 @@ import hudson.plugins.perforce.browsers.P4Web;
 import hudson.plugins.perforce.config.MaskViewConfig;
 import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
 import hudson.plugins.perforce.credentials.P4CredentialsProvider;
-import hudson.plugins.perforce.credentials.P4LocalPassword;
+import hudson.plugins.perforce.credentials.P4LocalCredentialsProvider;
 import hudson.tools.ToolProperty;
 
 import java.net.URL;
@@ -123,8 +123,8 @@ public class PerforceSCMTest extends HudsonTestCase {
         String encryptedPassword = encryptor.encryptString(password);
         P4CredentialsProvider provider = ((PerforceSCM)project.getScm()).getP4CredentialsProvider();
         
-        assertTrue("Wrong class: "+provider.getClass()+" instead of "+P4LocalPassword.class.getName(), provider instanceof P4LocalPassword);
-        assertEquals(encryptedPassword, ((P4LocalPassword)provider).getEncryptedPassword());
+        assertTrue("Wrong class: "+provider.getClass()+" instead of "+P4LocalCredentialsProvider.class.getName(), provider instanceof P4LocalCredentialsProvider);
+        assertEquals(encryptedPassword, ((P4LocalCredentialsProvider)provider).getEncryptedPassword());
     }
 
     public void testDepotContainsUnencryptedPassword() throws Exception {
@@ -175,8 +175,8 @@ public class PerforceSCMTest extends HudsonTestCase {
          
         // We expect that credentials will be implemented as P4LocalPassword
         P4CredentialsProvider provider = ((PerforceSCM)project.getScm()).getP4CredentialsProvider();     
-        assertTrue("Wrong class: "+provider.getClass()+" instead of "+P4LocalPassword.class.getName(), provider instanceof P4LocalPassword);
-        assertEquals(encryptedPassword, ((P4LocalPassword)provider).getEncryptedPassword());
+        assertTrue("Wrong class: "+provider.getClass()+" instead of "+P4LocalCredentialsProvider.class.getName(), provider instanceof P4LocalCredentialsProvider);
+        assertEquals(encryptedPassword, ((P4LocalCredentialsProvider)provider).getEncryptedPassword());
     }
 
     static void assertViewParsesTo(String view, String toView) throws Exception {
