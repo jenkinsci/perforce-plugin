@@ -29,6 +29,7 @@ import hudson.plugins.perforce.config.MaskViewConfig;
 import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
 import hudson.plugins.perforce.credentials.P4CredentialsProvider;
 import hudson.plugins.perforce.credentials.P4CredentialsProviderDescriptor;
+import hudson.plugins.perforce.credentials.P4GlobalCredentialsProvider;
 import hudson.plugins.perforce.credentials.P4LocalCredentialsProvider;
 import hudson.plugins.perforce.utils.MacroStringHelper;
 import hudson.plugins.perforce.utils.ParameterSubstitutionException;
@@ -1918,6 +1919,9 @@ public class PerforceSCM extends SCM {
         return p4Client;
     }
 
+    
+    
+    //TODO: make the default value configurable configurable
     @Extension
     public static final class PerforceSCMDescriptor extends SCMDescriptor<PerforceSCM> {
         private String p4ClientPattern;
@@ -1930,6 +1934,8 @@ public class PerforceSCM extends SCM {
         private boolean passwordExposeDisabled;
         private final static int P4_INFINITE_TIMEOUT_SEC = 0;
         private final static int P4_MINIMAL_TIMEOUT_SEC = 30;
+        private final static P4CredentialsProvider DEFAULT_P4CREDENTIALS_PROVIDER=
+                new P4GlobalCredentialsProvider();
         
         public PerforceSCMDescriptor() {
             super(PerforceSCM.class, PerforceRepositoryBrowser.class);
@@ -2014,6 +2020,15 @@ public class PerforceSCM extends SCM {
         
         public List<P4CredentialsProviderDescriptor> getP4CredentialsProvidersForGlobalConfigPage() {
             return P4CredentialsProviderDescriptor.getDescriptorsForGlobaConfigPage();
+        }
+        
+        /**
+         * Gets a default {@link P4CredentialsProvider}.
+         * Currently, the method always returns {@link P4GlobalCredentialsProvider}.
+         * @return A default provider. Can be null
+         */
+        public P4CredentialsProvider getDefaultP4CredentialsProvider() {
+            return DEFAULT_P4CREDENTIALS_PROVIDER;
         }
         
         @Override
@@ -2687,10 +2702,18 @@ public class PerforceSCM extends SCM {
         return p4CredentialsProvider.getPassword();
     }
 
+    /**
+     * @return User-configured credentials provider or a default value.
+     */
     public P4CredentialsProvider getP4CredentialsProvider() {
-        return p4CredentialsProvider;
+        return p4CredentialsProvider != null ? p4CredentialsProvider :
+              ((PerforceSCMDescriptor)this.getDescriptor()).getDefaultP4CredentialsProvider();
     }
 
+    /**
+     * @deprecated This method is deprecated. Currently, {@link #getP4Passwd()}
+     * also returns a decrypted password.
+     */
     public String getDecryptedP4Passwd() {
         return p4CredentialsProvider.getPassword();
     }
