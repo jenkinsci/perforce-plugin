@@ -1,0 +1,15 @@
+<div>
+  <p>
+    Set what Program Name shall be reported to Perforce server.
+  </p>
+  <p>
+    Setting this value will add extra option "-z prog=name" every time 
+    p4 is connecting to the Perforce server. This can be later examined 
+    with p4 monitor command by Perforce administrators.
+    Useful to debug Perforce connections, group then together and identify 
+    their source.
+    
+    This is a global setting that will be used for all Jenkins jobs, unless 
+    not explicitly overridden in job specific Perforce configuration.
+  </p>
+</div>

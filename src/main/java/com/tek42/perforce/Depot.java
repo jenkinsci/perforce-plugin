@@ -87,6 +87,8 @@ public class Depot {
 	private Status status;
 	private Groups groups;
 	private Counters counters;
+	private String programName;
+	private String programVersion;
 
 	public Depot() {
 		this(new DefaultExecutorFactory());
@@ -572,5 +574,20 @@ public class Depot {
             return newValue.equals(currentValue);
     }
 
+	public String getProgramName() {
+		return programName;
+	}
+
+	public void setProgramName(String prog) {
+		this.programName = prog;
+	}
+	
+	public String getProgramVersion() {
+		return programVersion;
+	}
+
+	public void setProgramVersion(String version) {
+		this.programVersion = version;
+	}
 	
 }

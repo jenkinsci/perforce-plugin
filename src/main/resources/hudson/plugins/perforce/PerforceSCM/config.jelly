@@ -246,6 +246,17 @@
             <f:checkbox name="p4.useViewMaskForChangeLog" checked="${instance.useViewMaskForChangeLog}"/>
         </f:entry>
     </f:optionalBlock>
+    
+    <f:entry title="p4 Program Name" help="/plugin/perforce/help/p4ProgramName.html">
+      <f:textbox field="p4ProgramName" id="p4ProgramName" 
+        checkUrl="'${rootURL}/scm/PerforceSCM/validateP4ProgramName?p4prog='+escape(this.form.elements['p4ProgramName'].value)"/>
+    </f:entry>
+    
+    <f:entry title="p4 Program Polling Name" help="/plugin/perforce/help/p4ProgramPollingName.html">
+      <f:textbox field="p4ProgramPollingName" id="p4ProgramPollingName"
+        checkUrl="'${rootURL}/scm/PerforceSCM/validateP4ProgramName?p4prog='+escape(this.form.elements['p4ProgramPollingName'].value)"/>
+    </f:entry>
+    
   </f:advanced>
 
   <t:listScmBrowsers name="browser" />
