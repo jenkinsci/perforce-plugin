@@ -1,0 +1,16 @@
+<div>
+  <p>
+    Set what Program Name shall be reported to Perforce server when job is 
+    polling for new changes.
+  </p>
+  <p>
+    This field's value will be used when polling for new changes.
+    If not set, the value of "p4 Program Name" field will be used.
+    Use it when you would like to have granular identification of what 
+    connections are tied with polling and what with fetching stages.  
+    
+    There is also corresponding "p4 Program Default Polling Name" option at 
+    Jenkins global configuration. Although before that is used, the local 
+    "p4 Program Name", if set, takes precedence. 
+  </p>
+</div>

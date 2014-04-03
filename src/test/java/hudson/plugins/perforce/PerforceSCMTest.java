@@ -39,7 +39,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", "pass", "client", "port", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, TEST_DEPOT, TEST_WORKSPACE_CLEANUP, TEST_MASKVIEW);
+        		 false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, TEST_DEPOT, TEST_WORKSPACE_CLEANUP, TEST_MASKVIEW, null, null);
         scm.setProjectPath("path");
         project.setScm(scm);
 
@@ -60,7 +60,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
                         "user", "pass", "client", "port", "", "exe", "",
                         "", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW);
+                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW, null, null);
         assertEquals("", scm.getP4SysDrive());
         assertEquals("", scm.getP4SysRoot());
         scm.setProjectPath("path");
@@ -80,7 +80,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", "pass", "client", "port", "", "exe", "sysRoot",
         		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW);
+                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW, null, null);
         scm.setP4Stream("stream");
         scm.setUseStreamDepot(true);
         project.setScm(scm);
@@ -107,7 +107,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "", "test_installation", "sysRoot",
         		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW);
+                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW, null, null);
         scm.setProjectPath("path");
         project.setScm(scm);
 
@@ -136,7 +136,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "", "test_installation", "sysRoot",
         		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW);
+                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW, null, null);
         scm.setProjectPath("path");
         project.setScm(scm);
 
@@ -154,7 +154,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
         		"user", password, "client", "port", "", "test_installation", "sysRoot",
         		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW);
+                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW, null, null);
         scm.setProjectPath("path");
         project.setScm(scm);
 
@@ -336,7 +336,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM scm = new PerforceSCM(
                 "user", password, "client", "port", "", "test_installation", "sysRoot",
                 "sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, false, true, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW);
+                        false, false, true, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW, null, null);
         scm.setP4Stream("stream");
         project.setScm(scm);
 
@@ -374,7 +374,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM upstreamScm = new PerforceSCM(
                 "user", "pass", "client", "port", "", "test_installation", "sysRoot",
                 "sysDrive", null, null, null, "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW);
+                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW, null, null);
         upstreamScm.setProjectPath("path");
         upstreamProject.setScm(upstreamScm);
         
@@ -383,7 +383,7 @@ public class PerforceSCMTest extends HudsonTestCase {
         PerforceSCM downstreamScm = new PerforceSCM(
                 "user", "pass", "client", "port", "", "test_installation", "sysRoot",
                 "sysDrive", null, null, oldName, "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW);
+                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW, null, null);
         downstreamScm.setProjectPath("path");
         downstreamProject.setScm(downstreamScm);
 
