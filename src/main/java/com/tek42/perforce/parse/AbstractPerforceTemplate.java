@@ -147,22 +147,38 @@ public abstract class AbstractPerforceTemplate {
 	 * @return A (possibly) modified string array to be executed in place of the original.
 	 */
 	protected String[] getExtraParams(String cmd[]) {
+		List<String> newCmd = new ArrayList<String>();
+		
+		// Copy over p4 executable
+		newCmd.add(cmd[0]);
+		
+		String program = depot.getProgramName();
+		if (program != null) {
+			// Insert program to be reported to Perforce server
+			newCmd.add("-z");
+			newCmd.add("prog=" + program);
+		}
+		 
+		String version = depot.getProgramVersion();
+		if (version != null) {
+			// Insert version to be reported to Perforce server
+			newCmd.add("-z");
+			newCmd.add("version=" + version);
+		}
+		
 		String ticket = depot.getP4Ticket();
-
 		if(ticket != null) {
 			// Insert the ticket for the password if tickets are being used...
-			String newCmds[] = new String[cmd.length + 2];
-			newCmds[0] = getP4Exe();
-			newCmds[1] = "-P";
-			newCmds[2] = ticket;
-			for(int i = 3; (i - 2) < cmd.length; i++) {
-				newCmds[i] = cmd[i - 2];
-			}
-			cmd = newCmds;
-		} else {
-		    cmd[0] = getP4Exe();
+			newCmd.add("-P");
+			newCmd.add(ticket);
 		}
-		return cmd;
+		
+		// Append the remaining original parameters
+		for(int i = 1; i < cmd.length; i++) {
+			newCmd.add(cmd[i]);
+		}
+		
+		return newCmd.toArray(new String[newCmd.size()]);
 	}
 
 	/**
