@@ -1757,10 +1757,10 @@ public class PerforceSCM extends SCM {
             substitutions.put("hostname", host);
             substitutions.put("hash", hash);
             substitutions.put("basename", basename);
-			if (env != null)
-			{
-				substitutions.putAll(env);
-			}
+            if (env != null)
+            {
+                substitutions.putAll(env);
+            }
 
             p4Client = MacroStringHelper.substituteParametersNoCheck(getSlaveClientNameFormat(), substitutions);
         }
