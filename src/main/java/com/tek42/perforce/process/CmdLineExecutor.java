@@ -168,4 +168,11 @@ public class CmdLineExecutor implements Executor {
         return input;
     }
 
+	/**
+	 * Kill the child process
+	 * 
+	 */
+	public void kill() {
+		currentProcess.destroy();
+	}
 }

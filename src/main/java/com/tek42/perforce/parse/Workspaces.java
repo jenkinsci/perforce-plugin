@@ -133,9 +133,9 @@ public class Workspaces extends AbstractPerforceTemplate {
                             return true;
                         }
                         //detect errors during syncing
-                        //ignore lines containing "files(s) up-to-date", because
+                        //ignore lines containing "files(s) up-to-date" and "no such file(s)", because
                         //perforce classifies that as an 'error' for some strange reason
-                        if(line.startsWith("error:") && !line.contains("file(s) up-to-date.")){
+                        if(line.startsWith("error:") && !line.contains("file(s) up-to-date.") && !line.contains("no such file(s).")){
                             errors.append(line);
                             errors.append("\n");
                         }

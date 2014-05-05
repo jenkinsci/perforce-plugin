@@ -149,6 +149,12 @@ public class HudsonP4DefaultExecutor implements HudsonP4Executor {
         return currentProcess != null ? currentProcess.isAlive() : false;
     }
     
-    
+    public void kill() {
+        try {
+            currentProcess.kill();
+        }
+        catch(IOException ignoredException) {}
+        catch(InterruptedException ignoredException) {}
+    }
 
 }

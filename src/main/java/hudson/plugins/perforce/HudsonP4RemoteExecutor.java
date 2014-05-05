@@ -224,4 +224,14 @@ public class HudsonP4RemoteExecutor implements HudsonP4Executor {
     public boolean isAlive() throws IOException, InterruptedException {
         return currentProcess != null ? currentProcess.isAlive() : false;
     }
+    
+    public void kill() {
+        closeBuffers();
+        
+        try {       	
+            currentProcess.kill();
+        }
+        catch(IOException ignoredException) {}
+        catch(InterruptedException ignoredException) {}
+    }
 }

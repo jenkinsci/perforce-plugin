@@ -370,6 +370,25 @@ public abstract class AbstractPerforceTemplate {
 				sw.flush();
 				getLogger().warn("Perforce process terminated suddenly");
 				getLogger().warn(sw.toString());
+
+				try{
+					p4.getWriter().close();
+				} catch (IOException e) {
+					getLogger().warn("Write pipe failed to close.");
+				}
+				
+				try{
+					p4.getReader().close();
+				} catch (IOException e) {
+					getLogger().warn("Read pipe failed to close.");
+				}
+				
+				p4.close();
+				
+				// If the project was interrupted, p4 needs to be killed
+				// or it will continue running. In the worst case it will
+				// still synchronize gigabytes of data into the workspace
+				p4.kill();
 			}
 			finally{
                             if(timedStreamCloser!=null) timedStreamCloser.interrupt();

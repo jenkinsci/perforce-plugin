@@ -27,6 +27,9 @@
 
 package com.tek42.perforce.parse;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 
@@ -70,5 +73,23 @@ public class Status extends AbstractPerforceTemplate {
 		if(sb.indexOf("no such file(s).") > 0)
 			return false;
 		return true;
+	}
+	
+	/**
+	 * Checks the specified stream if it exists.
+	 * 
+	 * @param name Stream name to check, example: //depot/MyProject
+	 * @return True if it exists, false if not
+	 * @throws PerforceException
+	 */
+	public boolean streamExists(String name) throws PerforceException {
+        StringBuilder sb = getPerforceResponse(new String[] { getP4Exe(), "stream", "-o", name });
+        //An existing stream has been accessed
+        Pattern p = Pattern.compile("^Access:\\s*\\d.*", Pattern.MULTILINE);
+        Matcher matcher = p.matcher(sb.toString());
+        if (matcher.find()) {
+            return true;
+        }
+        return false;
 	}
 }

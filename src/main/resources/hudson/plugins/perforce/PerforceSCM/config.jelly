@@ -162,7 +162,7 @@
         </select>
     </f:entry>
     
-    <f:entry title="P4 Label" help="/plugin/perforce/help/p4label.html">
+    <f:entry title="P4 Label or Changelist" help="/plugin/perforce/help/p4label.html">
       <f:textbox field="p4Label" id="p4Label"
           checkUrl="'${rootURL}/scm/PerforceSCM/validateP4Label?label='+escape(this.form.elements['p4Label'].value)+'&amp;port='+escape(this.form.elements['p4Port'].value)+'&amp;tool='+escape(this.form.elements['p4Tool'].value)+'&amp;user='+escape(this.form.elements['p4User'].value)+'&amp;pass='+escape(this.form.elements['p4Passwd'].value)"/>
     </f:entry>
