@@ -16,7 +16,6 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Util;
-import hudson.FilePath.FileCallable;
 import hudson.Launcher;
 import static hudson.Util.fixNull;
 import hudson.matrix.MatrixBuild;
@@ -28,7 +27,6 @@ import hudson.plugins.perforce.config.MaskViewConfig;
 import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
 import hudson.plugins.perforce.utils.MacroStringHelper;
 import hudson.plugins.perforce.utils.ParameterSubstitutionException;
-import hudson.remoting.VirtualChannel;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.PollingResult;
 import hudson.scm.SCM;
@@ -36,7 +34,6 @@ import hudson.scm.SCMDescriptor;
 import hudson.scm.SCMRevisionState;
 import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
-import hudson.tasks.BuildTrigger;
 import hudson.tasks.Messages;
 import hudson.util.FormValidation;
 import hudson.util.LogTaskListener;
@@ -56,7 +53,6 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
-import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
@@ -458,7 +454,7 @@ public class PerforceSCM extends SCM {
 
         Depot depot = new Depot(p4Factory);
         
-        if (build != null) {
+        if (build != null) { // We can retrieve all parameters from the build's environment
             depot.setClient(MacroStringHelper.substituteParameters(p4Client, build, null));
             depot.setUser(MacroStringHelper.substituteParameters(p4User, build, null));
             depot.setPort(MacroStringHelper.substituteParameters(p4Port, build, null));
@@ -514,6 +510,13 @@ public class PerforceSCM extends SCM {
         return depot;
     }
 
+    /**
+     * @deprecated 
+     * Use {@link MacroStringHelper#getDefaultSubstitutions(hudson.model.AbstractProject, java.lang.String)}
+     */
+    public Hashtable<String, String> getDefaultSubstitutions(AbstractProject project) {
+        return MacroStringHelper.getDefaultSubstitutions(project, p4User);
+    }
      
     /**
      * Override of SCM.buildEnvVars() in order to setup the last change we have
@@ -658,31 +661,6 @@ public class PerforceSCM extends SCM {
         return this;
     }
 
-    private Hashtable<String, String> getDefaultSubstitutions(AbstractProject project) {
-        Hashtable<String, String> subst = new Hashtable<String, String>();
-        subst.put("JOB_NAME", MacroStringHelper.getSafeJobName(project));    
-        for (NodeProperty nodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
-            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                subst.putAll(((EnvironmentVariablesNodeProperty)nodeProperty).getEnvVars());
-            }
-        }
-        ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) project.getProperty(hudson.model.ParametersDefinitionProperty.class);
-        if (pdp != null) {
-            for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
-                try {
-                    ParameterValue defaultValue = pd.getDefaultParameterValue();
-                    if (defaultValue != null) {
-                        String name = defaultValue.getName();
-                        String value = defaultValue.createVariableResolver(null).resolve(name);
-                        subst.put(name, value);
-                    }
-                } catch (Exception e) {
-                }
-            }
-        }
-        subst.put("P4USER", MacroStringHelper.substituteParametersNoCheck(p4User, subst));
-        return subst;
-    }
 
     private String getEffectiveProjectPath(AbstractBuild build, AbstractProject project, PrintStream log, Depot depot) 
             throws PerforceException, ParameterSubstitutionException {
@@ -1291,7 +1269,6 @@ public class PerforceSCM extends SCM {
             return PollingResult.BUILD_NOW;
         }
 
-        Hashtable<String, String> subst = getDefaultSubstitutions(project);
         try {
             Node buildNode = getPollingNode(project);
             Depot depot;

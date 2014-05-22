@@ -28,6 +28,10 @@ import hudson.EnvVars;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
+import hudson.model.Node;
+import hudson.model.ParameterDefinition;
+import hudson.model.ParameterValue;
+import hudson.model.ParametersDefinitionProperty;
 import hudson.model.TaskListener;
 import hudson.plugins.perforce.PerforceSCM;
 import hudson.slaves.EnvironmentVariablesNodeProperty;
@@ -38,9 +42,11 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
- * Provides validation of macro strings after parameter substitution.
+ * The class aggregates all variables substitution methods within the plugin.
  * @author Mike Wille
  * @author Brian Westrich
  * @author Victor Szoltysek
@@ -203,4 +209,69 @@ public class MacroStringHelper {
     public static String getSafeJobName(AbstractProject project) {
         return project.getFullName().replace('/', '-').replace('=', '-').replace(',', '-');
     }
+    
+    /**
+     * Gets default variable substitutions for the node
+     * @param node Target node. Can be null
+     * @param target Output collection
+     */
+    public static void getDefaultNodeSubstitutions(Node node, Hashtable<String, String> target) {
+        // Global node properties
+        for (NodeProperty nodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
+            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
+                target.putAll(((EnvironmentVariablesNodeProperty)nodeProperty).getEnvVars());
+            }
+        }
+        
+        //TODO: Local node properties
+    }
+    
+    
+    public static Hashtable<String, String> getDefaultSubstitutions(
+            AbstractProject project, String p4User) {
+        Hashtable<String, String> subst = new Hashtable<String, String>();
+        subst.put("JOB_NAME", MacroStringHelper.getSafeJobName(project));    
+        for (NodeProperty nodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
+            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
+                subst.putAll(((EnvironmentVariablesNodeProperty)nodeProperty).getEnvVars());
+            }
+        }       
+        ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) project.getProperty(hudson.model.ParametersDefinitionProperty.class);
+        if (pdp != null) {
+            for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
+                try {
+                    ParameterValue defaultValue = pd.getDefaultParameterValue();
+                    if (defaultValue != null) {
+                        String name = defaultValue.getName();
+                        String value = defaultValue.createVariableResolver(null).resolve(name);
+                        subst.put(name, value);
+                    }
+                } catch (Exception e) {
+                }
+            }
+        }
+        subst.put("P4USER", MacroStringHelper.substituteParametersNoCheck(p4User, subst));
+        return subst;
+    }
+
+    public void getDefaultSubstitutions(AbstractProject project, Hashtable<String, String> target) {
+            
+        target.put("JOB_NAME", MacroStringHelper.getSafeJobName(project));    
+               
+        ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) project.getProperty(hudson.model.ParametersDefinitionProperty.class);
+        if (pdp != null) {
+            for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
+                try {
+                    ParameterValue defaultValue = pd.getDefaultParameterValue();
+                    if (defaultValue != null) {
+                        String name = defaultValue.getName();
+                        String value = defaultValue.createVariableResolver(null).resolve(name);
+                        target.put(name, value);
+                    }
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
+
 }
