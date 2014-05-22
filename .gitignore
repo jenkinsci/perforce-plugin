@@ -7,3 +7,6 @@ work
 .settings
 .project
 .DS_Store
+
+# Coverity
+/cov-int
