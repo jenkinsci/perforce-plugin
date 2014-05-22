@@ -211,31 +211,51 @@ public class MacroStringHelper {
     }
     
     /**
-     * Gets default variable substitutions for the node
+     * Gets default variable substitutions for the {@link Node}.
      * @param node Target node. Can be null
      * @param target Output collection
      */
-    public static void getDefaultNodeSubstitutions(Node node, Hashtable<String, String> target) {
+    public static void getDefaultNodeSubstitutions(@CheckForNull Node node, 
+            @Nonnull Hashtable<String, String> target) {
         // Global node properties
-        for (NodeProperty nodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
-            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                target.putAll(((EnvironmentVariablesNodeProperty)nodeProperty).getEnvVars());
+        for (NodeProperty globalNodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
+            if (globalNodeProperty instanceof EnvironmentVariablesNodeProperty) {
+                target.putAll(((EnvironmentVariablesNodeProperty)globalNodeProperty).getEnvVars());
             }
         }
         
-        //TODO: Local node properties
+        // Local node properties
+        if (node != null) {
+            for (NodeProperty nodeProperty : node.getNodeProperties()) {
+                if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
+                    target.putAll(((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars());
+                }
+            }
+        }
     }
     
-    
+    /**
+     * Gets default variable substitutions for the {@link AbstractProject}.
+     * @param project Source project
+     * @param p4User Perforce User (just to retain the backward compatibility)
+     * @return a created container of variables to be substituted
+     */
     public static Hashtable<String, String> getDefaultSubstitutions(
-            AbstractProject project, String p4User) {
+            @Nonnull AbstractProject project, @Nonnull String p4User) {
         Hashtable<String, String> subst = new Hashtable<String, String>();
-        subst.put("JOB_NAME", MacroStringHelper.getSafeJobName(project));    
-        for (NodeProperty nodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
+        getDefaultSubstitutions(project, subst);
+        subst.put("P4USER", MacroStringHelper.substituteParametersNoCheck(p4User, subst));
+        return subst;
+    }
+
+    public static void getDefaultSubstitutions(
+            @Nonnull AbstractProject project, @Nonnull Hashtable<String, String> subst) {
+        subst.put("JOB_NAME", MacroStringHelper.getSafeJobName(project));
+        for (NodeProperty nodeProperty : Hudson.getInstance().getGlobalNodeProperties()) {
             if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                subst.putAll(((EnvironmentVariablesNodeProperty)nodeProperty).getEnvVars());
+                subst.putAll(((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars());
             }
-        }       
+        }
         ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) project.getProperty(hudson.model.ParametersDefinitionProperty.class);
         if (pdp != null) {
             for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
@@ -247,31 +267,11 @@ public class MacroStringHelper {
                         subst.put(name, value);
                     }
                 } catch (Exception e) {
+                    // Do nothing
                 }
             }
         }
-        subst.put("P4USER", MacroStringHelper.substituteParametersNoCheck(p4User, subst));
-        return subst;
-    }
 
-    public void getDefaultSubstitutions(AbstractProject project, Hashtable<String, String> target) {
-            
-        target.put("JOB_NAME", MacroStringHelper.getSafeJobName(project));    
-               
-        ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) project.getProperty(hudson.model.ParametersDefinitionProperty.class);
-        if (pdp != null) {
-            for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
-                try {
-                    ParameterValue defaultValue = pd.getDefaultParameterValue();
-                    if (defaultValue != null) {
-                        String name = defaultValue.getName();
-                        String value = defaultValue.createVariableResolver(null).resolve(name);
-                        target.put(name, value);
-                    }
-                } catch (Exception e) {
-                }
-            }
-        }
     }
 
 }
