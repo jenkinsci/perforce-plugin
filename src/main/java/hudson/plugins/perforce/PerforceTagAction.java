@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.List;
+import javax.annotation.CheckForNull;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
@@ -144,6 +145,14 @@ public class PerforceTagAction extends AbstractScmTagAction {
         }
         return null;
     }
+    
+    @CheckForNull
+    public PerforceSCM getSCM() {
+        if(this.getBuild().getProject().getScm() instanceof PerforceSCM){
+            return (PerforceSCM)this.getBuild().getProject().getScm();
+        }
+        return null;
+    }
 
     /**
      * Checks if the value is a valid Perforce tag (label) name.
@@ -177,8 +186,8 @@ public class PerforceTagAction extends AbstractScmTagAction {
         label.setRevision(new Integer(changeNumber).toString());
         if(owner!=null && !owner.equals("")) label.setOwner(owner);
 
-        if(this.getBuild().getProject().getScm() instanceof PerforceSCM){
-            PerforceSCM scm = (PerforceSCM)this.getBuild().getProject().getScm();
+        PerforceSCM scm = getSCM();
+        if(scm != null){
             depot.setPassword(scm.getDecryptedP4Passwd(this.getBuild().getProject(), this.getBuild().getBuiltOn()));
         }
 
