@@ -517,8 +517,8 @@ public class PerforceSCM extends SCM {
     public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
         super.buildEnvVars(build, env);
         try {
-            env.put("P4PORT", MacroStringHelper.substituteParameters(p4Port, build, env));
-            env.put("P4USER", MacroStringHelper.substituteParameters(p4User, build, env));
+            env.put("P4PORT", MacroStringHelper.substituteParameters(p4Port, this, build, env));
+            env.put("P4USER", MacroStringHelper.substituteParameters(p4User, this, build, env));
         } catch (ParameterSubstitutionException ex) {
             LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Can't substitute P4USER or P4PORT", ex);
             //TODO: exit?
@@ -865,7 +865,7 @@ public class PerforceSCM extends SCM {
             String p4config;
             WipeWorkspaceExcludeFilter wipeFilter;
             try {
-                p4config = MacroStringHelper.substituteParameters("${P4CONFIG}", build, null);
+                p4config = MacroStringHelper.substituteParameters("${P4CONFIG}", this, build, null);
                 wipeFilter = new WipeWorkspaceExcludeFilter(".p4config",p4config);
             } catch (ParameterSubstitutionException ex) {
                 wipeFilter = new WipeWorkspaceExcludeFilter();
@@ -1170,7 +1170,8 @@ public class PerforceSCM extends SCM {
                     // no changeset on parent, set it for other
                     // matrixruns to use
                     log.println("No change number has been set by parent/siblings. Using latest.");
-                    parentBuild.addAction(new PerforceTagAction(build, depot, newestChange, projectPath, MacroStringHelper.substituteParameters(p4User,build,null)));
+                    parentBuild.addAction(new PerforceTagAction(build, depot, newestChange, projectPath, 
+                            MacroStringHelper.substituteParameters(p4User, this, build, null)));
                 }
             }
         }
@@ -1364,7 +1365,7 @@ public class PerforceSCM extends SCM {
 
             if (useViewMaskForPolling && useViewMask) {
                 changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, 
-                        MacroStringHelper.substituteParametersNoCheck(viewMask, this, project, node, null), false);
+                        MacroStringHelper.substituteParameters(viewMask, this, project, node, null), false);
             } else {
                 String root = "//" + p4workspace.getName() + "/...";
                 changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, root, false);
@@ -1678,9 +1679,9 @@ public class PerforceSCM extends SCM {
         Node buildNode = build.getBuiltOn();
         FilePath workspace = build.getWorkspace();
         String p4Client = this.p4Client;
-        p4Client = MacroStringHelper.substituteParameters(p4Client, build, env);
+        p4Client = MacroStringHelper.substituteParameters(p4Client, this, build, env);
         try {
-            p4Client = getEffectiveClientName(p4Client, buildNode);
+            p4Client = getEffectiveClientName(p4Client, build.getProject(), buildNode);
         } catch (Exception e) {
             new StreamTaskListener(System.out).getLogger().println(
                     "Could not get effective client name: " + e.getMessage());
@@ -1688,13 +1689,19 @@ public class PerforceSCM extends SCM {
         return p4Client;
     }
 
-    private String getDefaultEffectiveClientName(AbstractProject project, Node buildNode, FilePath workspace)
+    //TODO: Workspace is unused!
+    private String getDefaultEffectiveClientName(
+            @CheckForNull AbstractProject project, 
+            @CheckForNull Node buildNode, 
+            FilePath workspace)
             throws IOException, InterruptedException {
         String basename = MacroStringHelper.substituteParameters(this.p4Client, this, project, buildNode, null);
-        return getEffectiveClientName(basename, buildNode);
+        return getEffectiveClientName(basename, project, buildNode);
     }
 
-    private String getEffectiveClientName(String basename, Node buildNode)
+    private String getEffectiveClientName(String basename, 
+                @CheckForNull AbstractProject project, 
+                @CheckForNull Node buildNode)
             throws IOException, InterruptedException {
 
         String p4Client = basename;
@@ -1718,12 +1725,15 @@ public class PerforceSCM extends SCM {
             String hash = String.valueOf(buildNode.getNodeName().hashCode());
 
             Map<String, String> substitutions = new Hashtable<String,String>();
+            
+            //TODO: move to MacroStringHelper
             substitutions.put("nodename", buildNode.getNodeName());
             substitutions.put("hostname", host);
             substitutions.put("hash", hash);
             substitutions.put("basename", basename);
 
-            p4Client = MacroStringHelper.substituteParametersNoCheck(getSlaveClientNameFormat(), substitutions);
+            p4Client = MacroStringHelper.substituteParameters(
+                    getSlaveClientNameFormat(), this, project, buildNode, substitutions);
         }
         // eliminate spaces, just in case
         p4Client = p4Client.replaceAll(" ", "_");
@@ -2556,11 +2566,15 @@ public class PerforceSCM extends SCM {
      * @deprecated Use {@link #getDecryptedP4Passwd(hudson.model.AbstractProject, hudson.model.Node)} instead.
      */
     public String getDecryptedP4Passwd(AbstractProject project) {
-        return MacroStringHelper.substituteParametersNoCheck(getDecryptedP4Passwd(), 
-                this, project, null, null);
+        try {
+            return getDecryptedP4Passwd(project, null);
+        } catch (ParameterSubstitutionException ex) {
+            throw new IllegalArgumentException("Cannot substitute all variables in P4Passwd");
+        }
     }
     
-    public String getDecryptedP4Passwd(AbstractProject project, Node node) throws ParameterSubstitutionException {
+    public String getDecryptedP4Passwd(@CheckForNull AbstractProject project, @CheckForNull Node node) 
+            throws ParameterSubstitutionException {
         return MacroStringHelper.substituteParameters(getDecryptedP4Passwd(),
                 this, project, node, null);
     }
