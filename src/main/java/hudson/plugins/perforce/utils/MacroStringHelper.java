@@ -55,7 +55,29 @@ import javax.annotation.Nonnull;
  * @since 1.3.25
  */
 public class MacroStringHelper {
+    
     public static final Level SUBSTITUTION_ERROR_LEVEL = Level.WARNING;
+    
+    /**
+     * Substitute parameters and validate contents of the resulting string
+     * @param string Input string to be substituted
+     * @param project A project
+     * @param node A node to be substituted
+     * @param env Additional environment variables.
+     * @return Substituted string
+     * @throws ParameterSubstitutionException Format error (unresolved variable, etc.)
+     */
+    public static String substituteParameters(
+            @Nonnull String string,
+            @CheckForNull AbstractProject project,
+            @CheckForNull Node node,
+            @CheckForNull Map<String, String> env)
+            throws ParameterSubstitutionException {
+        String result = substituteParametersNoCheck(string, project, node, env);
+        checkString(result);
+        return result;
+    }
+    
     /**
      * Substitute parameters and validate contents of the resulting string
      * @param string Input string
@@ -73,9 +95,9 @@ public class MacroStringHelper {
     
     /**
      * Substitute parameters and validate contents of the resulting string
-     * @param string Input string
-     * @param build Related build
-     * @param env Additional variables to be substituted. Used as a workaround for build environment
+     * @param string Input string to be substituted
+     * @param build A build to be substituted
+     * @param env Additional environment variables.
      * @return Substituted string
      * @throws ParameterSubstitutionException Format error (unresolved variable, etc.)
      */
@@ -89,10 +111,11 @@ public class MacroStringHelper {
     
     /**
      * Checks string from unsubstituted variable references.
-     * @param string Input string (should be substituted before call)
+     * @param string Input string (should be substituted before call).
+     *      Null string will be interpreted as OK
      * @throws ParameterSubstitutionException Substitution error
      */
-    public static void checkString(String string) throws ParameterSubstitutionException
+    public static void checkString(@CheckForNull String string) throws ParameterSubstitutionException
     {
         if (string == null) {
             return;
@@ -126,52 +149,98 @@ public class MacroStringHelper {
         return newString;
     }
     
-    public static boolean containsMacro(String str) {
+    public static boolean containsMacro(@CheckForNull String str) {
         return str != null && str.contains("${");
     }
-
+  
+     /**
+     * Substitute parameters and validate contents of the resulting string
+     * @param inputString Input string to be substituted
+     * @param project A project
+     * @param node A node to be substituted
+     * @param env Additional environment variables.
+    *  @return Substituted string
+     */        
+    public static String substituteParametersNoCheck (
+            @Nonnull String inputString,
+            @CheckForNull AbstractProject project,
+            @CheckForNull Node node,
+            @CheckForNull Map<String, String> env) {
+        
+        if (!containsMacro(inputString)) { // do nothing for the missing macro
+            return inputString;
+        }
+        String outputString = inputString;
+        
+        // Substitute additional environment vars if possible
+        if (env != null && !env.isEmpty()) {
+            outputString = substituteParametersNoCheck(outputString, env);
+            if (!containsMacro(outputString)) { //exit if no macros left
+                return outputString;
+            }
+        }
+        
+        // Substitute global environment variables
+        for (NodeProperty nodeProperty : Hudson.getInstance().getGlobalNodeProperties()) {
+            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
+                outputString = ((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars().expand(outputString);
+            }
+        }
+        
+        // Substitute node variables if possible
+        if (node != null) {
+            for (NodeProperty nodeProperty : node.getNodeProperties()) {
+                if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
+                    outputString = ((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars().expand(outputString);
+                }
+            }
+        }
+        if (!containsMacro(outputString)) {
+            return outputString;
+        }
+        
+        // Substitute project variables
+        if (project != null) { 
+            Hashtable<String, String> projectSubstitutions = new Hashtable<String, String>();
+            getDefaultSubstitutions(project, projectSubstitutions);
+            outputString = substituteParametersNoCheck(outputString, projectSubstitutions);
+        }
+             
+        return outputString;
+    }
+    
     /**
      * Substitute parameters and validate contents of the resulting string
-     * @param string Input string
+     * @param inputString Input string
      * @param build Related build
+     * @param env Additional environment variables
      * @return Substituted string
      * @deprecated Use checked methods instead
      */        
-    public static String substituteParametersNoCheck(String inputString, AbstractBuild build, Map<String, String> env) {
+    public static String substituteParametersNoCheck(
+            @CheckForNull String inputString, 
+            @Nonnull AbstractBuild build, 
+            @CheckForNull Map<String, String> env) {
+        
         if (!containsMacro(inputString)) {
             return inputString;
         }
-        
-        // Substitute environment if possible
-        String string = inputString;
-        if (env != null && !env.isEmpty()) {
-            string = substituteParametersNoCheck(string, env);
-            
-            //exit if no macros left
-            if (!containsMacro(inputString)) {
-                return string;
-            }
-        }
-        
-        // Try to substitute via node and global environment
-        for (NodeProperty nodeProperty : Hudson.getInstance().getGlobalNodeProperties()) {
-            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                string = ((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars().expand(string);
-            }
-        }
-        for (NodeProperty nodeProperty : build.getBuiltOn().getNodeProperties()) {
-            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                string = ((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars().expand(string);
-            }
-        }
+             
+        String string = substituteParametersNoCheck(inputString, build.getProject(), build.getBuiltOn(), env);
+              
+        // Substitute default build variables
+        Hashtable<String, String> projectSubstitutions = new Hashtable<String, String>();
+        getDefaultBuildSubstitutions(build, projectSubstitutions);    
+        String result = MacroStringHelper.substituteParametersNoCheck(string, projectSubstitutions);
+        result = MacroStringHelper.substituteParametersNoCheck(result, build.getBuildVariables());
         if (!containsMacro(string)) {
             return string;
         }
         
-        // The last attempts: Try to build the full environment
-        Map<String, String> subst = new TreeMap<String, String>();
+         // The last attempts: Try to build the full environment
+        Map<String, String> environmentVarsFromExtensions = new TreeMap<String, String>();
         boolean useEnvironment = true;
-        for (StackTraceElement ste : (new Throwable()).getStackTrace()) {
+        for (StackTraceElement ste : (new Throwable()).getStackTrace()) { // Inspect the stacktrace to avoid the infinite recursion
             if (ste.getMethodName().equals("buildEnvVars") && ste.getClassName().equals(PerforceSCM.class.getName())) {
                 useEnvironment = false;
             }
@@ -179,26 +248,15 @@ public class MacroStringHelper {
         if (useEnvironment) {
             try {
                 EnvVars vars = build.getEnvironment(TaskListener.NULL);
-                subst.putAll(vars);
+                environmentVarsFromExtensions.putAll(vars);
             } catch (IOException ex) {
                 Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
             } catch (InterruptedException ex) {
                 Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        if (!containsMacro(string)) {
-            return string;
-        }
-       
-        //TODO: remove? 
-        subst.put("JOB_NAME", getSafeJobName(build));
-        String hudsonName = Hudson.getInstance().getDisplayName().toLowerCase();
-        subst.put("BUILD_TAG", hudsonName + "-" + build.getProject().getName() + "-" + String.valueOf(build.getNumber()));
-        subst.put("BUILD_ID", build.getId());
-        subst.put("BUILD_NUMBER", String.valueOf(build.getNumber()));
+        result = MacroStringHelper.substituteParametersNoCheck(result, environmentVarsFromExtensions);
         
-        String result = MacroStringHelper.substituteParametersNoCheck(string, subst);
-        result = MacroStringHelper.substituteParametersNoCheck(result, build.getBuildVariables());
         return result;
     }
     
@@ -210,6 +268,15 @@ public class MacroStringHelper {
         return project.getFullName().replace('/', '-').replace('=', '-').replace(',', '-');
     }
     
+    public static void getDefaultBuildSubstitutions(@CheckForNull AbstractBuild build, 
+            @Nonnull Hashtable<String, String> subst) {
+        subst.put("JOB_NAME", getSafeJobName(build));
+        String hudsonName = Hudson.getInstance().getDisplayName().toLowerCase();
+        subst.put("BUILD_TAG", hudsonName + "-" + build.getProject().getName() + "-" + String.valueOf(build.getNumber()));
+        subst.put("BUILD_ID", build.getId());
+        subst.put("BUILD_NUMBER", String.valueOf(build.getNumber()));
+    }
+        
     /**
      * Gets default variable substitutions for the {@link Node}.
      * @param node Target node. Can be null
