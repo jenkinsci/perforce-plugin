@@ -59,6 +59,33 @@ public class MacroStringHelper {
     public static final Level SUBSTITUTION_ERROR_LEVEL = Level.WARNING;
     
     /**
+     * Substitute parameters and validate contents of the resulting string.
+     * This is a generic method, which invokes routines for {@link AbstractBuild} if it is not null.
+     * Otherwise, the default handlers for {@link AbstractProject} and {@link Node} will be used.
+     * @param string Input string to be substituted
+     * @param instance Instance of {@link PerforceSCM}
+     * @param build A build to be substituted
+     * @param project A project
+     * @param node A node to be substituted
+     * @param env Additional environment variables.
+     * @return Substituted string
+     * @throws ParameterSubstitutionException Format error (unresolved variable, etc.)
+     */
+    public static String substituteParameters(
+            @Nonnull String string,
+            @CheckForNull PerforceSCM instance,        
+            @CheckForNull AbstractBuild build,
+            @CheckForNull AbstractProject project,
+            @CheckForNull Node node,
+            @CheckForNull Map<String, String> env)
+            throws ParameterSubstitutionException {
+        
+        return build != null
+                ? substituteParameters(string, instance, build, env)
+                : substituteParameters(string, instance, project, node, env);
+    }
+    
+    /**
      * Substitute parameters and validate contents of the resulting string
      * @param string Input string to be substituted
      * @param instance Instance of {@link PerforceSCM}
@@ -96,17 +123,29 @@ public class MacroStringHelper {
     }
     
     /**
+    * @deprecated Use methods with {@link PerforceSCM} instance.
+    */
+    public static String substituteParameters(String string, AbstractBuild build, Map<String, String> env) 
+            throws ParameterSubstitutionException {
+        return substituteParameters(string, null, build, env);
+    }
+    
+    /**
      * Substitute parameters and validate contents of the resulting string
      * @param string Input string to be substituted
+     * @param instance Instance of {@link PerforceSCM}
      * @param build A build to be substituted
      * @param env Additional environment variables.
      * @return Substituted string
      * @throws ParameterSubstitutionException Format error (unresolved variable, etc.)
      */
-    public static String substituteParameters(String string, AbstractBuild build, Map<String, String> env) 
-            throws ParameterSubstitutionException
-    {
-        String result = substituteParametersNoCheck(string, build, env);
+    public static String substituteParameters(
+            String string,
+            PerforceSCM instance,
+            AbstractBuild build,
+            @CheckForNull Map<String, String> env)
+            throws ParameterSubstitutionException {
+        String result = substituteParametersNoCheck(string, instance, build, env);
         checkString(result);
         return result;
     }
@@ -163,6 +202,7 @@ public class MacroStringHelper {
      * @param node A node to be substituted
      * @param env Additional environment variables.
     *  @return Substituted string
+    *  @deprecated Use methods with checks
      */        
     public static String substituteParametersNoCheck (
             @Nonnull String inputString,
@@ -219,8 +259,19 @@ public class MacroStringHelper {
     }
     
     /**
+     * @deprecated Use methods with {@link PerforceSCM} instance instead.
+     */
+    public static String substituteParametersNoCheck(
+            @CheckForNull String inputString,
+            @Nonnull AbstractBuild build, 
+            @CheckForNull Map<String, String> env) {
+        return substituteParametersNoCheck(inputString, null, build, env);
+    }
+    
+    /**
      * Substitute parameters and validate contents of the resulting string
      * @param inputString Input string
+     * @param instance Instance of {@link PerforceSCM}
      * @param build Related build
      * @param env Additional environment variables
      * @return Substituted string
@@ -228,6 +279,7 @@ public class MacroStringHelper {
      */        
     public static String substituteParametersNoCheck(
             @CheckForNull String inputString,
+            @CheckForNull PerforceSCM instance,
             @Nonnull AbstractBuild build, 
             @CheckForNull Map<String, String> env) {
         

@@ -179,7 +179,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
 
         if(this.getBuild().getProject().getScm() instanceof PerforceSCM){
             PerforceSCM scm = (PerforceSCM)this.getBuild().getProject().getScm();
-            depot.setPassword(scm.getDecryptedP4Passwd(this.getBuild().getProject()));
+            depot.setPassword(scm.getDecryptedP4Passwd(this.getBuild().getProject(), this.getBuild().getBuiltOn()));
         }
 
         //Only take the depot paths and add them to the view.
