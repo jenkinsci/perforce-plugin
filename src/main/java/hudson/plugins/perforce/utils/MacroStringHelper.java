@@ -61,6 +61,7 @@ public class MacroStringHelper {
     /**
      * Substitute parameters and validate contents of the resulting string
      * @param string Input string to be substituted
+     * @param instance Instance of {@link PerforceSCM}
      * @param project A project
      * @param node A node to be substituted
      * @param env Additional environment variables.
@@ -69,11 +70,12 @@ public class MacroStringHelper {
      */
     public static String substituteParameters(
             @Nonnull String string,
+            @CheckForNull PerforceSCM instance,
             @CheckForNull AbstractProject project,
             @CheckForNull Node node,
             @CheckForNull Map<String, String> env)
             throws ParameterSubstitutionException {
-        String result = substituteParametersNoCheck(string, project, node, env);
+        String result = substituteParametersNoCheck(string, instance, project, node, env);
         checkString(result);
         return result;
     }
@@ -157,12 +159,14 @@ public class MacroStringHelper {
      * Substitute parameters and validate contents of the resulting string
      * @param inputString Input string to be substituted
      * @param project A project
+     * @param instance Instance of {@link PerforceSCM}
      * @param node A node to be substituted
      * @param env Additional environment variables.
     *  @return Substituted string
      */        
     public static String substituteParametersNoCheck (
             @Nonnull String inputString,
+            @CheckForNull PerforceSCM instance,
             @CheckForNull AbstractProject project,
             @CheckForNull Node node,
             @CheckForNull Map<String, String> env) {
@@ -200,12 +204,17 @@ public class MacroStringHelper {
         }
         
         // Substitute project variables
+        Hashtable<String, String> substitutions = new Hashtable<String, String>();
         if (project != null) { 
-            Hashtable<String, String> projectSubstitutions = new Hashtable<String, String>();
-            getDefaultSubstitutions(project, projectSubstitutions);
-            outputString = substituteParametersNoCheck(outputString, projectSubstitutions);
+            getDefaultSubstitutions(project, substitutions);
         }
-             
+        
+        // Add instance variables
+        if (instance != null) {
+            getDefaultSubstitutions(instance, substitutions);
+        }
+        outputString = substituteParametersNoCheck(outputString, substitutions);    
+        
         return outputString;
     }
     
@@ -218,7 +227,7 @@ public class MacroStringHelper {
      * @deprecated Use checked methods instead
      */        
     public static String substituteParametersNoCheck(
-            @CheckForNull String inputString, 
+            @CheckForNull String inputString,
             @Nonnull AbstractBuild build, 
             @CheckForNull Map<String, String> env) {
         
@@ -226,7 +235,7 @@ public class MacroStringHelper {
             return inputString;
         }
              
-        String string = substituteParametersNoCheck(inputString, build.getProject(), build.getBuiltOn(), env);
+        String string = substituteParametersNoCheck(inputString, null, build.getProject(), build.getBuiltOn(), env);
               
         // Substitute default build variables
         Hashtable<String, String> projectSubstitutions = new Hashtable<String, String>();
@@ -268,6 +277,11 @@ public class MacroStringHelper {
         return project.getFullName().replace('/', '-').replace('=', '-').replace(',', '-');
     }
     
+    public static void getDefaultSubstitutions(@CheckForNull PerforceSCM instance, 
+            @Nonnull Hashtable<String, String> subst) {
+        subst.put("P4USER", MacroStringHelper.substituteParametersNoCheck(instance.getP4User(), subst));
+    }
+    
     public static void getDefaultBuildSubstitutions(@CheckForNull AbstractBuild build, 
             @Nonnull Hashtable<String, String> subst) {
         subst.put("JOB_NAME", getSafeJobName(build));
@@ -301,20 +315,6 @@ public class MacroStringHelper {
         }
     }
     
-    /**
-     * Gets default variable substitutions for the {@link AbstractProject}.
-     * @param project Source project
-     * @param p4User Perforce User (just to retain the backward compatibility)
-     * @return a created container of variables to be substituted
-     */
-    public static Hashtable<String, String> getDefaultSubstitutions(
-            @Nonnull AbstractProject project, @Nonnull String p4User) {
-        Hashtable<String, String> subst = new Hashtable<String, String>();
-        getDefaultSubstitutions(project, subst);
-        subst.put("P4USER", MacroStringHelper.substituteParametersNoCheck(p4User, subst));
-        return subst;
-    }
-
     public static void getDefaultSubstitutions(
             @Nonnull AbstractProject project, @Nonnull Hashtable<String, String> subst) {
         subst.put("JOB_NAME", MacroStringHelper.getSafeJobName(project));
