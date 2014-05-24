@@ -664,16 +664,17 @@ public class PerforceSCM extends SCM {
 
     private String getEffectiveProjectPathFromFile(
             @CheckForNull AbstractBuild build, 
-            @CheckForNull AbstractProject project, @CheckForNull Node node, 
+            @CheckForNull AbstractProject project, 
+            @CheckForNull Node node, 
             @Nonnull PrintStream log, @Nonnull Depot depot) throws PerforceException, ParameterSubstitutionException {
-        String clientSpec = 
+        String effectiveClientSpec = 
                 MacroStringHelper.substituteParameters(this.clientSpec, this, build, project, node, null);
-        log.println("Read ClientSpec from: " + clientSpec);
-        com.tek42.perforce.parse.File f = depot.getFile(clientSpec);
-        String projectPath = 
+        log.println("Read ClientSpec from: " + effectiveClientSpec);
+        com.tek42.perforce.parse.File f = depot.getFile(effectiveClientSpec);
+        String effectiveProjectPath = 
                 MacroStringHelper.substituteParameters(f.read(), this, build, project, node, null);
        
-        return projectPath;
+        return effectiveProjectPath;
     }
 
     private int getLastBuildChangeset(AbstractProject project) {
@@ -853,10 +854,10 @@ public class PerforceSCM extends SCM {
 
         try {
             // keep projectPath local so any modifications for slaves don't get saved
-            String projectPath;
-            projectPath = getEffectiveProjectPath(build, build.getProject(), build.getBuiltOn(), log, depot);
+            String effectiveProjectPath= getEffectiveProjectPath(build, 
+                    build.getProject(), build.getBuiltOn(), log, depot);
 
-            Workspace p4workspace = getPerforceWorkspace(build.getProject(), projectPath, depot, build.getBuiltOn(), build, launcher, workspace, listener, false);
+            Workspace p4workspace = getPerforceWorkspace(build.getProject(), effectiveProjectPath, depot, build.getBuiltOn(), build, launcher, workspace, listener, false);
 
             boolean dirtyWorkspace = p4workspace.isDirty();
             saveWorkspaceIfDirty(depot, p4workspace, log);
@@ -914,12 +915,12 @@ public class PerforceSCM extends SCM {
                     String p4Client = getConcurrentClientName(workspace, getEffectiveClientName(build, null));
                     p4workspace = depot.getWorkspaces().getWorkspace(p4Client, p4Stream);
                 }
-                projectPath = p4workspace.getTrimmedViewsAsString();
+                effectiveProjectPath = p4workspace.getTrimmedViewsAsString();
             }
             // If we're not managing the view, populate the projectPath with the current view from perforce
             // This is both for convenience, and so the labeling mechanism can operate correctly
             if (!updateView) {
-                projectPath = p4workspace.getTrimmedViewsAsString();
+                effectiveProjectPath = p4workspace.getTrimmedViewsAsString();
             }
 
             String p4WorkspacePath = "//" + p4workspace.getName() + "/...";
@@ -997,7 +998,7 @@ public class PerforceSCM extends SCM {
             }
             
             if (build instanceof MatrixRun) {
-                newestChange = getOrSetMatrixChangeSet(build, depot, newestChange, projectPath, log);
+                newestChange = getOrSetMatrixChangeSet(build, depot, newestChange, effectiveProjectPath, log);
             }
             
             if (lastChange <= 0) {
@@ -1093,8 +1094,8 @@ public class PerforceSCM extends SCM {
             }
             // If we aren't managing the client views, update the current ones
             // with those from perforce, and save them if they have changed.
-            if (!this.updateView && !projectPath.equals(this.projectPath)) {
-                this.projectPath = projectPath;
+            if (!this.updateView && !effectiveProjectPath.equals(this.projectPath)) {
+                this.projectPath = effectiveProjectPath;
                 doSaveProject = true;
             }
             if (doSaveProject) {
@@ -1104,7 +1105,7 @@ public class PerforceSCM extends SCM {
             // Add tagging action that enables the user to create a label
             // for this build.
             build.addAction(new PerforceTagAction(
-                build, depot, newestChange, projectPath, MacroStringHelper.substituteParameters(p4User, this, build, null)));
+                build, depot, newestChange, effectiveProjectPath, MacroStringHelper.substituteParameters(p4User, this, build, null)));
 
             build.addAction(new PerforceSCMRevisionState(newestChange));
 
@@ -1353,11 +1354,12 @@ public class PerforceSCM extends SCM {
             // by this workspace).
 
             Integer newestChange;
-            String p4Label = MacroStringHelper.substituteParameters(this.p4Label, this, project, node, null);
-            if (p4Label != null && !p4Label.trim().isEmpty()) {
+            String effectiveP4Label = MacroStringHelper.substituteParameters(
+                    this.p4Label, this, project, node, null);
+            if (effectiveP4Label != null && !effectiveP4Label.trim().isEmpty()) {
                 //In case where we are using a rolling label.
                 String root = "//" + p4workspace.getName() + "/...";
-                newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, p4Label.trim(), root);
+                newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, effectiveP4Label.trim(), root);
             } else {
                 Counter counter = depot.getCounters().getCounter("change");
                 newestChange = counter.getValue();
@@ -1559,39 +1561,39 @@ public class PerforceSCM extends SCM {
         // make sure each slave has a unique client name by adding it's
         // hostname to the end of the client spec
 
-        String p4Client = build != null
+        String effectiveP4Client = build != null
                 ? getEffectiveClientName(build, null)
                 : getDefaultEffectiveClientName(project, buildNode, workspace);
 
         // If we are running concurrent builds, the Jenkins workspace path is different
         // for each concurrent build. Append Perforce workspace name with Jenkins
         // workspace identifier suffix.
-        p4Client = getConcurrentClientName(workspace, p4Client);
+        effectiveP4Client = getConcurrentClientName(workspace, effectiveP4Client);
 
         if (!nodeIsRemote(buildNode)) {
             log.print("Using master perforce client: ");
-            log.println(p4Client);
+            log.println(effectiveP4Client);
         }
         else if (dontRenameClient) {
             log.print("Using shared perforce client: ");
-            log.println(p4Client);
+            log.println(effectiveP4Client);
         }
         else {
-            log.println("Using remote perforce client: " + p4Client);
+            log.println("Using remote perforce client: " + effectiveP4Client);
         }
 
-        depot.setClient(p4Client);
+        depot.setClient(effectiveP4Client);
         String p4Stream = MacroStringHelper.substituteParameters(this.p4Stream, this, build, project, buildNode, null);
 
         // Get the clientspec (workspace) from perforce
-        Workspace p4workspace = depot.getWorkspaces().getWorkspace(p4Client, p4Stream);
+        Workspace p4workspace = depot.getWorkspaces().getWorkspace(effectiveP4Client, p4Stream);
         assert p4workspace != null;
         boolean creatingNewWorkspace = p4workspace.isNew();
 
         // If the client workspace doesn't exist, and we're not managing the clients,
         // Then terminate the build with an error
         if (!createWorkspace && creatingNewWorkspace) {
-            log.println("*** Perforce client workspace '" + p4Client +"' doesn't exist.");
+            log.println("*** Perforce client workspace '" + effectiveP4Client +"' doesn't exist.");
             log.println("*** Please create it, or allow Jenkins to manage clients on it's own.");
             log.println("*** If the client name mentioned above is not what you expected, ");
             log.println("*** check your 'Client name format for slaves' advanced config option.");
@@ -1601,7 +1603,7 @@ public class PerforceSCM extends SCM {
         // Ensure that the clientspec (workspace) name is set correctly
         // TODO Examine why this would be necessary.
 
-        p4workspace.setName(p4Client);
+        p4workspace.setName(effectiveP4Client);
 
         // Set the workspace options according to the configuration
         if (projectOptions != null)
@@ -1653,7 +1655,7 @@ public class PerforceSCM extends SCM {
                 if (useClientSpec) {
                     projectPath = getEffectiveProjectPathFromFile(build, project, buildNode, log, depot);
                 }
-                List<String> mappingPairs = parseProjectPath(projectPath, p4Client, log);
+                List<String> mappingPairs = parseProjectPath(projectPath, effectiveP4Client, log);
                 if (!equalsProjectPath(mappingPairs, p4workspace.getViews())) {
                     log.println("Changing P4 Client View from:\n" + p4workspace.getViewsAsString());
                     log.println("Changing P4 Client View to: ");
@@ -1678,15 +1680,15 @@ public class PerforceSCM extends SCM {
     private String getEffectiveClientName(AbstractBuild build, Map<String,String> env) throws ParameterSubstitutionException {
         Node buildNode = build.getBuiltOn();
         FilePath workspace = build.getWorkspace();
-        String p4Client = this.p4Client;
-        p4Client = MacroStringHelper.substituteParameters(p4Client, this, build, env);
+        String effectiveP4Client = 
+                MacroStringHelper.substituteParameters(this.p4Client, this, build, env);
         try {
-            p4Client = getEffectiveClientName(p4Client, build.getProject(), buildNode);
+            effectiveP4Client = getEffectiveClientName(effectiveP4Client, build.getProject(), buildNode);
         } catch (Exception e) {
             new StreamTaskListener(System.out).getLogger().println(
                     "Could not get effective client name: " + e.getMessage());
         }
-        return p4Client;
+        return effectiveP4Client;
     }
 
     //TODO: Workspace is unused!
@@ -1699,16 +1701,16 @@ public class PerforceSCM extends SCM {
         return getEffectiveClientName(basename, project, buildNode);
     }
 
-    private String getEffectiveClientName(String basename, 
+    private String getEffectiveClientName(
+            String basename, 
                 @CheckForNull AbstractProject project, 
                 @CheckForNull Node buildNode)
             throws IOException, InterruptedException {
 
-        String p4Client = basename;
+        String effectiveP4Client = basename;
 
-        if (nodeIsRemote(buildNode) && !getSlaveClientNameFormat().equals("")) {
+        if (buildNode!=null && nodeIsRemote(buildNode) && !getSlaveClientNameFormat().equals("")) {
             String host=null;
-
             Computer c = buildNode.toComputer();
             if (c != null)
                 host = c.getHostName();
@@ -1732,12 +1734,12 @@ public class PerforceSCM extends SCM {
             substitutions.put("hash", hash);
             substitutions.put("basename", basename);
 
-            p4Client = MacroStringHelper.substituteParameters(
+            effectiveP4Client = MacroStringHelper.substituteParameters(
                     getSlaveClientNameFormat(), this, project, buildNode, substitutions);
         }
         // eliminate spaces, just in case
-        p4Client = p4Client.replaceAll(" ", "_");
-        return p4Client;
+        effectiveP4Client = effectiveP4Client.replaceAll(" ", "_");
+        return effectiveP4Client;
     }
 
     public String getSlaveClientNameFormat() {

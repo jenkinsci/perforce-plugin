@@ -339,6 +339,8 @@ public class MacroStringHelper {
                 }
             }
         }
+        
+       //TODO: substitute node-specific variables fro PerforceSCM
     }
     
     private static void getDefaultSubstitutions(
