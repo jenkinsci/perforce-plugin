@@ -37,7 +37,7 @@ import hudson.plugins.perforce.PerforceSCM;
 import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
 import java.io.IOException;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -71,8 +71,9 @@ public class MacroStringHelper {
      * @return Substituted string
      * @throws ParameterSubstitutionException Format error (unresolved variable, etc.)
      */
+    @CheckForNull
     public static String substituteParameters(
-            @Nonnull String string,
+            @CheckForNull String string,
             @Nonnull PerforceSCM instance,        
             @CheckForNull AbstractBuild build,
             @CheckForNull AbstractProject project,
@@ -95,13 +96,15 @@ public class MacroStringHelper {
      * @return Substituted string
      * @throws ParameterSubstitutionException Format error (unresolved variable, etc.)
      */
+    @CheckForNull
     public static String substituteParameters(
-            @Nonnull String string,
+            @CheckForNull String string,
             @Nonnull PerforceSCM instance,
             @CheckForNull AbstractProject project,
             @CheckForNull Node node,
             @CheckForNull Map<String, String> env)
             throws ParameterSubstitutionException {
+        if (string == null) return null;
         String result = substituteParametersNoCheck(string, instance, project, node, env);
         checkString(result);
         return result;
@@ -114,9 +117,12 @@ public class MacroStringHelper {
      * @return Substituted string
      * @throws ParameterSubstitutionException Format error (unresolved variable, etc.)
      */
-    public static String substituteParameters(String string, Map<String, String> subst) 
-            throws ParameterSubstitutionException
-    {
+    @CheckForNull
+    public static String substituteParameters(
+            @CheckForNull String string,
+            @Nonnull Map<String, String> subst)
+            throws ParameterSubstitutionException {
+        if (string == null) return null;
         String result = substituteParametersNoCheck(string, subst);
         checkString(result);
         return result;
@@ -131,12 +137,14 @@ public class MacroStringHelper {
      * @return Substituted string
      * @throws ParameterSubstitutionException Format error (unresolved variable, etc.)
      */
+    @CheckForNull
     public static String substituteParameters(
-            @Nonnull String string,
+            @CheckForNull String string,
             @Nonnull PerforceSCM instance,
             @Nonnull AbstractBuild build,
             @CheckForNull Map<String, String> env)
             throws ParameterSubstitutionException {
+        if (string == null) return null;
         String result = substituteParametersNoCheck(string, instance, build, env);
         checkString(result);
         return result;
@@ -149,12 +157,9 @@ public class MacroStringHelper {
      * @throws ParameterSubstitutionException Substitution error
      */
     public static void checkString(@CheckForNull String string) throws ParameterSubstitutionException {
-        if (string == null) {
-            return;
-        }
-
+        
         // Conditional fail on substitution error
-        if (true && string.matches(".*\\$\\{.*\\}.*")) {
+        if (containsMacro(string)) {
             throw new ParameterSubstitutionException(string, "Found unresolved macro at '" + string + "'");
         }
 
@@ -182,22 +187,28 @@ public class MacroStringHelper {
         return newString;
     }
     
+    /**
+     * Check if the input string contains macro variables.
+     * @param str String to be checked
+     * @return true if the string 
+     */
     public static boolean containsMacro(@CheckForNull String str) {
-        return str != null && str.contains("${");
+        return str != null && str.matches(".*\\$\\{.*\\}.*");
     }
   
      /**
-     * Substitute parameters and validate contents of the resulting string
+     * Substitute parameters and validate contents of the resulting string.
+     * This is a keystone method of {@link MacroStringHelper}. 
      * @param inputString Input string to be substituted
      * @param project A project
      * @param instance Instance of {@link PerforceSCM}
      * @param node A node to be substituted
      * @param env Additional environment variables.
-    *  @return Substituted string
+    *  @return Substituted string is not null and contains macro definition.
      */        
     private static String substituteParametersNoCheck (
             @Nonnull String inputString,
-            @CheckForNull PerforceSCM instance,
+            @Nonnull PerforceSCM instance,
             @CheckForNull AbstractProject project,
             @CheckForNull Node node,
             @CheckForNull Map<String, String> env) {
@@ -214,36 +225,14 @@ public class MacroStringHelper {
                 return outputString;
             }
         }
-        
-        // Substitute global environment variables
-        for (NodeProperty nodeProperty : Hudson.getInstance().getGlobalNodeProperties()) {
-            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                outputString = ((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars().expand(outputString);
-            }
-        }
-        
-        // Substitute node variables if possible
-        if (node != null) {
-            for (NodeProperty nodeProperty : node.getNodeProperties()) {
-                if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                    outputString = ((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars().expand(outputString);
-                }
-            }
-        }
-        if (!containsMacro(outputString)) {
-            return outputString;
-        }
-        
-        // Substitute project variables
-        Hashtable<String, String> substitutions = new Hashtable<String, String>();
+                
+        // Prepare the substitution container and substitute vars
+        Map<String, String> substitutions = new HashMap<String, String>();
+        getDefaultNodeSubstitutions(node, substitutions);
         if (project != null) { 
             getDefaultSubstitutions(project, substitutions);
         }
-        
-        // Add instance variables
-        if (instance != null) {
-            getDefaultSubstitutions(instance, substitutions);
-        }
+        getDefaultSubstitutions(instance, substitutions);
         outputString = substituteParametersNoCheck(outputString, substitutions);    
         
         return outputString;
@@ -258,7 +247,7 @@ public class MacroStringHelper {
      * @return Substituted string
      */        
     private static String substituteParametersNoCheck(
-            @CheckForNull String inputString,
+            @Nonnull String inputString,
             @Nonnull PerforceSCM instance,
             @Nonnull AbstractBuild build, 
             @CheckForNull Map<String, String> env) {
@@ -267,12 +256,12 @@ public class MacroStringHelper {
             return inputString;
         }
              
-        String string = substituteParametersNoCheck(inputString, null, build.getProject(), build.getBuiltOn(), env);
+        String string = substituteParametersNoCheck(inputString, instance, 
+                build.getProject(), build.getBuiltOn(), env);
               
         // Substitute default build variables
-        Hashtable<String, String> substitutions = new Hashtable<String, String>();
+        Map<String, String> substitutions = new HashMap<String, String>();
         getDefaultBuildSubstitutions(build, substitutions);    
-        getDefaultSubstitutions(instance, substitutions);
         String result = MacroStringHelper.substituteParametersNoCheck(string, substitutions);
         result = MacroStringHelper.substituteParametersNoCheck(result, build.getBuildVariables());
         if (!containsMacro(string)) {
@@ -310,14 +299,15 @@ public class MacroStringHelper {
         return project.getFullName().replace('/', '-').replace('=', '-').replace(',', '-');
     }
     
-    private static void getDefaultSubstitutions(@CheckForNull PerforceSCM instance, 
-            @Nonnull Hashtable<String, String> subst) {
+    private static void getDefaultSubstitutions(
+            @Nonnull PerforceSCM instance, 
+            @Nonnull Map<String, String> subst) {
         subst.put("P4USER", MacroStringHelper.substituteParametersNoCheck(instance.getP4User(), subst));
     }
     
-    private static void getDefaultBuildSubstitutions(@CheckForNull AbstractBuild build, 
-            @Nonnull Hashtable<String, String> subst) {
-        subst.put("JOB_NAME", getSafeJobName(build));
+    private static void getDefaultBuildSubstitutions(
+            @Nonnull AbstractBuild build, 
+            @Nonnull Map<String, String> subst) {
         String hudsonName = Hudson.getInstance().getDisplayName().toLowerCase();
         subst.put("BUILD_TAG", hudsonName + "-" + build.getProject().getName() + "-" + String.valueOf(build.getNumber()));
         subst.put("BUILD_ID", build.getId());
@@ -326,11 +316,14 @@ public class MacroStringHelper {
         
     /**
      * Gets default variable substitutions for the {@link Node}.
+     * The method injects global and node-specific {@link EnvironmentVariablesNodeProperty}
+     * instances.
      * @param node Target node. Can be null
      * @param target Output collection
      */
-    private static void getDefaultNodeSubstitutions(@CheckForNull Node node, 
-            @Nonnull Hashtable<String, String> target) {
+    private static void getDefaultNodeSubstitutions(
+            @CheckForNull Node node, 
+            @Nonnull Map<String, String> target) {
         // Global node properties
         for (NodeProperty globalNodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
             if (globalNodeProperty instanceof EnvironmentVariablesNodeProperty) {
@@ -349,7 +342,8 @@ public class MacroStringHelper {
     }
     
     private static void getDefaultSubstitutions(
-            @Nonnull AbstractProject project, @Nonnull Hashtable<String, String> subst) {
+            @Nonnull AbstractProject project, 
+            @Nonnull Map<String, String> subst) {
         subst.put("JOB_NAME", MacroStringHelper.getSafeJobName(project));
         for (NodeProperty nodeProperty : Hudson.getInstance().getGlobalNodeProperties()) {
             if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
@@ -371,7 +365,5 @@ public class MacroStringHelper {
                 }
             }
         }
-
     }
-
 }
