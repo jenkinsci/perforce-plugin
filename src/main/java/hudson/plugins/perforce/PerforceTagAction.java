@@ -16,6 +16,7 @@ import org.kohsuke.stapler.StaplerResponse;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.List;
@@ -31,6 +32,7 @@ import org.kohsuke.stapler.export.ExportedBean;
 @ExportedBean
 public class PerforceTagAction extends AbstractScmTagAction {
     private final int changeNumber;
+    private final Date changeNumberDate;
     private Depot depot;
     private List<PerforceTag> tags = new ArrayList<PerforceTag>();
     @Deprecated
@@ -40,10 +42,11 @@ public class PerforceTagAction extends AbstractScmTagAction {
     private String view;
     private String owner;
 
-    public PerforceTagAction(AbstractBuild build, Depot depot, int changeNumber, String views, String owner) {
+    public PerforceTagAction(AbstractBuild build, Depot depot, int changeNumber, Date changeNumberDate, String views, String owner) {
         super(build);
         this.depot = depot;
         this.changeNumber = changeNumber;
+        this.changeNumberDate = changeNumberDate;
         this.view = views;
         this.owner = owner;
     }
@@ -52,6 +55,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
         super(build);
         this.depot = depot;
         this.changeNumber = -1;
+        this.changeNumberDate = null;
         this.tag = label;
         this.tags.add(new PerforceTag(label,""));
         this.view = views;
@@ -66,6 +70,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
         this.tags.addAll(tga.getTags());
         this.view = tga.view;
         this.owner = tga.owner;
+        this.changeNumberDate = tga.changeNumberDate;
     }
 
     @Exported
@@ -126,6 +131,10 @@ public class PerforceTagAction extends AbstractScmTagAction {
         this.tags = tags;
     }
 
+    public Date getChangeNumberDate() {
+    	return changeNumberDate;
+    }
+    
     /**
      * Returns true if this build has already been tagged at least once.
      */

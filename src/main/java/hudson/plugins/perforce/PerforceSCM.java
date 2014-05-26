@@ -57,6 +57,7 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.net.InetAddress;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
@@ -1143,7 +1144,8 @@ public class PerforceSCM extends SCM {
             // Add tagging action that enables the user to create a label
             // for this build.
             build.addAction(new PerforceTagAction(
-                build, depot, newestChange, projectPath, MacroStringHelper.substituteParameters(p4User, build, null)));
+                build, depot, newestChange, depot.getChanges().getChangelist(newestChange, 0).getDate(),
+                projectPath, MacroStringHelper.substituteParameters(p4User, build, null)));
 
             build.addAction(new PerforceSCMRevisionState(newestChange));
 
@@ -1156,6 +1158,9 @@ public class PerforceSCM extends SCM {
                 log.println("Updating counter " + counterName + " to " + newestChange);
                 depot.getCounters().saveCounter(counter);
             }
+            
+            // Contribute environment variables to the build.
+            contributeToBuildEnvironment(build, listener);
 
             // remember the p4Ticket if we were issued one
 			// otherwise keep the last one issued
@@ -1191,8 +1196,8 @@ public class PerforceSCM extends SCM {
 		
     }
 
-    private synchronized int getOrSetMatrixChangeSet(AbstractBuild build, Depot depot, int newestChange, String projectPath, PrintStream log) 
-            throws ParameterSubstitutionException
+    private synchronized int getOrSetMatrixChangeSet(AbstractBuild build, Depot depot, int newestChange, String projectPath, PrintStream log)
+    		throws ParameterSubstitutionException, PerforceException
     {
         int lastChange = 0;
         // special consideration for matrix builds
@@ -1209,7 +1214,8 @@ public class PerforceSCM extends SCM {
                     // no changeset on parent, set it for other
                     // matrixruns to use
                     log.println("No change number has been set by parent/siblings. Using latest.");
-                    parentBuild.addAction(new PerforceTagAction(build, depot, newestChange, projectPath, MacroStringHelper.substituteParameters(p4User,build,null)));
+                    parentBuild.addAction(new PerforceTagAction(
+                    		build, depot, newestChange, depot.getChanges().getChangelist(newestChange, 0).getDate(), projectPath, MacroStringHelper.substituteParameters(p4User,build, null)));
                 }
             }
         }
@@ -1836,6 +1842,51 @@ public class PerforceSCM extends SCM {
             }
         }
         return p4Client;
+    }
+
+    /**
+     * Contribute environment variables for the build.
+     * 
+     * @param build
+     * @param listener
+     * @return True if the operation succeeded, false otherwise.
+     * @throws InterruptedException
+     * @throws ParameterSubstitutionException 
+     */
+    private void contributeToBuildEnvironment(AbstractBuild<?, ?> build, BuildListener listener) throws InterruptedException, ParameterSubstitutionException {
+        SimpleEnvironmentContributingAction envAction = new SimpleEnvironmentContributingAction();
+        PrintStream log = listener.getLogger();
+
+        if (MacroStringHelper.substituteParameters(p4Stream, build, null) != null) {
+            String depotName = "";
+            String streamName = "";
+            Pattern p = Pattern.compile("^//(.+)/(.+)$");
+            Matcher matcher = p.matcher(MacroStringHelper.substituteParameters(p4Stream, build, null));
+            if (matcher.find()) {
+                depotName = matcher.group(1);
+                streamName = matcher.group(2);
+            }
+            envAction.put("PERFORCE_DEPOT", depotName);
+            log.println("Contributing environment variable 'PERFORCE_DEPOT=" + depotName + "' to the build.");
+            envAction.put("PERFORCE_STREAM", streamName);
+            log.println("Contributing environment variable 'PERFORCE_STREAM=" + streamName + "' to the build.");
+        }
+
+        PerforceTagAction pta = build.getAction(PerforceTagAction.class);
+        if (pta != null) {
+            if (pta.getChangeNumber() > 0) {
+                int lastChange = pta.getChangeNumber();
+                envAction.put("PERFORCE_CHANGELIST_SOURCE", Integer.toString(lastChange));
+                log.println("Contributing environment variable 'PERFORCE_CHANGELIST_SOURCE=" + Integer.toString(lastChange) + "' to the build.");
+                if (pta.getChangeNumberDate() != null) {
+                	String date = new SimpleDateFormat("yyyy/MM/dd").format(pta.getChangeNumberDate());
+                	envAction.put("PERFORCE_CHANGELIST_SOURCE_DATE", date);
+                	log.println("Contributing environment variable 'PERFORCE_CHANGELIST_SOURCE_DATE=" + date + "' to the build.");
+                }
+            }
+        }
+
+        build.addAction(envAction);
     }
 
     @Extension
