@@ -1702,40 +1702,21 @@ public class PerforceSCM extends SCM {
     }
 
     private String getEffectiveClientName(
-            String basename, 
+                @Nonnull String basename, 
                 @CheckForNull AbstractProject project, 
                 @CheckForNull Node buildNode)
             throws IOException, InterruptedException {
 
         String effectiveP4Client = basename;
 
+        //TODO: Seems that local node should be handled as well
         if (buildNode!=null && nodeIsRemote(buildNode) && !getSlaveClientNameFormat().equals("")) {
-            String host=null;
-            Computer c = buildNode.toComputer();
-            if (c != null)
-                host = c.getHostName();
-
-            if (host == null) {
-                LOGGER.log(Level.WARNING,"Could not get hostname for slave " + buildNode.getDisplayName());
-                host = "UNKNOWNHOST";
-            }
-
-            if (host.contains(".")) {
-                host = String.valueOf(host.subSequence(0, host.indexOf('.')));
-            }
-            // use hashcode of the nodename to get a unique, slave-specific client name
-            String hash = String.valueOf(buildNode.getNodeName().hashCode());
-
-            Map<String, String> substitutions = new Hashtable<String,String>();
             
-            //TODO: move to MacroStringHelper
-            substitutions.put("nodename", buildNode.getNodeName());
-            substitutions.put("hostname", host);
-            substitutions.put("hash", hash);
-            substitutions.put("basename", basename);
-
-            effectiveP4Client = MacroStringHelper.substituteParameters(
-                    getSlaveClientNameFormat(), this, project, buildNode, substitutions);
+            Map<String, String> additionalSubstitutions = new Hashtable<String,String>();
+            //TODO: Get rid of the outdated variable
+            additionalSubstitutions.put("basename", basename);
+            effectiveP4Client = MacroStringHelper.substituteParameters (
+                    getSlaveClientNameFormat(), this, project, buildNode, additionalSubstitutions);
         }
         // eliminate spaces, just in case
         effectiveP4Client = effectiveP4Client.replaceAll(" ", "_");

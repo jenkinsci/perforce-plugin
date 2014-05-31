@@ -228,7 +228,7 @@ public class MacroStringHelper {
                 
         // Prepare the substitution container and substitute vars
         Map<String, String> substitutions = new HashMap<String, String>();
-        getDefaultNodeSubstitutions(node, substitutions);
+        NodeSubstitutionHelper.getDefaultNodeSubstitutions(instance, node, substitutions);
         if (project != null) { 
             getDefaultSubstitutions(project, substitutions);
         }
@@ -314,34 +314,6 @@ public class MacroStringHelper {
         subst.put("BUILD_NUMBER", String.valueOf(build.getNumber()));
     }
         
-    /**
-     * Gets default variable substitutions for the {@link Node}.
-     * The method injects global and node-specific {@link EnvironmentVariablesNodeProperty}
-     * instances.
-     * @param node Target node. Can be null
-     * @param target Output collection
-     */
-    private static void getDefaultNodeSubstitutions(
-            @CheckForNull Node node, 
-            @Nonnull Map<String, String> target) {
-        // Global node properties
-        for (NodeProperty globalNodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
-            if (globalNodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                target.putAll(((EnvironmentVariablesNodeProperty)globalNodeProperty).getEnvVars());
-            }
-        }
-        
-        // Local node properties
-        if (node != null) {
-            for (NodeProperty nodeProperty : node.getNodeProperties()) {
-                if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                    target.putAll(((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars());
-                }
-            }
-        }
-        
-       //TODO: substitute node-specific variables fro PerforceSCM
-    }
     
     private static void getDefaultSubstitutions(
             @Nonnull AbstractProject project, 
