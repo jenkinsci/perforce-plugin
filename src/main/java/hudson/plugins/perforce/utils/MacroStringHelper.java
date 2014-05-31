@@ -68,10 +68,9 @@ public class MacroStringHelper {
      * @param project A project
      * @param node A node to be substituted
      * @param env Additional environment variables.
-     * @return Substituted string
+     * @return Substituted string. May be null if the input string is null
      * @throws ParameterSubstitutionException Format error (unresolved variable, etc.)
      */
-    @CheckForNull
     public static String substituteParameters(
             @CheckForNull String string,
             @Nonnull PerforceSCM instance,        
@@ -93,10 +92,9 @@ public class MacroStringHelper {
      * @param project A project
      * @param node A node to be substituted
      * @param env Additional environment variables.
-     * @return Substituted string
+     * @return Substituted string. May be null if the input string is null
      * @throws ParameterSubstitutionException Format error (unresolved variable, etc.)
      */
-    @CheckForNull
     public static String substituteParameters(
             @CheckForNull String string,
             @Nonnull PerforceSCM instance,
@@ -114,10 +112,9 @@ public class MacroStringHelper {
      * Substitute parameters and validate contents of the resulting string
      * @param string Input string
      * @param subst Variables Map
-     * @return Substituted string
+     * @return Substituted string. May be null if the input string is null
      * @throws ParameterSubstitutionException Format error (unresolved variable, etc.)
      */
-    @CheckForNull
     public static String substituteParameters(
             @CheckForNull String string,
             @Nonnull Map<String, String> subst)
@@ -134,10 +131,9 @@ public class MacroStringHelper {
      * @param instance Instance of {@link PerforceSCM}
      * @param build A build to be substituted
      * @param env Additional environment variables.
-     * @return Substituted string
+     * @return Substituted string. May be null if the input string is null
      * @throws ParameterSubstitutionException Format error (unresolved variable, etc.)
      */
-    @CheckForNull
     public static String substituteParameters(
             @CheckForNull String string,
             @Nonnull PerforceSCM instance,
