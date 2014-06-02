@@ -1698,14 +1698,14 @@ public class PerforceSCM extends SCM {
     private String getEffectiveClientName(AbstractBuild build, Map<String,String> env) throws ParameterSubstitutionException {
         Node buildNode = build.getBuiltOn();
         FilePath workspace = build.getWorkspace();
-        String effectiveP4Client = 
-                MacroStringHelper.substituteParameters(this.p4Client, this, build, env);
+        String effectiveP4Client = this.p4Client;
         try {
             effectiveP4Client = getEffectiveClientName(effectiveP4Client, build.getProject(), buildNode);
         } catch (Exception e) {
             new StreamTaskListener(System.out).getLogger().println(
                     "Could not get effective client name: " + e.getMessage());
         }
+        effectiveP4Client = MacroStringHelper.substituteParameters(effectiveP4Client, this, build, env);
         return effectiveP4Client;
     }
 
@@ -1715,8 +1715,8 @@ public class PerforceSCM extends SCM {
             @CheckForNull Node buildNode, 
             FilePath workspace)
             throws IOException, InterruptedException {
-        String basename = MacroStringHelper.substituteParameters(this.p4Client, this, project, buildNode, null);
-        return getEffectiveClientName(basename, project, buildNode);
+        String basename = getEffectiveClientName(this.p4Client, project, buildNode);
+        return MacroStringHelper.substituteParameters(basename, this, project, buildNode, null);
     }
 
     private String getEffectiveClientName(
