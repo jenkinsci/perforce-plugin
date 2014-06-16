@@ -24,12 +24,16 @@
 
 package hudson.plugins.perforce.utils;
 
+import hudson.EnvVars;
+import hudson.Util;
 import hudson.model.Computer;
+import hudson.model.Executor;
 import hudson.model.Hudson;
 import hudson.model.Node;
 import hudson.plugins.perforce.PerforceSCM;
 import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
+import java.io.IOException;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,13 +60,14 @@ public class NodeSubstitutionHelper {
             @Nonnull PerforceSCM instance,
             @CheckForNull Node node, 
             @Nonnull Map<String, String> target) {
+        
         // Global node properties
         for (NodeProperty globalNodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
             if (globalNodeProperty instanceof EnvironmentVariablesNodeProperty) {
                 target.putAll(((EnvironmentVariablesNodeProperty)globalNodeProperty).getEnvVars());
             }
         }
-        
+             
         // Local node properties
         if (node != null) {
             for (NodeProperty nodeProperty : node.getNodeProperties()) {
@@ -71,10 +76,35 @@ public class NodeSubstitutionHelper {
                 }
             }
        
+            final String nodeName = node.getNodeName();
+            
             // Push legacy variables
-            target.put("nodename", node.getNodeName());
+            target.put("nodename", nodeName);
             target.put("hostname", getHostName(node));
             target.put("hash", getNodeHash(node));
+            
+            // Push modern variables
+            target.put("NODE_NAME", nodeName.isEmpty() ? "master" : nodeName);
+            target.put("NODE_LABELS", Util.join(node.getAssignedLabels(), " "));
+            Thread t = Thread.currentThread();
+            if (t instanceof Executor) {
+                Executor e = (Executor) t;
+                target.put("EXECUTOR_NUMBER", String.valueOf(e.getNumber()));
+            }
+            
+            // Get environment
+            Computer c = node.toComputer();
+            if (c != null) {
+                try {
+                    EnvVars env = c.getEnvironment().overrideAll(target);
+                    target.putAll(env);
+                } catch (IOException ex) {
+                    // Ignore exception
+                } catch (InterruptedException ex) {
+                    // Ignore exception
+                    // TODO: Handle the exception
+                }
+            }
         }
     }
     

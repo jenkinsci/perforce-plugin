@@ -224,6 +224,7 @@ public class MacroStringHelper {
                 
         // Prepare the substitution container and substitute vars
         Map<String, String> substitutions = new HashMap<String, String>();
+        getDefaultCoreSubstitutions(substitutions);
         NodeSubstitutionHelper.getDefaultNodeSubstitutions(instance, node, substitutions);
         if (project != null) { 
             getDefaultSubstitutions(project, substitutions);
@@ -296,6 +297,19 @@ public class MacroStringHelper {
     }
     
     /**
+     * Gets variables of {@link Hudson} instance.
+     */
+    private static void getDefaultCoreSubstitutions(@Nonnull Map<String, String> env) {
+        String rootUrl = Hudson.getInstance().getRootUrl();
+        if (rootUrl != null) {
+            env.put("JENKINS_URL", rootUrl);
+            env.put("HUDSON_URL", rootUrl); // Legacy compatibility
+        }
+        env.put("JENKINS_HOME", Hudson.getInstance().getRootDir().getPath());
+        env.put("HUDSON_HOME", Hudson.getInstance().getRootDir().getPath());   // legacy compatibility
+    }
+    
+    /**
      * Substitutes {@link PerforceSCM}-specific variables.
      * In order to retain the backward compatibility, the input subst map's
      * should contain {@link AbstractProject} variables from 
@@ -316,6 +330,10 @@ public class MacroStringHelper {
         subst.put("BUILD_TAG", hudsonName + "-" + build.getProject().getName() + "-" + String.valueOf(build.getNumber()));
         subst.put("BUILD_ID", build.getId());
         subst.put("BUILD_NUMBER", String.valueOf(build.getNumber()));
+        String rootUrl = Hudson.getInstance().getRootUrl();
+        if (rootUrl != null) {   
+            subst.put("BUILD_URL", rootUrl + build.getUrl());
+        }
     }
         
     
@@ -324,6 +342,11 @@ public class MacroStringHelper {
             @Nonnull Map<String, String> subst) {
         
         subst.put("JOB_NAME", MacroStringHelper.getSafeJobName(project));
+        String rootUrl = Hudson.getInstance().getRootUrl();
+        if (rootUrl != null) {   
+            subst.put("JOB_URL", rootUrl + project.getUrl());
+        }
+        
         for (NodeProperty nodeProperty : Hudson.getInstance().getGlobalNodeProperties()) {
             if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
                 subst.putAll(((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars());
