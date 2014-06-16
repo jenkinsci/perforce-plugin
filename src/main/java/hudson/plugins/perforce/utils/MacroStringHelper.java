@@ -295,6 +295,14 @@ public class MacroStringHelper {
         return project.getFullName().replace('/', '-').replace('=', '-').replace(',', '-');
     }
     
+    /**
+     * Substitutes {@link PerforceSCM}-specific variables.
+     * In order to retain the backward compatibility, the input subst map's
+     * should contain {@link AbstractProject} variables from 
+     * {@link #getDefaultSubstitutions(hudson.model.AbstractProject, java.util.Map)}.
+     * @param instance {@link PerforceSCM} instance
+     * @param subst Input substitutions. 
+     */
     private static void getDefaultSubstitutions(
             @Nonnull PerforceSCM instance, 
             @Nonnull Map<String, String> subst) {
@@ -314,6 +322,7 @@ public class MacroStringHelper {
     private static void getDefaultSubstitutions(
             @Nonnull AbstractProject project, 
             @Nonnull Map<String, String> subst) {
+        
         subst.put("JOB_NAME", MacroStringHelper.getSafeJobName(project));
         for (NodeProperty nodeProperty : Hudson.getInstance().getGlobalNodeProperties()) {
             if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
