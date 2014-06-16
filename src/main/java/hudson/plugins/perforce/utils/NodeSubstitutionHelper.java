@@ -59,8 +59,7 @@ public class NodeSubstitutionHelper {
     /*package*/ static void getDefaultNodeSubstitutions(
             @Nonnull PerforceSCM instance,
             @CheckForNull Node node, 
-            @Nonnull Map<String, String> target) {
-        
+            @Nonnull Map<String, String> target) throws  InterruptedException {     
         // Global node properties
         for (NodeProperty globalNodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
             if (globalNodeProperty instanceof EnvironmentVariablesNodeProperty) {
@@ -100,9 +99,6 @@ public class NodeSubstitutionHelper {
                     target.putAll(env);
                 } catch (IOException ex) {
                     // Ignore exception
-                } catch (InterruptedException ex) {
-                    // Ignore exception
-                    // TODO: Handle the exception
                 }
             }
         }

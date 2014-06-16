@@ -452,7 +452,7 @@ public class PerforceSCM extends SCM {
     protected Depot getDepot(@Nonnull Launcher launcher, @Nonnull FilePath workspace,
             @CheckForNull AbstractProject project,
             @CheckForNull AbstractBuild build, @CheckForNull Node node)
-            throws ParameterSubstitutionException {
+            throws ParameterSubstitutionException, InterruptedException {
         HudsonP4ExecutorFactory p4Factory = new HudsonP4ExecutorFactory(launcher,workspace);
 
         Depot depot = new Depot(p4Factory);
@@ -519,28 +519,25 @@ public class PerforceSCM extends SCM {
         super.buildEnvVars(build, env);
         try {
             env.put("P4PORT", MacroStringHelper.substituteParameters(p4Port, this, build, env));
-            env.put("P4USER", MacroStringHelper.substituteParameters(p4User, this, build, env));
+            env.put("P4USER", MacroStringHelper.substituteParameters(p4User, this, build, env));   
+            
+            // if we want to allow p4 commands in script steps this helps
+            if (isExposeP4Passwd()) {
+                PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+                env.put("P4PASSWD", encryptor.decryptString(p4Passwd));
+            }
+            // this may help when tickets are used since we are
+            // not storing the ticket on the client during login
+            if (p4Ticket != null) {
+                env.put("P4TICKET", p4Ticket);
+            }
+            
+            env.put("P4CLIENT", getConcurrentClientName(build.getWorkspace(), getEffectiveClientName(build, env)));        
         } catch (ParameterSubstitutionException ex) {
-            LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Can't substitute P4USER or P4PORT", ex);
+            LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Cannot build environent variables due to unresolved macros", ex);
             //TODO: exit?
-        }
-        
-        // if we want to allow p4 commands in script steps this helps
-        if (isExposeP4Passwd()) {
-            PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
-            env.put("P4PASSWD", encryptor.decryptString(p4Passwd));
-        }
-        // this may help when tickets are used since we are
-        // not storing the ticket on the client during login
-        if (p4Ticket != null) {
-            env.put("P4TICKET", p4Ticket);
-        }
-
-        try {
-            env.put("P4CLIENT", getConcurrentClientName(build.getWorkspace(), getEffectiveClientName(build, env)));
-        } catch(ParameterSubstitutionException ex) {
-            LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Can't substitute P4CLIENT",ex);
-            //TODO: exit?
+        } catch (InterruptedException ex) {
+            LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Cannot build environment vars. The method has been interrupted");
         }
         
         PerforceTagAction pta = build.getAction(PerforceTagAction.class);
@@ -660,7 +657,7 @@ public class PerforceSCM extends SCM {
             @CheckForNull Node node,
             @Nonnull PrintStream log, 
             @Nonnull Depot depot) 
-            throws PerforceException, ParameterSubstitutionException {
+            throws PerforceException, ParameterSubstitutionException, InterruptedException {
         String effectiveProjectPath = useClientSpec 
                 ? getEffectiveProjectPathFromFile(build, project, node, log, depot)
                 : MacroStringHelper.substituteParameters(this.projectPath, this, build, project, node, null);
@@ -672,7 +669,8 @@ public class PerforceSCM extends SCM {
             @CheckForNull AbstractBuild build, 
             @CheckForNull AbstractProject project, 
             @CheckForNull Node node, 
-            @Nonnull PrintStream log, @Nonnull Depot depot) throws PerforceException, ParameterSubstitutionException {
+            @Nonnull PrintStream log, @Nonnull Depot depot) 
+            throws PerforceException, ParameterSubstitutionException, InterruptedException {
         String effectiveClientSpec = 
                 MacroStringHelper.substituteParameters(this.clientSpec, this, build, project, node, null);
         log.println("Read ClientSpec from: " + effectiveClientSpec);
@@ -1166,7 +1164,7 @@ public class PerforceSCM extends SCM {
             @Nonnull AbstractBuild build, 
             @Nonnull Depot depot, int newestChange, String projectPath, 
             @Nonnull PrintStream log) 
-            throws ParameterSubstitutionException
+            throws ParameterSubstitutionException, InterruptedException
     {
         int matrixLastChange = 0;
         // special consideration for matrix builds
@@ -1427,7 +1425,7 @@ public class PerforceSCM extends SCM {
      */
     private boolean isChangelistExcluded(Changelist changelist, 
             AbstractProject project, Node node, String view, PrintStream logger) 
-            throws ParameterSubstitutionException
+            throws ParameterSubstitutionException, InterruptedException
     {
         if (changelist == null) {
             return false;
@@ -1695,7 +1693,8 @@ public class PerforceSCM extends SCM {
         return p4workspace;
     }
 
-    private String getEffectiveClientName(AbstractBuild build, Map<String,String> env) throws ParameterSubstitutionException {
+    private String getEffectiveClientName(AbstractBuild build, Map<String,String> env) 
+            throws ParameterSubstitutionException, InterruptedException {
         Node buildNode = build.getBuiltOn();
         FilePath workspace = build.getWorkspace();
         String effectiveP4Client = this.p4Client;
@@ -2559,14 +2558,15 @@ public class PerforceSCM extends SCM {
         return encryptor.decryptString(p4Passwd);
     }
 
-    public String getDecryptedP4Passwd(AbstractBuild build) throws ParameterSubstitutionException {
+    public String getDecryptedP4Passwd(AbstractBuild build) 
+            throws ParameterSubstitutionException, InterruptedException {
         return MacroStringHelper.substituteParameters(getDecryptedP4Passwd(), this, build, null);
     }
 
     /**
      * @deprecated Use {@link #getDecryptedP4Passwd(hudson.model.AbstractProject, hudson.model.Node)} instead.
      */
-    public String getDecryptedP4Passwd(AbstractProject project) {
+    public String getDecryptedP4Passwd(AbstractProject project) throws InterruptedException {
         try {
             return getDecryptedP4Passwd(project, null);
         } catch (ParameterSubstitutionException ex) {
@@ -2575,7 +2575,7 @@ public class PerforceSCM extends SCM {
     }
     
     public String getDecryptedP4Passwd(@CheckForNull AbstractProject project, @CheckForNull Node node) 
-            throws ParameterSubstitutionException {
+            throws ParameterSubstitutionException, InterruptedException {
         return MacroStringHelper.substituteParameters(getDecryptedP4Passwd(),
                 this, project, node, null);
     }

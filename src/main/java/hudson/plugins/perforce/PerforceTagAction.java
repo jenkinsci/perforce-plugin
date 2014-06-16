@@ -167,7 +167,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
     /**
      * Invoked to actually tag the workspace.
      */
-    public synchronized void doSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+    public synchronized void doSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, InterruptedException {
         getACL().checkPermission(getPermission());
 
         String tag = req.getParameter("name");
@@ -179,7 +179,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
         rsp.sendRedirect(".");
     }
 
-    public void tagBuild(String tagname, String description, String owner) throws IOException {
+    public void tagBuild(String tagname, String description, String owner) throws IOException, InterruptedException {
         Label label = new Label();
         label.setName(tagname);
         label.setDescription(description);

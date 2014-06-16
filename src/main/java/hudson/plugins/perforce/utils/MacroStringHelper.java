@@ -78,7 +78,7 @@ public class MacroStringHelper {
             @CheckForNull AbstractProject project,
             @CheckForNull Node node,
             @CheckForNull Map<String, String> env)
-            throws ParameterSubstitutionException {
+            throws ParameterSubstitutionException, InterruptedException {
         
         return build != null
                 ? substituteParameters(string, instance, build, env)
@@ -101,7 +101,7 @@ public class MacroStringHelper {
             @CheckForNull AbstractProject project,
             @CheckForNull Node node,
             @CheckForNull Map<String, String> env)
-            throws ParameterSubstitutionException {
+            throws ParameterSubstitutionException, InterruptedException {
         if (string == null) return null;
         String result = substituteParametersNoCheck(string, instance, project, node, env);
         checkString(result);
@@ -139,7 +139,7 @@ public class MacroStringHelper {
             @Nonnull PerforceSCM instance,
             @Nonnull AbstractBuild build,
             @CheckForNull Map<String, String> env)
-            throws ParameterSubstitutionException {
+            throws ParameterSubstitutionException, InterruptedException {
         if (string == null) return null;
         String result = substituteParametersNoCheck(string, instance, build, env);
         checkString(result);
@@ -207,7 +207,7 @@ public class MacroStringHelper {
             @Nonnull PerforceSCM instance,
             @CheckForNull AbstractProject project,
             @CheckForNull Node node,
-            @CheckForNull Map<String, String> env) {
+            @CheckForNull Map<String, String> env) throws InterruptedException {
         
         if (!containsMacro(inputString)) { // do nothing for the missing macro
             return inputString;
@@ -247,7 +247,7 @@ public class MacroStringHelper {
             @Nonnull String inputString,
             @Nonnull PerforceSCM instance,
             @Nonnull AbstractBuild build, 
-            @CheckForNull Map<String, String> env) {
+            @CheckForNull Map<String, String> env) throws InterruptedException {
         
         if (!containsMacro(inputString)) {
             return inputString;
