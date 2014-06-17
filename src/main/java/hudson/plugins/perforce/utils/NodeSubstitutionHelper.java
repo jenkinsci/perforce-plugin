@@ -89,6 +89,8 @@ public class NodeSubstitutionHelper {
             if (t instanceof Executor) {
                 Executor e = (Executor) t;
                 target.put("EXECUTOR_NUMBER", String.valueOf(e.getNumber()));
+            } else {         
+                target.put("EXECUTOR_NUMBER", "UNKNOWNEXECUTOR");
             }
             
             // Get environment
