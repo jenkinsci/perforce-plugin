@@ -85,13 +85,6 @@ public class NodeSubstitutionHelper {
             // Push modern variables
             target.put("NODE_NAME", nodeName.isEmpty() ? "master" : nodeName);
             target.put("NODE_LABELS", Util.join(node.getAssignedLabels(), " "));
-            Thread t = Thread.currentThread();
-            if (t instanceof Executor) {
-                Executor e = (Executor) t;
-                target.put("EXECUTOR_NUMBER", String.valueOf(e.getNumber()));
-            } else {         
-                target.put("EXECUTOR_NUMBER", "UNKNOWNEXECUTOR");
-            }
             
             // Get environment
             Computer c = node.toComputer();
