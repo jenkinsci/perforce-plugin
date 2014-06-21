@@ -192,6 +192,16 @@ public class MacroStringHelper {
         return str != null && str.matches(".*\\$\\{.*\\}.*");
     }
   
+    /**
+     * Check if the input string contains the specified variable reference.
+     * @param str String to be checked
+     * @param variableName Variable name
+     * @return true if the string contains the specified variable
+     */
+    public static boolean containsVariable(@CheckForNull String str, @Nonnull String variableName) {
+        return str != null && str.matches(".*\\$\\{" + variableName + "\\}.*");
+    }
+    
      /**
      * Substitute parameters and validate contents of the resulting string.
      * This is a keystone method of {@link MacroStringHelper}. 

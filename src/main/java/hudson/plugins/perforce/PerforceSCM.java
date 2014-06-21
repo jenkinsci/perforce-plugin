@@ -2013,6 +2013,11 @@ public class PerforceSCM extends SCM {
 
         /**
          * Checks to see if the specified workspace is valid.
+         * The method also checks forbidden variables in the client name.
+         * (see <a href="https://wiki.jenkins-ci.org/display/JENKINS/Perforce+Plugin">
+         * Perforce Plugin Wiki page</a>) 
+         * to get the clarification of forbidden variables.
+         * An improper usage of the variable may corrupt Perforce workspaces in project builds. 
          */
         public FormValidation doValidateP4Client(StaplerRequest req) {
             String workspace = Util.fixEmptyAndTrim(req.getParameter("client"));          
@@ -2023,6 +2028,14 @@ public class PerforceSCM extends SCM {
                 // Check P4 client pattern first, because workspace check fails on valid client names with variables
                 if (!workspace.matches(getP4ClientPattern())) {
                     return FormValidation.error("Client name doesn't meet global pattern: "+getP4ClientPattern());
+                }
+                
+                // Check forbidden variables
+                for (String variableName : P4CLIENT_FORBIDDEN_VARIABLES) {
+                    if (MacroStringHelper.containsVariable(workspace, variableName)) {
+                        return FormValidation.error(hudson.plugins.perforce.Messages.
+                                PerforceSCM_doValidateP4Client_forbiddenVariableError(variableName));
+                    }
                 }
                 
                 // Then, check depot 
@@ -2364,7 +2377,10 @@ public class PerforceSCM extends SCM {
             Pattern.compile("^\\s*([+-]?//\\S+?/\\S+)\\s+\"//\\S+?(/[^\"]+)\"\\s*$");
     private static final Pattern QUOTED_DEPOT_AND_WORKSPACE =
             Pattern.compile("^\\s*\"([+-]?//\\S+?/[^\"]+)\"\\s+//\\S+?(/\\S+)$\\s*");
-
+    private static final String[] P4CLIENT_FORBIDDEN_VARIABLES= 
+            {"EXECUTOR_NUMBER"};
+    
+    
     /**
      * Parses the projectPath into a list of pairs of strings representing the depot and client
      * paths. Even items are depot and odd items are client.
