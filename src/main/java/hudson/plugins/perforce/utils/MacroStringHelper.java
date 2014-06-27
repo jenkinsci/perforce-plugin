@@ -25,6 +25,9 @@
 package hudson.plugins.perforce.utils;
 
 import hudson.EnvVars;
+import hudson.matrix.Axis;
+import hudson.matrix.MatrixConfiguration;
+import hudson.matrix.MatrixProject;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
@@ -39,6 +42,7 @@ import hudson.slaves.NodeProperty;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -375,6 +379,18 @@ public class MacroStringHelper {
                 } catch (Exception e) {
                     // Do nothing
                 }
+            }
+        }
+        
+        // Handle Matrix Axes
+        if (project instanceof MatrixConfiguration) {
+            MatrixConfiguration matrixConfiguration = (MatrixConfiguration) project;
+            subst.putAll(matrixConfiguration.getCombination());
+        }
+        if (project instanceof MatrixProject) {
+            MatrixProject matrixProject = (MatrixProject) project;
+            for (Axis axis : matrixProject.getAxes()) {
+                subst.put(axis.name, axis.size() >0 ? axis.value(0) : "");
             }
         }
     }
