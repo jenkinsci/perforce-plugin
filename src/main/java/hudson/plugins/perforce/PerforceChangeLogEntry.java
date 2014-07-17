@@ -65,7 +65,12 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
     }
 
     //used for email-ext
+    @Deprecated
     public String getRevision() {
+        return getChangeNumber();
+    }
+    //used for email-ext
+    public String getCommitId() {
         return getChangeNumber();
     }
 
@@ -76,9 +81,15 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
     }
 
     //used for email-ext
+    @Deprecated
     public String getDate() {
         return getChangeTime();
     }
+    //used for email-ext
+    public long getTimestamp() {
+        return getChange().getDate().getTime();
+    }
+
 
     /**
      * {@inheritDoc}
