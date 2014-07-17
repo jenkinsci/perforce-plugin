@@ -110,14 +110,20 @@ public class PerforceTagNotifier extends Notifier {
                     return false;
                 }
             }
+            
+            PerforceSCM scm = tagAction.getSCM();
+            if (scm == null) {
+                listener.getLogger().println("Cannot retrieve the Perforce SCM");
+                return false;
+            }
 
             listener.getLogger().println("Labelling Build in Perforce using " + rawLabelName);
 
             String labelName, labelDesc, labelOwner;
             try {
-                labelName = MacroStringHelper.substituteParameters(rawLabelName, build, null);
-                labelDesc = MacroStringHelper.substituteParameters(rawLabelDesc, build, null);
-                labelOwner = MacroStringHelper.substituteParameters(rawLabelOwner, build, null);
+                labelName = MacroStringHelper.substituteParameters(rawLabelName, scm, build, null);
+                labelDesc = MacroStringHelper.substituteParameters(rawLabelDesc, scm, build, null);
+                labelOwner = MacroStringHelper.substituteParameters(rawLabelOwner, scm, build, null);
             } catch (ParameterSubstitutionException ex) {
                 listener.getLogger().println("Parameter substitution error in label items. "+ex.getMessage());
                 return false;

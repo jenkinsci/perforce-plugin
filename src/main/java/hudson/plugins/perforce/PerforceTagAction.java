@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.List;
+import javax.annotation.CheckForNull;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
@@ -144,6 +145,14 @@ public class PerforceTagAction extends AbstractScmTagAction {
         }
         return null;
     }
+    
+    @CheckForNull
+    public PerforceSCM getSCM() {
+        if(this.getBuild().getProject().getScm() instanceof PerforceSCM){
+            return (PerforceSCM)this.getBuild().getProject().getScm();
+        }
+        return null;
+    }
 
     /**
      * Checks if the value is a valid Perforce tag (label) name.
@@ -158,7 +167,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
     /**
      * Invoked to actually tag the workspace.
      */
-    public synchronized void doSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+    public synchronized void doSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, InterruptedException {
         getACL().checkPermission(getPermission());
 
         String tag = req.getParameter("name");
@@ -170,16 +179,16 @@ public class PerforceTagAction extends AbstractScmTagAction {
         rsp.sendRedirect(".");
     }
 
-    public void tagBuild(String tagname, String description, String owner) throws IOException {
+    public void tagBuild(String tagname, String description, String owner) throws IOException, InterruptedException {
         Label label = new Label();
         label.setName(tagname);
         label.setDescription(description);
         label.setRevision(new Integer(changeNumber).toString());
         if(owner!=null && !owner.equals("")) label.setOwner(owner);
 
-        if(this.getBuild().getProject().getScm() instanceof PerforceSCM){
-            PerforceSCM scm = (PerforceSCM)this.getBuild().getProject().getScm();
-            depot.setPassword(scm.getDecryptedP4Passwd(this.getBuild().getProject()));
+        PerforceSCM scm = getSCM();
+        if(scm != null){
+            depot.setPassword(scm.getDecryptedP4Passwd(this.getBuild().getProject(), this.getBuild().getBuiltOn()));
         }
 
         //Only take the depot paths and add them to the view.

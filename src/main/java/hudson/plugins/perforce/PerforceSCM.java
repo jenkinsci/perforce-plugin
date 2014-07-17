@@ -16,7 +16,6 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Util;
-import hudson.FilePath.FileCallable;
 import hudson.Launcher;
 import static hudson.Util.fixNull;
 import hudson.matrix.MatrixBuild;
@@ -28,7 +27,6 @@ import hudson.plugins.perforce.config.MaskViewConfig;
 import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
 import hudson.plugins.perforce.utils.MacroStringHelper;
 import hudson.plugins.perforce.utils.ParameterSubstitutionException;
-import hudson.remoting.VirtualChannel;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.PollingResult;
 import hudson.scm.SCM;
@@ -36,7 +34,6 @@ import hudson.scm.SCMDescriptor;
 import hudson.scm.SCMRevisionState;
 import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
-import hudson.tasks.BuildTrigger;
 import hudson.tasks.Messages;
 import hudson.util.FormValidation;
 import hudson.util.LogTaskListener;
@@ -56,7 +53,6 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
-import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
@@ -64,6 +60,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * Extends {@link SCM} to provide integration with Perforce SCM repositories.
@@ -450,29 +448,23 @@ public class PerforceSCM extends SCM {
      * @param node the value of node
      * @exception ParameterSubstitutionException
      */
-    protected Depot getDepot(Launcher launcher, FilePath workspace, AbstractProject project, AbstractBuild build, Node node) 
-            throws ParameterSubstitutionException
-    {
-
+    @Nonnull
+    protected Depot getDepot(@Nonnull Launcher launcher, @Nonnull FilePath workspace,
+            @CheckForNull AbstractProject project,
+            @CheckForNull AbstractBuild build, @CheckForNull Node node)
+            throws ParameterSubstitutionException, InterruptedException {
         HudsonP4ExecutorFactory p4Factory = new HudsonP4ExecutorFactory(launcher,workspace);
 
         Depot depot = new Depot(p4Factory);
         
-        if (build != null) {
-            depot.setClient(MacroStringHelper.substituteParameters(p4Client, build, null));
-            depot.setUser(MacroStringHelper.substituteParameters(p4User, build, null));
-            depot.setPort(MacroStringHelper.substituteParameters(p4Port, build, null));
+        depot.setClient(MacroStringHelper.substituteParameters(p4Client, this, build, project, node, null));
+        depot.setUser(MacroStringHelper.substituteParameters(p4User, this, build, project, node, null));
+        depot.setPort(MacroStringHelper.substituteParameters(p4Port, this, build, project, node, null));
+        
+        if (build != null) { // We can retrieve all parameters from the build's environment         
             depot.setPassword(getDecryptedP4Passwd(build));
-        } else if (project != null) {
-            depot.setClient(MacroStringHelper.substituteParameters(p4Client, getDefaultSubstitutions(project)));
-            depot.setUser(MacroStringHelper.substituteParameters(p4User, getDefaultSubstitutions(project)));
-            depot.setPort(MacroStringHelper.substituteParameters(p4Port, getDefaultSubstitutions(project)));
-            depot.setPassword(getDecryptedP4Passwd(project));
-        } else {
-            depot.setClient(p4Client);
-            depot.setUser(p4User);
-            depot.setPort(p4Port);
-            depot.setPassword(getDecryptedP4Passwd());
+        } else { // project can be null
+            depot.setPassword(project != null ? getDecryptedP4Passwd(project, node) : getDecryptedP4Passwd());
         }
 
         if (p4Ticket != null && !p4Ticket.equals(""))
@@ -513,8 +505,7 @@ public class PerforceSCM extends SCM {
 
         return depot;
     }
-
-     
+   
     /**
      * Override of SCM.buildEnvVars() in order to setup the last change we have
      * sync'd to as a Hudson
@@ -524,32 +515,29 @@ public class PerforceSCM extends SCM {
      * @param env
      */
     @Override
-    public void buildEnvVars(AbstractBuild build, Map<String, String> env) {
+    public void buildEnvVars(@Nonnull AbstractBuild build, @Nonnull Map<String, String> env) {
         super.buildEnvVars(build, env);
         try {
-            env.put("P4PORT", MacroStringHelper.substituteParameters(p4Port, build, env));
-            env.put("P4USER", MacroStringHelper.substituteParameters(p4User, build, env));
+            env.put("P4PORT", MacroStringHelper.substituteParameters(p4Port, this, build, env));
+            env.put("P4USER", MacroStringHelper.substituteParameters(p4User, this, build, env));   
+            
+            // if we want to allow p4 commands in script steps this helps
+            if (isExposeP4Passwd()) {
+                PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+                env.put("P4PASSWD", encryptor.decryptString(p4Passwd));
+            }
+            // this may help when tickets are used since we are
+            // not storing the ticket on the client during login
+            if (p4Ticket != null) {
+                env.put("P4TICKET", p4Ticket);
+            }
+            
+            env.put("P4CLIENT", getConcurrentClientName(build.getWorkspace(), getEffectiveClientName(build, env)));        
         } catch (ParameterSubstitutionException ex) {
-            LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Can't substitute P4USER or P4PORT", ex);
+            LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Cannot build environent variables due to unresolved macros", ex);
             //TODO: exit?
-        }
-        
-        // if we want to allow p4 commands in script steps this helps
-        if (isExposeP4Passwd()) {
-            PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
-            env.put("P4PASSWD", encryptor.decryptString(p4Passwd));
-        }
-        // this may help when tickets are used since we are
-        // not storing the ticket on the client during login
-        if (p4Ticket != null) {
-            env.put("P4TICKET", p4Ticket);
-        }
-
-        try {
-            env.put("P4CLIENT", getConcurrentClientName(build.getWorkspace(), getEffectiveClientName(build, env)));
-        } catch(ParameterSubstitutionException ex) {
-            LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Can't substitute P4CLIENT",ex);
-            //TODO: exit?
+        } catch (InterruptedException ex) {
+            LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Cannot build environment vars. The method has been interrupted");
         }
         
         PerforceTagAction pta = build.getAction(PerforceTagAction.class);
@@ -574,14 +562,17 @@ public class PerforceSCM extends SCM {
      * @param tool the p4 tool installation name
      * @return path to p4 tool path or an empty string if none is found
      */
-    public String getP4Executable(String tool) {
+    @Nonnull
+    public String getP4Executable(@CheckForNull String tool) {
         PerforceToolInstallation toolInstallation = getP4Tool(tool);
         if (toolInstallation == null)
             return "p4";
         return toolInstallation.getP4Exe();
     }
 
-    public String getP4Executable(String tool, Node node, TaskListener listener) {
+    @Nonnull
+    public String getP4Executable(@CheckForNull String tool, 
+            @Nonnull Node node, @Nonnull TaskListener listener) {
         PerforceToolInstallation toolInstallation = getP4Tool(tool);
         if (toolInstallation == null)
             return "p4";
@@ -602,7 +593,8 @@ public class PerforceSCM extends SCM {
      * @param tool the p4 tool installation name
      * @return path to p4 tool installation or null
      */
-    public PerforceToolInstallation getP4Tool(String tool) {
+    @CheckForNull
+    public PerforceToolInstallation getP4Tool(@CheckForNull String tool) {
         PerforceToolInstallation[] installations = ((hudson.plugins.perforce.PerforceToolInstallation.DescriptorImpl)Hudson.getInstance().
                 getDescriptorByType(PerforceToolInstallation.DescriptorImpl.class)).getInstallations();
         for (PerforceToolInstallation i : installations) {
@@ -658,64 +650,38 @@ public class PerforceSCM extends SCM {
         return this;
     }
 
-    private Hashtable<String, String> getDefaultSubstitutions(AbstractProject project) {
-        Hashtable<String, String> subst = new Hashtable<String, String>();
-        subst.put("JOB_NAME", MacroStringHelper.getSafeJobName(project));    
-        for (NodeProperty nodeProperty: Hudson.getInstance().getGlobalNodeProperties()) {
-            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                subst.putAll(((EnvironmentVariablesNodeProperty)nodeProperty).getEnvVars());
-            }
-        }
-        ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) project.getProperty(hudson.model.ParametersDefinitionProperty.class);
-        if (pdp != null) {
-            for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
-                try {
-                    ParameterValue defaultValue = pd.getDefaultParameterValue();
-                    if (defaultValue != null) {
-                        String name = defaultValue.getName();
-                        String value = defaultValue.createVariableResolver(null).resolve(name);
-                        subst.put(name, value);
-                    }
-                } catch (Exception e) {
-                }
-            }
-        }
-        subst.put("P4USER", MacroStringHelper.substituteParametersNoCheck(p4User, subst));
-        return subst;
+    @Nonnull
+    private String getEffectiveProjectPath(
+            @CheckForNull AbstractBuild build, 
+            @Nonnull AbstractProject project, 
+            @CheckForNull Node node,
+            @Nonnull PrintStream log, 
+            @Nonnull Depot depot) 
+            throws PerforceException, ParameterSubstitutionException, InterruptedException {
+        String effectiveProjectPath = useClientSpec 
+                ? getEffectiveProjectPathFromFile(build, project, node, log, depot)
+                : MacroStringHelper.substituteParameters(this.projectPath, this, build, project, node, null);
+        return effectiveProjectPath;
     }
 
-    private String getEffectiveProjectPath(AbstractBuild build, AbstractProject project, PrintStream log, Depot depot) 
-            throws PerforceException, ParameterSubstitutionException {
-        String projectPath;
-        if (useClientSpec) {
-            projectPath = getEffectiveProjectPathFromFile(build, project, log, depot);
-        } else if (build != null) {
-            projectPath = MacroStringHelper.substituteParameters(this.projectPath, build, null);
-        } else {
-            projectPath = MacroStringHelper.substituteParameters(this.projectPath, getDefaultSubstitutions(project));
-        }
-        return projectPath;
+    @Nonnull
+    private String getEffectiveProjectPathFromFile(
+            @CheckForNull AbstractBuild build, 
+            @CheckForNull AbstractProject project, 
+            @CheckForNull Node node, 
+            @Nonnull PrintStream log, @Nonnull Depot depot) 
+            throws PerforceException, ParameterSubstitutionException, InterruptedException {
+        String effectiveClientSpec = 
+                MacroStringHelper.substituteParameters(this.clientSpec, this, build, project, node, null);
+        log.println("Read ClientSpec from: " + effectiveClientSpec);
+        com.tek42.perforce.parse.File f = depot.getFile(effectiveClientSpec);
+        String effectiveProjectPath = 
+                MacroStringHelper.substituteParameters(f.read(), this, build, project, node, null);
+       
+        return effectiveProjectPath;
     }
 
-    private String getEffectiveProjectPathFromFile(AbstractBuild build, AbstractProject project, PrintStream log, Depot depot) throws PerforceException, ParameterSubstitutionException {
-        String clientSpec;
-        if (build != null) {
-            clientSpec = MacroStringHelper.substituteParameters(this.clientSpec, build, null);
-        } else {
-            clientSpec = MacroStringHelper.substituteParametersNoCheck(this.clientSpec, getDefaultSubstitutions(project));
-        }
-        log.println("Read ClientSpec from: " + clientSpec);
-        com.tek42.perforce.parse.File f = depot.getFile(clientSpec);
-        String projectPath = f.read();
-        if (build != null) {
-            projectPath = MacroStringHelper.substituteParameters(projectPath, build, null);
-        } else {
-            projectPath = MacroStringHelper.substituteParametersNoCheck(projectPath, getDefaultSubstitutions(project));
-        }
-        return projectPath;
-    }
-
-    private int getLastBuildChangeset(AbstractProject project) {
+    private int getLastBuildChangeset(@Nonnull AbstractProject project) {
         Run lastBuild = project.getLastBuild();
         return getLastChange(lastBuild);
     }
@@ -730,11 +696,14 @@ public class PerforceSCM extends SCM {
      * @throws IOException
      * @throws InterruptedException
      */
-    private String getLocalPathName(FilePath path, boolean isUnix) throws IOException, InterruptedException {
+    @Nonnull
+    private String getLocalPathName(@Nonnull FilePath path, boolean isUnix) 
+            throws IOException, InterruptedException {
         return processPathName(path.getRemote(), isUnix);
     }
 
-    public static String processPathName(String path, boolean isUnix) {
+    @Nonnull
+    public static String processPathName(@Nonnull String path, boolean isUnix) {
         String pathName = path;
         pathName = pathName.replaceAll("/\\./", "/");
         pathName = pathName.replaceAll("\\\\\\.\\\\", "\\\\");
@@ -752,7 +721,8 @@ public class PerforceSCM extends SCM {
         return pathName;
     }
 
-    private static void retrieveUserInformation(Depot depot, List<Changelist> changes) throws PerforceException {
+    private static void retrieveUserInformation(@Nonnull Depot depot, 
+            @Nonnull List<Changelist> changes) throws PerforceException {
         // uniqify in order to reduce number of calls to P4.
         HashSet<String> users = new HashSet<String>();
         for (Changelist change : changes) {
@@ -813,12 +783,10 @@ public class PerforceSCM extends SCM {
 
     private static class WipeWorkspaceExcludeFilter implements FileFilter, Serializable {
 
-        private List<String> excluded = new ArrayList<String>();
+        private final List<String> excluded = new ArrayList<String>();
 
         public WipeWorkspaceExcludeFilter(String... args) {
-            for (String arg : args) {
-                excluded.add(arg);
-            }
+            excluded.addAll(Arrays.asList(args));
         }
 
         public void exclude(String arg) {
@@ -835,7 +803,8 @@ public class PerforceSCM extends SCM {
         }
     }
 
-    private static boolean overrideWithBooleanParameter(String paramName, AbstractBuild build, boolean dflt) {
+    private static boolean overrideWithBooleanParameter(String paramName, 
+            @Nonnull AbstractBuild build, boolean dflt) {
         if (build.getBuildVariables() != null) {
             Object param = build.getBuildVariables().get(paramName);
             if (param != null) {
@@ -856,13 +825,13 @@ public class PerforceSCM extends SCM {
         PrintStream log = listener.getLogger();
         changelogFilename = changelogFile.getAbsolutePath();
         // HACK: Force build env vars to initialize
-        MacroStringHelper.substituteParameters("", build, null);
+        MacroStringHelper.substituteParameters("", this, build, null);
         
         // Use local variables so that substitutions are not saved
-        String p4Label = MacroStringHelper.substituteParameters(this.p4Label, build, null);
-        String viewMask = MacroStringHelper.substituteParameters(this.viewMask, build, null);
+        String p4Label = MacroStringHelper.substituteParameters(this.p4Label, this, build, null);
+        String viewMask = MacroStringHelper.substituteParameters(this.viewMask, this, build, null);
         Depot depot = getDepot(launcher,workspace, build.getProject(), build, build.getBuiltOn());
-        String p4Stream = MacroStringHelper.substituteParameters(this.p4Stream, build, null);
+        String p4Stream = MacroStringHelper.substituteParameters(this.p4Stream, this, build, null);
         
         // Pull from optional named parameters
         boolean wipeBeforeBuild = overrideWithBooleanParameter(
@@ -892,10 +861,10 @@ public class PerforceSCM extends SCM {
 
         try {
             // keep projectPath local so any modifications for slaves don't get saved
-            String projectPath;
-            projectPath = getEffectiveProjectPath(build, build.getProject(), log, depot);
+            String effectiveProjectPath= getEffectiveProjectPath(build, 
+                    build.getProject(), build.getBuiltOn(), log, depot);
 
-            Workspace p4workspace = getPerforceWorkspace(build.getProject(), projectPath, depot, build.getBuiltOn(), build, launcher, workspace, listener, false);
+            Workspace p4workspace = getPerforceWorkspace(build.getProject(), effectiveProjectPath, depot, build.getBuiltOn(), build, launcher, workspace, listener, false);
 
             boolean dirtyWorkspace = p4workspace.isDirty();
             saveWorkspaceIfDirty(depot, p4workspace, log);
@@ -904,7 +873,7 @@ public class PerforceSCM extends SCM {
             String p4config;
             WipeWorkspaceExcludeFilter wipeFilter;
             try {
-                p4config = MacroStringHelper.substituteParameters("${P4CONFIG}", build, null);
+                p4config = MacroStringHelper.substituteParameters("${P4CONFIG}", this, build, null);
                 wipeFilter = new WipeWorkspaceExcludeFilter(".p4config",p4config);
             } catch (ParameterSubstitutionException ex) {
                 wipeFilter = new WipeWorkspaceExcludeFilter();
@@ -953,12 +922,12 @@ public class PerforceSCM extends SCM {
                     String p4Client = getConcurrentClientName(workspace, getEffectiveClientName(build, null));
                     p4workspace = depot.getWorkspaces().getWorkspace(p4Client, p4Stream);
                 }
-                projectPath = p4workspace.getTrimmedViewsAsString();
+                effectiveProjectPath = p4workspace.getTrimmedViewsAsString();
             }
             // If we're not managing the view, populate the projectPath with the current view from perforce
             // This is both for convenience, and so the labeling mechanism can operate correctly
             if (!updateView) {
-                projectPath = p4workspace.getTrimmedViewsAsString();
+                effectiveProjectPath = p4workspace.getTrimmedViewsAsString();
             }
 
             String p4WorkspacePath = "//" + p4workspace.getName() + "/...";
@@ -993,7 +962,7 @@ public class PerforceSCM extends SCM {
                 if (p4Counter != null && !updateCounterValue) {
                     //use a counter
                     String counterName;
-                    counterName = MacroStringHelper.substituteParameters(this.p4Counter, build, null);
+                    counterName = MacroStringHelper.substituteParameters(this.p4Counter, this, build, null);
                     Counter counter = depot.getCounters().getCounter(counterName);
                     newestChange = counter.getValue();
                 } else {
@@ -1025,7 +994,7 @@ public class PerforceSCM extends SCM {
                 for (int i = workspaceChanges.size()-1; i >= 0; --i) {
                     int changeNumber = workspaceChanges.get(i);
                     Changelist changelist = depot.getChanges().getChangelist(changeNumber, fileLimit);
-                    if (!isChangelistExcluded(changelist, build.getProject(), p4workspace.getViewsAsString(), log)) {
+                    if (!isChangelistExcluded(changelist, build.getProject(), build.getBuiltOn(), p4workspace.getViewsAsString(), log)) {
                         newestChange = changeNumber;
                         break;
                     }
@@ -1036,7 +1005,7 @@ public class PerforceSCM extends SCM {
             }
             
             if (build instanceof MatrixRun) {
-                newestChange = getOrSetMatrixChangeSet(build, depot, newestChange, projectPath, log);
+                newestChange = getOrSetMatrixChangeSet(build, depot, newestChange, effectiveProjectPath, log);
             }
             
             if (lastChange <= 0) {
@@ -1132,8 +1101,8 @@ public class PerforceSCM extends SCM {
             }
             // If we aren't managing the client views, update the current ones
             // with those from perforce, and save them if they have changed.
-            if (!this.updateView && !projectPath.equals(this.projectPath)) {
-                this.projectPath = projectPath;
+            if (!this.updateView && !effectiveProjectPath.equals(this.projectPath)) {
+                this.projectPath = effectiveProjectPath;
                 doSaveProject = true;
             }
             if (doSaveProject) {
@@ -1143,14 +1112,14 @@ public class PerforceSCM extends SCM {
             // Add tagging action that enables the user to create a label
             // for this build.
             build.addAction(new PerforceTagAction(
-                build, depot, newestChange, projectPath, MacroStringHelper.substituteParameters(p4User, build, null)));
+                build, depot, newestChange, effectiveProjectPath, MacroStringHelper.substituteParameters(p4User, this, build, null)));
 
             build.addAction(new PerforceSCMRevisionState(newestChange));
 
             if (p4Counter != null && updateCounterValue) {
                 // Set or create a counter to mark this change
                 Counter counter = new Counter();
-                String counterName = MacroStringHelper.substituteParameters(this.p4Counter, build, null);
+                String counterName = MacroStringHelper.substituteParameters(this.p4Counter, this, build, null);
                 counter.setName(counterName);
                 counter.setValue(newestChange);
                 log.println("Updating counter " + counterName + " to " + newestChange);
@@ -1191,10 +1160,13 @@ public class PerforceSCM extends SCM {
 		
     }
 
-    private synchronized int getOrSetMatrixChangeSet(AbstractBuild build, Depot depot, int newestChange, String projectPath, PrintStream log) 
-            throws ParameterSubstitutionException
+    private synchronized int getOrSetMatrixChangeSet(
+            @Nonnull AbstractBuild build, 
+            @Nonnull Depot depot, int newestChange, String projectPath, 
+            @Nonnull PrintStream log) 
+            throws ParameterSubstitutionException, InterruptedException
     {
-        int lastChange = 0;
+        int matrixLastChange = 0;
         // special consideration for matrix builds
         if (build instanceof MatrixRun) {
             log.println("This is a matrix run, trying to use change number from parent/siblings...");
@@ -1204,16 +1176,17 @@ public class PerforceSCM extends SCM {
                 if (parentChange > 0) {
                     // use existing changeset from parent
                     log.println("Latest change from parent is: "+Integer.toString(parentChange));
-                    lastChange = parentChange;
+                    matrixLastChange = parentChange;
                 } else {
                     // no changeset on parent, set it for other
                     // matrixruns to use
                     log.println("No change number has been set by parent/siblings. Using latest.");
-                    parentBuild.addAction(new PerforceTagAction(build, depot, newestChange, projectPath, MacroStringHelper.substituteParameters(p4User,build,null)));
+                    parentBuild.addAction(new PerforceTagAction(build, depot, newestChange, projectPath, 
+                            MacroStringHelper.substituteParameters(p4User, this, build, null)));
                 }
             }
         }
-        return lastChange;
+        return matrixLastChange;
     }
 
     /**
@@ -1223,7 +1196,7 @@ public class PerforceSCM extends SCM {
      * @param p4workspace the workspace
      * @return a string of path(s), e.g. //mymodule1/... //mymodule2/...
      */
-    private String getChangesPaths(Workspace p4workspace) {
+    private String getChangesPaths(@Nonnull Workspace p4workspace) {
         return PerforceSCMHelper.computePathFromViews(p4workspace.getViews());
     }
 
@@ -1291,7 +1264,6 @@ public class PerforceSCM extends SCM {
             return PollingResult.BUILD_NOW;
         }
 
-        Hashtable<String, String> subst = getDefaultSubstitutions(project);
         try {
             Node buildNode = getPollingNode(project);
             Depot depot;
@@ -1303,11 +1275,11 @@ public class PerforceSCM extends SCM {
                 logger.println("Using node: " + buildNode.getDisplayName());
             }
 
-            Workspace p4workspace = getPerforceWorkspace(project, getEffectiveProjectPath(null, project, logger, depot), depot, buildNode, null, launcher, workspace, listener, true);
+            Workspace p4workspace = getPerforceWorkspace(project, getEffectiveProjectPath(null, project, buildNode, logger, depot), depot, buildNode, null, launcher, workspace, listener, true);
             saveWorkspaceIfDirty(depot, p4workspace, logger);
 
             int lastChangeNumber = baseline.getRevision();
-            SCMRevisionState repositoryState = getCurrentDepotRevisionState(p4workspace, project, depot, logger, lastChangeNumber);
+            SCMRevisionState repositoryState = getCurrentDepotRevisionState(p4workspace, project, buildNode, depot, logger, lastChangeNumber);
 
             PollingResult.Change change;
             if (repositoryState.equals(baseline)) {
@@ -1325,13 +1297,13 @@ public class PerforceSCM extends SCM {
         }
     }
 
-    private Node getPollingNode(AbstractProject project) {
+    @CheckForNull
+    private Node getPollingNode(@Nonnull AbstractProject project) {
         Node buildNode = project.getLastBuiltOn();
         if (pollOnlyOnMaster) {
             buildNode = null;
         } else {
             // try to get an active node that the project is configured to use
-            buildNode = project.getLastBuiltOn();
             if (!isNodeOnline(buildNode)) {
                 buildNode = null;
             }
@@ -1345,7 +1317,8 @@ public class PerforceSCM extends SCM {
         return buildNode;
     }
 
-    private Node getOnlineConfiguredNode(AbstractProject project) {
+    @CheckForNull
+    private Node getOnlineConfiguredNode(@Nonnull AbstractProject project) {
         Node buildNode = null;
         for (Node node : Hudson.getInstance().getNodes()) {
             hudson.model.Label l = project.getAssignedLabel();
@@ -1364,11 +1337,14 @@ public class PerforceSCM extends SCM {
         return buildNode;
     }
 
-    private boolean isNodeOnline(Node node) {
+    private boolean isNodeOnline(@CheckForNull Node node) {
         return node != null && node.toComputer() != null && node.toComputer().isOnline();
     }
 
-    private SCMRevisionState getCurrentDepotRevisionState(Workspace p4workspace, AbstractProject project, Depot depot,
+    private SCMRevisionState getCurrentDepotRevisionState(
+            @Nonnull Workspace p4workspace, 
+            @CheckForNull AbstractProject project, 
+            @CheckForNull Node node, @Nonnull Depot depot,
         PrintStream logger, int lastChangeNumber) throws IOException, InterruptedException, PerforceException {
 
         int highestSelectedChangeNumber;
@@ -1391,18 +1367,20 @@ public class PerforceSCM extends SCM {
             // by this workspace).
 
             Integer newestChange;
-            String p4Label = MacroStringHelper.substituteParametersNoCheck(this.p4Label, getDefaultSubstitutions(project));
-            if (p4Label != null && !p4Label.trim().isEmpty()) {
+            String effectiveP4Label = MacroStringHelper.substituteParameters(
+                    this.p4Label, this, project, node, null);
+            if (effectiveP4Label != null && !effectiveP4Label.trim().isEmpty()) {
                 //In case where we are using a rolling label.
                 String root = "//" + p4workspace.getName() + "/...";
-                newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, p4Label.trim(), root);
+                newestChange = depot.getChanges().getHighestLabelChangeNumber(p4workspace, effectiveP4Label.trim(), root);
             } else {
                 Counter counter = depot.getCounters().getCounter("change");
                 newestChange = counter.getValue();
             }
 
             if (useViewMaskForPolling && useViewMask) {
-                changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, MacroStringHelper.substituteParametersNoCheck(viewMask, getDefaultSubstitutions(project)), false);
+                changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, 
+                        MacroStringHelper.substituteParameters(viewMask, this, project, node, null), false);
             } else {
                 String root = "//" + p4workspace.getName() + "/...";
                 changeNumbers = depot.getChanges().getChangeNumbersInRange(p4workspace, lastChangeNumber+1, newestChange, root, false);
@@ -1427,7 +1405,8 @@ public class PerforceSCM extends SCM {
         }
         else {
             for (int changeNumber : changeNumbers) {
-                if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber, fileLimit), project, p4workspace.getViewsAsString(), logger)) {
+                if (isChangelistExcluded(depot.getChanges().getChangelist(changeNumber, fileLimit), 
+                        project, node, p4workspace.getViewsAsString(), logger)) {
                     logger.println("Changelist "+changeNumber+" is composed of file(s) and/or user(s) that are excluded.");
                 } else {
                     return new PerforceSCMRevisionState(changeNumber);
@@ -1444,13 +1423,17 @@ public class PerforceSCM extends SCM {
      * @param changelist the p4 changelist
      * @return  True if changelist only contains user(s) and/or file(s) that are denoted to be excluded
      */
-    private boolean isChangelistExcluded(Changelist changelist, AbstractProject project, String view, PrintStream logger) {
+    private boolean isChangelistExcluded(Changelist changelist, 
+            AbstractProject project, Node node, String view, PrintStream logger) 
+            throws ParameterSubstitutionException, InterruptedException
+    {
         if (changelist == null) {
             return false;
         }
 
         if (excludedUsers != null && !excludedUsers.trim().equals("")) {
-            List<String> users = Arrays.asList(MacroStringHelper.substituteParametersNoCheck(excludedUsers,getDefaultSubstitutions(project)).split("\n"));
+            List<String> users = Arrays.asList(
+                    MacroStringHelper.substituteParameters(excludedUsers,this, project, node, null).split("\n"));
 
             if (users.contains(changelist.getUser())) {
                 logger.println("Excluded User [" + changelist.getUser() + "] found in changelist.");
@@ -1472,7 +1455,8 @@ public class PerforceSCM extends SCM {
         }
 
         if (excludedFiles != null && !excludedFiles.trim().equals("")) {
-            List<String> files = Arrays.asList(MacroStringHelper.substituteParametersNoCheck(excludedFiles,getDefaultSubstitutions(project)).split("\n"));
+            List<String> files = Arrays.asList(
+                    MacroStringHelper.substituteParameters(excludedFiles, this, project, node, null).split("\n"));
             StringBuffer buff = null;
 
             if (files.size() > 0 && changelist.getFiles().size() > 0) {
@@ -1496,7 +1480,8 @@ public class PerforceSCM extends SCM {
         return false;
     }
 
-    private static boolean doesFilenameMatchAnyP4Pattern(String filename, List<String> patternStrings, boolean caseSensitive) {
+    private static boolean doesFilenameMatchAnyP4Pattern(String filename, 
+            @Nonnull List<String> patternStrings, boolean caseSensitive) {
         for (String patternString : patternStrings) {
             if (patternString.trim().equals("")) continue;
             if (doesFilenameMatchP4Pattern(filename, patternString, caseSensitive)) {
@@ -1506,7 +1491,8 @@ public class PerforceSCM extends SCM {
         return false;
     }
 
-    public static boolean doesFilenameMatchP4Pattern(String filename, String patternString, boolean caseSensitive) throws PatternSyntaxException {
+    public static boolean doesFilenameMatchP4Pattern(String filename, String patternString, 
+            boolean caseSensitive) throws PatternSyntaxException {
         patternString = patternString.trim();
         filename = filename.trim();
         patternString = patternString.replaceAll("\\*", "[^/]*");
@@ -1542,7 +1528,7 @@ public class PerforceSCM extends SCM {
         }
     }
 
-    public int getLastChange(Run build) {
+    public int getLastChange(@CheckForNull Run build) {
     	// If we are starting a new hudson project on existing work and want to skip the prior history...
     	if (firstChange > 0)
     		return firstChange;
@@ -1550,7 +1536,7 @@ public class PerforceSCM extends SCM {
     	return getLastChangeNoFirstChange(build);
     }
 
-    private static int getLastChangeNoFirstChange(Run build) {
+    private static int getLastChangeNoFirstChange(@CheckForNull Run build) {
 
         // If we can't find a PerforceTagAction, we will default to 0.
 
@@ -1562,7 +1548,8 @@ public class PerforceSCM extends SCM {
         return action.getChangeNumber();
     }
 
-    private static PerforceTagAction getMostRecentTagAction(Run build) {
+    @CheckForNull
+    private static PerforceTagAction getMostRecentTagAction(@CheckForNull Run build) {
         if (build == null)
             return null;
 
@@ -1590,42 +1577,39 @@ public class PerforceSCM extends SCM {
         // make sure each slave has a unique client name by adding it's
         // hostname to the end of the client spec
 
-        String p4Client;
-        if (build != null) {
-            p4Client = getEffectiveClientName(build, null);
-        } else {
-            p4Client = getDefaultEffectiveClientName(project, buildNode, workspace);
-        }
+        String effectiveP4Client = build != null
+                ? getEffectiveClientName(build, null)
+                : getDefaultEffectiveClientName(project, buildNode, workspace);
 
         // If we are running concurrent builds, the Jenkins workspace path is different
         // for each concurrent build. Append Perforce workspace name with Jenkins
         // workspace identifier suffix.
-        p4Client = getConcurrentClientName(workspace, p4Client);
+        effectiveP4Client = getConcurrentClientName(workspace, effectiveP4Client);
 
         if (!nodeIsRemote(buildNode)) {
             log.print("Using master perforce client: ");
-            log.println(p4Client);
+            log.println(effectiveP4Client);
         }
         else if (dontRenameClient) {
             log.print("Using shared perforce client: ");
-            log.println(p4Client);
+            log.println(effectiveP4Client);
         }
         else {
-            log.println("Using remote perforce client: " + p4Client);
+            log.println("Using remote perforce client: " + effectiveP4Client);
         }
 
-        depot.setClient(p4Client);
-        String p4Stream = (build == null ? MacroStringHelper.substituteParameters(this.p4Stream, getDefaultSubstitutions(project)) : MacroStringHelper.substituteParameters(this.p4Stream, build, null));
+        depot.setClient(effectiveP4Client);
+        String effectiveP4Stream = MacroStringHelper.substituteParameters(this.p4Stream, this, build, project, buildNode, null);
 
         // Get the clientspec (workspace) from perforce
-        Workspace p4workspace = depot.getWorkspaces().getWorkspace(p4Client, p4Stream);
+        Workspace p4workspace = depot.getWorkspaces().getWorkspace(effectiveP4Client, effectiveP4Stream);
         assert p4workspace != null;
         boolean creatingNewWorkspace = p4workspace.isNew();
 
         // If the client workspace doesn't exist, and we're not managing the clients,
         // Then terminate the build with an error
         if (!createWorkspace && creatingNewWorkspace) {
-            log.println("*** Perforce client workspace '" + p4Client +"' doesn't exist.");
+            log.println("*** Perforce client workspace '" + effectiveP4Client +"' doesn't exist.");
             log.println("*** Please create it, or allow Jenkins to manage clients on it's own.");
             log.println("*** If the client name mentioned above is not what you expected, ");
             log.println("*** check your 'Client name format for slaves' advanced config option.");
@@ -1635,7 +1619,7 @@ public class PerforceSCM extends SCM {
         // Ensure that the clientspec (workspace) name is set correctly
         // TODO Examine why this would be necessary.
 
-        p4workspace.setName(p4Client);
+        p4workspace.setName(effectiveP4Client);
 
         // Set the workspace options according to the configuration
         if (projectOptions != null)
@@ -1676,7 +1660,7 @@ public class PerforceSCM extends SCM {
         if (updateView || creatingNewWorkspace) {
             // Switch to another stream view if necessary
             if (useStreamDepot) {
-                p4workspace.setStream(p4Stream);
+                p4workspace.setStream(effectiveP4Stream);
             }
             // If necessary, rewrite the views field in the clientspec. Also, clear the stream.
             // TODO If dontRenameClient==false, and updateView==false, user
@@ -1685,9 +1669,9 @@ public class PerforceSCM extends SCM {
             else {
                 p4workspace.setStream("");
                 if (useClientSpec) {
-                    projectPath = getEffectiveProjectPathFromFile(build, project, log, depot);
+                    projectPath = getEffectiveProjectPathFromFile(build, project, buildNode, log, depot);
                 }
-                List<String> mappingPairs = parseProjectPath(projectPath, p4Client, log);
+                List<String> mappingPairs = parseProjectPath(projectPath, effectiveP4Client, log);
                 if (!equalsProjectPath(mappingPairs, p4workspace.getViews())) {
                     log.println("Changing P4 Client View from:\n" + p4workspace.getViewsAsString());
                     log.println("Changing P4 Client View to: ");
@@ -1709,60 +1693,51 @@ public class PerforceSCM extends SCM {
         return p4workspace;
     }
 
-    private String getEffectiveClientName(AbstractBuild build, Map<String,String> env) throws ParameterSubstitutionException {
+    private String getEffectiveClientName(AbstractBuild build, Map<String,String> env) 
+            throws ParameterSubstitutionException, InterruptedException {
         Node buildNode = build.getBuiltOn();
         FilePath workspace = build.getWorkspace();
-        String p4Client = this.p4Client;
-        p4Client = MacroStringHelper.substituteParameters(p4Client, build, env);
+        String effectiveP4Client = this.p4Client;
         try {
-            p4Client = getEffectiveClientName(p4Client, buildNode);
+            effectiveP4Client = getEffectiveClientName(effectiveP4Client, build.getProject(), buildNode);
         } catch (Exception e) {
             new StreamTaskListener(System.out).getLogger().println(
                     "Could not get effective client name: " + e.getMessage());
         }
-        return p4Client;
+        effectiveP4Client = MacroStringHelper.substituteParameters(effectiveP4Client, this, build, env);
+        return effectiveP4Client;
     }
 
-    private String getDefaultEffectiveClientName(AbstractProject project, Node buildNode, FilePath workspace)
+    //TODO: Workspace is unused!
+    private String getDefaultEffectiveClientName(
+            @CheckForNull AbstractProject project, 
+            @CheckForNull Node buildNode, 
+            FilePath workspace)
             throws IOException, InterruptedException {
-        String basename = MacroStringHelper.substituteParametersNoCheck(this.p4Client, getDefaultSubstitutions(project));
-        return getEffectiveClientName(basename, buildNode);
+        String basename = getEffectiveClientName(this.p4Client, project, buildNode);
+        return MacroStringHelper.substituteParameters(basename, this, project, buildNode, null);
     }
 
-    private String getEffectiveClientName(String basename, Node buildNode)
+    private String getEffectiveClientName(
+                @Nonnull String basename, 
+                @CheckForNull AbstractProject project, 
+                @CheckForNull Node buildNode)
             throws IOException, InterruptedException {
 
-        String p4Client = basename;
+        String effectiveP4Client = basename;
 
-        if (nodeIsRemote(buildNode) && !getSlaveClientNameFormat().equals("")) {
-            String host=null;
-
-            Computer c = buildNode.toComputer();
-            if (c != null)
-                host = c.getHostName();
-
-            if (host == null) {
-                LOGGER.log(Level.WARNING,"Could not get hostname for slave " + buildNode.getDisplayName());
-                host = "UNKNOWNHOST";
-            }
-
-            if (host.contains(".")) {
-                host = String.valueOf(host.subSequence(0, host.indexOf('.')));
-            }
-            // use hashcode of the nodename to get a unique, slave-specific client name
-            String hash = String.valueOf(buildNode.getNodeName().hashCode());
-
-            Map<String, String> substitutions = new Hashtable<String,String>();
-            substitutions.put("nodename", buildNode.getNodeName());
-            substitutions.put("hostname", host);
-            substitutions.put("hash", hash);
-            substitutions.put("basename", basename);
-
-            p4Client = MacroStringHelper.substituteParametersNoCheck(getSlaveClientNameFormat(), substitutions);
+        //TODO: Seems that local node should be handled as well
+        if (buildNode!=null && nodeIsRemote(buildNode) && !getSlaveClientNameFormat().equals("")) {
+            
+            Map<String, String> additionalSubstitutions = new TreeMap<String,String>();
+            //TODO: Get rid of the outdated variable
+            additionalSubstitutions.put("basename", basename);
+            effectiveP4Client = MacroStringHelper.substituteParameters (
+                    getSlaveClientNameFormat(), this, project, buildNode, additionalSubstitutions);
         }
         // eliminate spaces, just in case
-        p4Client = p4Client.replaceAll(" ", "_");
-        return p4Client;
+        effectiveP4Client = effectiveP4Client.replaceAll(" ", "_");
+        return effectiveP4Client;
     }
 
     public String getSlaveClientNameFormat() {
@@ -2038,6 +2013,11 @@ public class PerforceSCM extends SCM {
 
         /**
          * Checks to see if the specified workspace is valid.
+         * The method also checks forbidden variables in the client name.
+         * (see <a href="https://wiki.jenkins-ci.org/display/JENKINS/Perforce+Plugin">
+         * Perforce Plugin Wiki page</a>) 
+         * to get the clarification of forbidden variables.
+         * An improper usage of the variable may corrupt Perforce workspaces in project builds. 
          */
         public FormValidation doValidateP4Client(StaplerRequest req) {
             String workspace = Util.fixEmptyAndTrim(req.getParameter("client"));          
@@ -2048,6 +2028,14 @@ public class PerforceSCM extends SCM {
                 // Check P4 client pattern first, because workspace check fails on valid client names with variables
                 if (!workspace.matches(getP4ClientPattern())) {
                     return FormValidation.error("Client name doesn't meet global pattern: "+getP4ClientPattern());
+                }
+                
+                // Check forbidden variables
+                for (String variableName : P4CLIENT_FORBIDDEN_VARIABLES) {
+                    if (MacroStringHelper.containsVariable(workspace, variableName)) {
+                        return FormValidation.error(hudson.plugins.perforce.Messages.
+                                PerforceSCM_doValidateP4Client_forbiddenVariableError(variableName));
+                    }
                 }
                 
                 // Then, check depot 
@@ -2389,7 +2377,10 @@ public class PerforceSCM extends SCM {
             Pattern.compile("^\\s*([+-]?//\\S+?/\\S+)\\s+\"//\\S+?(/[^\"]+)\"\\s*$");
     private static final Pattern QUOTED_DEPOT_AND_WORKSPACE =
             Pattern.compile("^\\s*\"([+-]?//\\S+?/[^\"]+)\"\\s+//\\S+?(/\\S+)$\\s*");
-
+    private static final String[] P4CLIENT_FORBIDDEN_VARIABLES= 
+            {"EXECUTOR_NUMBER"};
+    
+    
     /**
      * Parses the projectPath into a list of pairs of strings representing the depot and client
      * paths. Even items are depot and odd items are client.
@@ -2583,12 +2574,26 @@ public class PerforceSCM extends SCM {
         return encryptor.decryptString(p4Passwd);
     }
 
-    public String getDecryptedP4Passwd(AbstractBuild build) throws ParameterSubstitutionException {
-        return MacroStringHelper.substituteParameters(getDecryptedP4Passwd(), build, null);
+    public String getDecryptedP4Passwd(AbstractBuild build) 
+            throws ParameterSubstitutionException, InterruptedException {
+        return MacroStringHelper.substituteParameters(getDecryptedP4Passwd(), this, build, null);
     }
 
-    public String getDecryptedP4Passwd(AbstractProject project) {
-        return MacroStringHelper.substituteParametersNoCheck(getDecryptedP4Passwd(), getDefaultSubstitutions(project));
+    /**
+     * @deprecated Use {@link #getDecryptedP4Passwd(hudson.model.AbstractProject, hudson.model.Node)} instead.
+     */
+    public String getDecryptedP4Passwd(AbstractProject project) throws InterruptedException {
+        try {
+            return getDecryptedP4Passwd(project, null);
+        } catch (ParameterSubstitutionException ex) {
+            throw new IllegalArgumentException("Cannot substitute all variables in P4Passwd");
+        }
+    }
+    
+    public String getDecryptedP4Passwd(@CheckForNull AbstractProject project, @CheckForNull Node node) 
+            throws ParameterSubstitutionException, InterruptedException {
+        return MacroStringHelper.substituteParameters(getDecryptedP4Passwd(),
+                this, project, node, null);
     }
 
     /**
@@ -3148,9 +3153,11 @@ public class PerforceSCM extends SCM {
         
         try {
             Depot depot = getDepot(launcher, workspace, project, null, node);
+            final String effectiveProjectPath = MacroStringHelper.substituteParameters(
+                    projectPath, this, project, node, null);
             Workspace p4workspace = getPerforceWorkspace(
                 project,
-                MacroStringHelper.substituteParametersNoCheck(projectPath,getDefaultSubstitutions(project)),
+                effectiveProjectPath,
                 depot,
                 node,
                 null,
@@ -3173,20 +3180,20 @@ public class PerforceSCM extends SCM {
         return false;
     }
 
-    public boolean isSlaveClientNameStatic() {
+    public boolean isSlaveClientNameStatic() throws  ParameterSubstitutionException {
         Map<String,String> testSub1 = new Hashtable<String,String>();
         testSub1.put("hostname", "HOSTNAME1");
         testSub1.put("nodename", "NODENAME1");
         testSub1.put("hash", "HASH1");
         testSub1.put("basename", this.p4Client);
-        String result1 = MacroStringHelper.substituteParametersNoCheck(getSlaveClientNameFormat(), testSub1);
+        String result1 = MacroStringHelper.substituteParameters(getSlaveClientNameFormat(), testSub1);
 
         Map<String,String> testSub2 = new Hashtable<String,String>();
         testSub2.put("hostname", "HOSTNAME2");
         testSub2.put("nodename", "NODENAME2");
         testSub2.put("hash", "HASH2");
         testSub2.put("basename", this.p4Client);
-        String result2 = MacroStringHelper.substituteParametersNoCheck(getSlaveClientNameFormat(), testSub2);
+        String result2 = MacroStringHelper.substituteParameters(getSlaveClientNameFormat(), testSub2);
 
         return result1.equals(result2);
     }
