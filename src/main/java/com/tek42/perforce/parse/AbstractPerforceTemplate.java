@@ -77,7 +77,7 @@ public abstract class AbstractPerforceTemplate {
     @SuppressWarnings("unused")
     private transient String errors[];   // Obsolete field, present just to keep demarshaller happy
 
-    private final Depot depot;
+    protected final Depot depot;
     final transient String maxError = "Request too large";
 
     public AbstractPerforceTemplate(Depot depot) {

@@ -28,6 +28,8 @@
 package com.tek42.perforce.parse;
 
 import java.io.Writer;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -38,6 +40,7 @@ import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Changelist;
 
@@ -50,9 +53,13 @@ public class ChangelistBuilder implements Builder<Changelist> {
 	private final Logger logger = LoggerFactory.getLogger("perforce");
 	//Maximum amount of files to be recorded to a changelist
 	private int maxFiles;
+	private final Depot depot;
+	private static final SimpleDateFormat dateParser = new
+			SimpleDateFormat("yyyy/MM/dd HH:mm:ss ZZZZZ", Locale.ENGLISH);
 	
-	public ChangelistBuilder(int maxFiles) {
+	public ChangelistBuilder(int maxFiles, Depot depot) {
 	    this.maxFiles = maxFiles;
+	    this.depot = depot;
 	}
 
 	public String[] getBuildCmd(String p4exe, String id) {
@@ -90,7 +97,7 @@ public class ChangelistBuilder implements Builder<Changelist> {
 					String date = details.nextToken();
 					String time = details.nextToken();
 
-					change.setDate(parseDate(date + " " + time));
+					change.setDate(parseDate(date + " " + time + " " + depot.getServerTimezone()));
 
 					// the lines immediately following is the description
 					StringBuilder desc = new StringBuilder();
@@ -253,37 +260,21 @@ public class ChangelistBuilder implements Builder<Changelist> {
 	}
 
 	/**
-	 * Returns a java.util.Date object set to the time specified in newDate. The format expected is the format of:
-	 * YYYY-MM-DD HH:MM:SS
+	 * Returns a java.util.Date object set to the time specified in newDate.
+	 * The format expected is the format of: yyyy/MM/dd HH:mm:ss ZZZZZ
 	 * 
 	 * @param newDate
 	 *            the string date to convert
 	 * @return A java.util.Date based off of the string format.
 	 */
-	public static java.util.Date parseDate(String newDate) {
-		// when we have a null from the database, give it zeros first.
-		if(newDate == null || newDate.equals("")) {
-			return null;
+	public static java.util.Date parseDate(String newDate) throws PerforceException {
+		try {
+			return dateParser.parse(newDate);
 		}
-
-		String parts[] = newDate.split(" ");
-		String date[] = parts[0].split("/");
-		String time[] = null;
-
-		if(parts.length > 1) {
-			time = parts[1].split(":");
-			time[2] = time[2].replaceAll("\\.0", "");
-		} else {
-			time = "00:00:00".split(":");
+		catch(ParseException e) {
+			throw new PerforceException("Could not parse changelist timestamp "
+					+ "returned by server : " + newDate);
 		}
-
-		GregorianCalendar cal = (GregorianCalendar) Calendar.getInstance();
-		cal.clear();
-
-		cal.set(new Integer(date[0]).intValue(), (new Integer(date[1]).intValue() - 1), new Integer(date[2]).intValue(), new Integer(
-				time[0]).intValue(), new Integer(time[1]).intValue(), new Integer(time[2]).intValue());
-
-		return cal.getTime();
 	}
 
 }

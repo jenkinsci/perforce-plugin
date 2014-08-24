@@ -29,6 +29,7 @@ package com.tek42.perforce;
 
 import hudson.plugins.perforce.PerforcePasswordEncryptor;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.StringTokenizer;
 
@@ -77,6 +78,7 @@ public class Depot {
 	private String p4exe;
 	private long threshold;
 	private String p4Ticket;
+	private String serverTimeZone;
 
 	ExecutorFactory execFactory;
 
@@ -257,16 +259,21 @@ public class Depot {
 	 * 
 	 * @return The string output of p4 info
 	 */
-	public String info() throws Exception {
+	public String info() throws PerforceException {
 		Executor p4 = getExecFactory().newExecutor();
 		String cmd[] = { getExecutable(), "info" };
 		p4.exec(cmd);
-		StringBuilder sb = new StringBuilder();
-		String line;
-		while((line = p4.getReader().readLine()) != null) {
-			sb.append(line + "\n");
+		try {
+			StringBuilder sb = new StringBuilder();
+			String line;
+			while((line = p4.getReader().readLine()) != null) {
+				sb.append(line + "\n");
+			}
+			return sb.toString();
 		}
-		return sb.toString();
+		catch(IOException e) {
+			throw new PerforceException("Could not retrieve output of p4 info");
+		}
 	}
 
 	/**
@@ -533,6 +540,24 @@ public class Depot {
 	 */
 	public String getP4Ticket() {
 		return p4Ticket;
+	}
+	
+	public String getServerTimezone() throws PerforceException {
+		if(serverTimeZone == null) {
+			StringTokenizer infoTokens = new StringTokenizer(info(), "\n");
+			while(infoTokens.hasMoreTokens()) {
+				String infoLine = infoTokens.nextToken();
+				if(infoLine.startsWith("Server date: ")) {
+					/* the returned date is in the usual "Perforce format", but
+					 * includes the GMT offset and a three-letter timezone code
+					 * at its end. we're interested only in the offset, which
+					 * is located at positions 33-37. */
+					serverTimeZone = infoLine.substring(33, 38);
+					break;
+				}
+			}
+		}
+		return serverTimeZone;
 	}
 
 	/**
