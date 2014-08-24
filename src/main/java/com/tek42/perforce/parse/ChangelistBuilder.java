@@ -57,6 +57,10 @@ public class ChangelistBuilder implements Builder<Changelist> {
 	private static final SimpleDateFormat dateParser = new
 			SimpleDateFormat("yyyy/MM/dd HH:mm:ss ZZZZZ", Locale.ENGLISH);
 	
+	public ChangelistBuilder(int maxFiles) {
+		this(maxFiles, null);
+	}
+	
 	public ChangelistBuilder(int maxFiles, Depot depot) {
 	    this.maxFiles = maxFiles;
 	    this.depot = depot;
@@ -96,8 +100,16 @@ public class ChangelistBuilder implements Builder<Changelist> {
 
 					String date = details.nextToken();
 					String time = details.nextToken();
-
-					change.setDate(parseDate(date + " " + time + " " + depot.getServerTimezone()));
+					
+					// check if we have a reference to the depot containing the changelists.
+					// if so, use it in order to get information about the server's timezone.
+					if(depot != null) {
+						change.setDate(parseDateWithTimezone(date + " " + time + " " + depot.getServerTimezone()));
+					}
+					else {
+						change.setDate(parseDate(date + " " + time));
+					}
+					
 
 					// the lines immediately following is the description
 					StringBuilder desc = new StringBuilder();
@@ -261,20 +273,52 @@ public class ChangelistBuilder implements Builder<Changelist> {
 
 	/**
 	 * Returns a java.util.Date object set to the time specified in newDate.
-	 * The format expected is the format of: yyyy/MM/dd HH:mm:ss ZZZZZ
+	 * This function uses the {@code dateParser} object internally, and thus
+	 * expects the same format on input.
+	 * @throws PerforceException When the string passed into the function could
+	 * not be parsed according to the format specified in {@code dateParser}.
+	 */
+	private static java.util.Date parseDateWithTimezone(String newDate) throws PerforceException {
+		try {
+			return dateParser.parse(newDate);
+		}
+		catch(ParseException e) {
+			throw new PerforceException("Cannot parse changelist timestamp : " + newDate);
+		}
+	}
+	
+	/**
+	 * Returns a java.util.Date object set to the time specified in newDate. The format expected is the format of:
+	 * YYYY-MM-DD HH:MM:SS
 	 * 
 	 * @param newDate
 	 *            the string date to convert
 	 * @return A java.util.Date based off of the string format.
 	 */
-	public static java.util.Date parseDate(String newDate) throws PerforceException {
-		try {
-			return dateParser.parse(newDate);
+	public static java.util.Date parseDate(String newDate) {
+		// when we have a null from the database, give it zeros first.
+		if(newDate == null || newDate.equals("")) {
+			return null;
 		}
-		catch(ParseException e) {
-			throw new PerforceException("Could not parse changelist timestamp "
-					+ "returned by server : " + newDate);
+
+		String parts[] = newDate.split(" ");
+		String date[] = parts[0].split("/");
+		String time[] = null;
+
+		if(parts.length > 1) {
+			time = parts[1].split(":");
+			time[2] = time[2].replaceAll("\\.0", "");
+		} else {
+			time = "00:00:00".split(":");
 		}
+
+		GregorianCalendar cal = (GregorianCalendar) Calendar.getInstance();
+		cal.clear();
+
+		cal.set(new Integer(date[0]).intValue(), (new Integer(date[1]).intValue() - 1), new Integer(date[2]).intValue(), new Integer(
+				time[0]).intValue(), new Integer(time[1]).intValue(), new Integer(time[2]).intValue());
+
+		return cal.getTime();
 	}
 
 }
