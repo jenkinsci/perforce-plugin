@@ -1938,8 +1938,7 @@ public class PerforceSCM extends SCM {
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
             p4ClientPattern = Util.fixEmpty(req.getParameter("p4.clientPattern").trim());
             p4DefaultUser = Util.fixEmptyAndTrim(req.getParameter("p4.defaultUser"));
-            p4DefaultPassword = Util.fixEmptyAndTrim(req.getParameter("p4.defaultPassword"));
-            if (p4DefaultPassword != null)
+            setDefaultP4Passwd(Util.fixEmptyAndTrim(req.getParameter("p4.defaultPassword")));
             
             passwordExposeDisabled = json.getBoolean("passwordExposeDisabled");
             
@@ -2039,7 +2038,7 @@ public class PerforceSCM extends SCM {
         }
 
         public FormValidation doValidatePerforceUsername(StaplerRequest req) {
-            String username = Util.fixEmptyAndTrim(req.getParameter("p4User"));
+            String username = Util.fixEmptyAndTrim(req.getParameter("user"));
             if (username == null) {
                 return FormValidation.warning("No user specified. A default user '"+getInstance().getP4DefaultUser()+"' will be used");
             }
