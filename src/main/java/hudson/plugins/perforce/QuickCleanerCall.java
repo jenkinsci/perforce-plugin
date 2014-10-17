@@ -120,11 +120,8 @@ public class QuickCleanerCall implements QuickCleaner.RemoteCall {
 
         private void scanDirForFiles(File dir) throws IOException {
             for (File file : dir.listFiles()) {
-                if (Util.isSymlink(file)) {
-                    continue;
-                }
                 if (filter == null || filter.accept(file)) {
-                    if (file.isFile()) {
+                    if (file.isFile() || Util.isSymlink(file)) {
                         outputFilePath(file);
                     } else if (file.isDirectory()) {
                         scanDirForFiles(file);
@@ -184,7 +181,6 @@ public class QuickCleanerCall implements QuickCleaner.RemoteCall {
             String line;
             try {
                 while ((line = in.readLine()) != null) {
-                    log(line);
                     if (line.contains("- file(s) not on client.")) {
                         String filename = line.replace("- file(s) not on client.", "").trim();
                         File file = new File(workDir, filename);
@@ -210,7 +206,12 @@ public class QuickCleanerCall implements QuickCleaner.RemoteCall {
             File testPath = file.getCanonicalFile();
             while ((testPath = testPath.getParentFile()) != null) {
                 if (testPath.equals(parent)) {
-                    Util.deleteFile(file);
+                    try {
+                        Util.deleteFile(file);
+                    } catch (IOException e) {
+                        log("Could not remove file: " + file.getPath() + " caused by");
+                        log(e.getMessage());
+                    }
                     if(!file.exists()) {
                         return true;
                     } else {
