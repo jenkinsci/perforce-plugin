@@ -184,6 +184,7 @@ public class QuickCleanerCall implements QuickCleaner.RemoteCall {
             String line;
             try {
                 while ((line = in.readLine()) != null) {
+                    log(line);
                     if (line.contains("- file(s) not on client.")) {
                         String filename = line.replace("- file(s) not on client.", "").trim();
                         File file = new File(workDir, filename);
