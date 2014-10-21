@@ -248,6 +248,17 @@ public class PerforceSCM extends SCM {
      *  Hash
      */
     String slaveClientNameFormat = null;
+    
+    /**
+     * Perforce program name to report to the Perforce server
+     */
+    String p4ProgramName = null;
+    String p4ProgramPollingName = null;
+	
+    /** Regular expression for validation of p4 Program Name 
+     */
+    private static final String P4_PROGRAM_NAME_PATTERN =
+    		"[_a-zA-Z0-9@.\\[\\]\\(\\)\\<\\>-]+";
 
     /**
      * We need to store the changelog file name for the build so that we can expose
@@ -326,7 +337,9 @@ public class PerforceSCM extends SCM {
             boolean excludedFilesCaseSensitivity,
             DepotType depotType, 
             WorkspaceCleanupConfig cleanWorkspace,
-            MaskViewConfig useViewMask
+            MaskViewConfig useViewMask,
+            String p4ProgramName,
+            String p4ProgramPollingName
             ) {
 
         this.configVersion = 2L;
@@ -421,6 +434,9 @@ public class PerforceSCM extends SCM {
         this.excludedUsers = Util.fixEmptyAndTrim(excludedUsers);
         this.excludedFiles = Util.fixEmptyAndTrim(excludedFiles);
         this.excludedFilesCaseSensitivity = excludedFilesCaseSensitivity;
+        
+        setP4ProgramName(p4ProgramName);
+        setP4ProgramPollingName(p4ProgramPollingName);
     }
     
     /**
@@ -860,6 +876,16 @@ public class PerforceSCM extends SCM {
         }
 
         try {
+        	String progName = getEffectiveP4ProgramName();
+        	if (progName != null) {
+        		log.println("p4.prog=" + progName);
+        		if (progName.matches(P4_PROGRAM_NAME_PATTERN)) {
+		        	depot.setProgramName(progName);
+        		} else {
+        			log.println("WARNING: p4.prog don't match " + P4_PROGRAM_NAME_PATTERN + " (ignoring it)");
+        		}
+        	}
+        	
             // keep projectPath local so any modifications for slaves don't get saved
             String effectiveProjectPath= getEffectiveProjectPath(build, 
                     build.getProject(), build.getBuiltOn(), log, depot);
@@ -1274,6 +1300,16 @@ public class PerforceSCM extends SCM {
                 depot = getDepot(buildNode.createLauncher(listener),buildNode.getRootPath(),project,null, buildNode);
                 logger.println("Using node: " + buildNode.getDisplayName());
             }
+            
+            String progName = getEffectiveP4ProgramPollingName();
+            if (progName != null) {
+	        	logger.println("p4.prog=" + progName);
+	        	if (progName.matches(P4_PROGRAM_NAME_PATTERN)) {
+		        	depot.setProgramName(progName);
+        		} else {
+        			logger.println("WARNING: p4.prog don't match " + P4_PROGRAM_NAME_PATTERN + " (ignoring it)");
+        		}
+        	}
 
             Workspace p4workspace = getPerforceWorkspace(project, getEffectiveProjectPath(null, project, buildNode, logger, depot), depot, buildNode, null, launcher, workspace, listener, true);
             saveWorkspaceIfDirty(depot, p4workspace, logger);
@@ -1826,6 +1862,9 @@ public class PerforceSCM extends SCM {
         private final static int P4_INFINITE_TIMEOUT_SEC = 0;
         private final static int P4_MINIMAL_TIMEOUT_SEC = 30;
         
+        private String p4ProgramNameDefault;
+        private String p4ProgramPollingNameDefault;
+        
         public PerforceSCMDescriptor() {
             super(PerforceSCM.class, PerforceRepositoryBrowser.class);
             load();
@@ -1900,6 +1939,9 @@ public class PerforceSCM extends SCM {
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
             p4ClientPattern = Util.fixEmpty(req.getParameter("p4.clientPattern").trim());
             passwordExposeDisabled = json.getBoolean("passwordExposeDisabled");
+            
+            p4ProgramNameDefault = Util.fixEmptyAndTrim(json.getString("p4ProgramNameDefault"));
+            p4ProgramPollingNameDefault = Util.fixEmptyAndTrim(json.getString("p4ProgramPollingNameDefault"));
             
             // ReadLine timeout
             String p4timeoutStr = Util.fixEmpty(req.getParameter("p4.readLineTimeout").trim());            
@@ -2314,6 +2356,17 @@ public class PerforceSCM extends SCM {
             }
             return FormValidation.ok();
         }
+        
+    	/**
+    	 * Limit allowed characters to prevent shell injection.
+    	 */
+        public FormValidation doValidateP4ProgramName(StaplerRequest req, @QueryParameter String p4prog) {
+            p4prog = Util.fixEmptyAndTrim(p4prog);
+            if (p4prog == null || p4prog.matches(P4_PROGRAM_NAME_PATTERN)) {
+            	return FormValidation.ok();
+            }
+            return FormValidation.error("Forbidden characters in string. Name shall match " + P4_PROGRAM_NAME_PATTERN);
+        }
 
         public List<String> getAllLineEndChoices() {
             List<String> allChoices = Arrays.asList(
@@ -2339,6 +2392,14 @@ public class PerforceSCM extends SCM {
             return Hudson.getInstance().getDisplayName();
         }
 
+        public String getP4ProgramNameDefault() {
+        	return p4ProgramNameDefault;
+        }
+        
+        public String getP4ProgramPollingNameDefault() {
+        	return p4ProgramPollingNameDefault;
+        }
+        
         @Extension
         public static class ItemListenerImpl extends ItemListener {
             @Override
@@ -3202,5 +3263,44 @@ public class PerforceSCM extends SCM {
     public boolean supportsPolling() {
         return true;
     }
+
+	public String getP4ProgramName() {
+		return p4ProgramName;
+	}
+
+	public void setP4ProgramName(String name) {
+		this.p4ProgramName = Util.fixEmptyAndTrim(name);
+	}
+
+	public String getP4ProgramPollingName() {
+		return p4ProgramPollingName;
+	}
+	
+	public void setP4ProgramPollingName(String name) {
+		this.p4ProgramPollingName = Util.fixEmptyAndTrim(name);
+	}
+	
+	public String getEffectiveP4ProgramName() {
+		String name = getP4ProgramName();
+		if (name == null) {
+			name = ((PerforceSCMDescriptor)getDescriptor()).getP4ProgramNameDefault();
+		}
+		return Util.fixEmptyAndTrim(name);
+	}
+	
+	public String getEffectiveP4ProgramPollingName() {
+		String name = getP4ProgramPollingName();
+		if (name == null) {
+			name = getP4ProgramName();
+		}
+		if (name == null) {  // Falback to global config
+			PerforceSCMDescriptor desc = (PerforceSCMDescriptor)getDescriptor();			
+			name = desc.getP4ProgramPollingNameDefault();
+			if (name == null) {
+				name = desc.getP4ProgramNameDefault();
+			}
+		} 
+		return Util.fixEmptyAndTrim(name);
+	}
 
 }

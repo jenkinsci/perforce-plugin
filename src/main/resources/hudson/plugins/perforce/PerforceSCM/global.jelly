@@ -41,6 +41,16 @@
         <f:checkbox name="p4.passwordExposeDisabled" checked="${descriptor.passwordExposeDisabled}"/>
         <f:description>Option globally disables exposal of Perforce passwords</f:description>
     </f:entry>
-        
+    
+    <f:entry title="p4 Program Name Default" help="/plugin/perforce/help/p4ProgramNameDefault.html">
+      <f:textbox field="p4ProgramNameDefault" id="p4ProgramNameDefault"
+        checkUrl="'${rootURL}/scm/PerforceSCM/validateP4ProgramName?p4prog='+escape(this.form.elements['p4ProgramNameDefault'].value)"/>
+    </f:entry>
+    
+    <f:entry title="p4 Program Polling Name Default" help="/plugin/perforce/help/p4ProgramPollingNameDefault.html">
+      <f:textbox field="p4ProgramPollingNameDefault" id="p4ProgramPollingNameDefault"
+        checkUrl="'${rootURL}/scm/PerforceSCM/validateP4ProgramName?p4prog='+escape(this.form.elements['p4ProgramPollingNameDefault'].value)"/>
+    </f:entry>
+    
   </f:section>
 </j:jelly>
