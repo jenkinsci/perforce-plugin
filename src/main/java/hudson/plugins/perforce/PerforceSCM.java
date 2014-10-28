@@ -2001,9 +2001,15 @@ public class PerforceSCM extends SCM {
         protected Depot getDepotFromRequest(StaplerRequest request) {
             String port = fixNull(request.getParameter("port")).trim();
             String tool = fixNull(request.getParameter("tool")).trim();
+            
+            // Credentials
             String user = fixNull(request.getParameter("user")).trim();
             String pass = fixNull(request.getParameter("pass")).trim();
-
+            if (user.isEmpty()) {
+                user = getP4DefaultUser();
+                pass = getDecryptedP4DefaultPassword();
+            }
+            
             if (port.length() == 0 || tool.length() == 0) { // Not enough entered yet
                 return null;
             }
