@@ -193,7 +193,7 @@ public class MacroStringHelper {
      * @return true if the string 
      */
     public static boolean containsMacro(@CheckForNull String str) {
-        return str != null && str.matches(".*\\$\\{.*\\}.*");
+        return str != null && str.contains("${");
     }
   
     /**
@@ -203,7 +203,7 @@ public class MacroStringHelper {
      * @return true if the string contains the specified variable
      */
     public static boolean containsVariable(@CheckForNull String str, @Nonnull String variableName) {
-        return str != null && str.matches(".*\\$\\{" + variableName + "\\}.*");
+        return str != null && str.contains("${" + variableName + "}");
     }
     
      /**
