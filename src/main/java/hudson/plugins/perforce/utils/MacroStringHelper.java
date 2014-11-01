@@ -193,7 +193,7 @@ public class MacroStringHelper {
      * @return true if the string 
      */
     public static boolean containsMacro(@CheckForNull String str) {
-        return str != null && str.matches(".*\\$\\{.*\\}.*");
+        return str != null && str.contains("${");
     }
   
     /**
@@ -203,7 +203,7 @@ public class MacroStringHelper {
      * @return true if the string contains the specified variable
      */
     public static boolean containsVariable(@CheckForNull String str, @Nonnull String variableName) {
-        return str != null && str.matches(".*\\$\\{" + variableName + "\\}.*");
+        return str != null && str.contains("${" + variableName + "}");
     }
     
      /**
@@ -250,7 +250,8 @@ public class MacroStringHelper {
     }
     
     /**
-     * Substitute parameters and validate contents of the resulting string
+     * Substitute parameters and validate contents of the resulting string.
+     * Environment variables have the highest priority.
      * @param inputString Input string
      * @param instance Instance of {@link PerforceSCM}
      * @param build Related build
@@ -266,20 +267,9 @@ public class MacroStringHelper {
         if (!containsMacro(inputString)) {
             return inputString;
         }
-             
-        String string = substituteParametersNoCheck(inputString, instance, 
-                build.getProject(), build.getBuiltOn(), env);
-              
-        // Substitute default build variables
-        Map<String, String> substitutions = new HashMap<String, String>();
-        getDefaultBuildSubstitutions(build, substitutions);    
-        String result = MacroStringHelper.substituteParametersNoCheck(string, substitutions);
-        result = MacroStringHelper.substituteParametersNoCheck(result, build.getBuildVariables());
-        if (!containsMacro(string)) {
-            return string;
-        }
+        String result = inputString;
         
-         // The last attempts: Try to build the full environment
+        // The last attempts: Try to build the full environment
         Map<String, String> environmentVarsFromExtensions = new TreeMap<String, String>();
         boolean useEnvironment = true;
         for (StackTraceElement ste : (new Throwable()).getStackTrace()) { // Inspect the stacktrace to avoid the infinite recursion
@@ -298,7 +288,21 @@ public class MacroStringHelper {
             }
         }
         result = MacroStringHelper.substituteParametersNoCheck(result, environmentVarsFromExtensions);
+              
+        // Intermediate
+        if (!containsMacro(result)) {
+            return result;
+        }
         
+        // Substitute static variables
+        result = substituteParametersNoCheck(result, instance, build.getProject(), build.getBuiltOn(), env);
+              
+        // Substitute default build variables
+        Map<String, String> substitutions = new HashMap<String, String>();
+        getDefaultBuildSubstitutions(build, substitutions);    
+        result = MacroStringHelper.substituteParametersNoCheck(result, substitutions);
+        result = MacroStringHelper.substituteParametersNoCheck(result, build.getBuildVariables());
+              
         return result;
     }
     

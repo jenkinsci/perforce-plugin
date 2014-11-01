@@ -25,8 +25,10 @@ package com.synopsys.arc.jenkinsci.plugins.perforce;
 
 import hudson.plugins.perforce.utils.MacroStringHelper;
 import hudson.plugins.perforce.utils.ParameterSubstitutionException;
+import javax.annotation.Nonnull;
 import junit.framework.Assert;
 import org.junit.Test;
+import org.jvnet.hudson.test.Bug;
 
 /**
  *
@@ -59,6 +61,28 @@ public class MacroStringHelperTest {
         checkCorrectString(null);
     }
     
+    @Bug(25365)
+    public @Test void checkMultiLineString() {
+        checkStringForMacros("${param1}/...\n${param2}/...", true);
+        checkStringForMacros("$vdvdvd/...\n\t${param2}/...", true);
+        checkStringForMacros("${param1}/...\nJust a stub string", true);
+        
+        // no macros
+        checkStringForMacros("//depot1/path1/... //placeholder/path1/...\r\n\t//depot1/path2/... //placeholder/path2/...", false);
+        checkStringForMacros("//depot1/path1/... //placeholder/path1/...\n//depot1/path2/... //placeholder/path2/...", false);
+    }
+    
+    public static void checkStringForMacros(@Nonnull String string, boolean expectMacro) {
+        boolean isMacro = MacroStringHelper.containsMacro(string);
+        if (isMacro != expectMacro) {
+            if (expectMacro) {
+                Assert.fail("Macros have not been found in '" + string + "'");
+            } else {
+                Assert.fail("Wrong macro discodvered in '" + string + "'");
+            }
+        }
+    }
+    
     public static void checkTest(String string, boolean expectError) {
         try {
             MacroStringHelper.checkString(string);
@@ -84,5 +108,5 @@ public class MacroStringHelperTest {
     public static void checkInorrectString(String str) {
         System.out.println("Checking incorrect string '"+str+"' ...");
         checkTest(str, true);
-    }
+    }  
 }

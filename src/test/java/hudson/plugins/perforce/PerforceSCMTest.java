@@ -1,19 +1,32 @@
 package hudson.plugins.perforce;
 
+import hudson.model.FreeStyleBuild;
 import hudson.plugins.perforce.config.DepotType;
 import hudson.model.FreeStyleProject;
 import hudson.model.Hudson;
+import hudson.model.ParametersAction;
+import hudson.model.ParametersDefinitionProperty;
+import hudson.model.Result;
+import hudson.model.StringParameterDefinition;
+import hudson.model.StringParameterValue;
 import hudson.plugins.perforce.PerforceToolInstallation.DescriptorImpl;
 import hudson.plugins.perforce.browsers.P4Web;
 import hudson.plugins.perforce.config.CleanTypeConfig;
 import hudson.plugins.perforce.config.MaskViewConfig;
 import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
+import hudson.plugins.perforce.utils.MacroStringHelper;
 import hudson.tools.ToolProperty;
+import java.net.MalformedURLException;
 
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Future;
+import javax.annotation.Nonnull;
+import static junit.framework.Assert.assertNotNull;
+import org.jvnet.hudson.test.Bug;
 
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.recipes.LocalData;
@@ -35,11 +48,7 @@ public class PerforceSCMTest extends HudsonTestCase {
      */
     public void testConfigRoundtrip() throws Exception {
         FreeStyleProject project = createFreeStyleProject();
-        P4Web browser = new P4Web(new URL("http://localhost/"));
-        PerforceSCM scm = new PerforceSCM(
-        		"user", "pass", "client", "port", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, TEST_DEPOT, TEST_WORKSPACE_CLEANUP, TEST_MASKVIEW);
+        PerforceSCM scm = createPerforceSCMStub();
         scm.setProjectPath("path");
         project.setScm(scm);
 
@@ -58,9 +67,9 @@ public class PerforceSCMTest extends HudsonTestCase {
 	FreeStyleProject project = createFreeStyleProject();
         P4Web browser = new P4Web(new URL("http://localhost/"));
         PerforceSCM scm = new PerforceSCM(
-                        "user", "pass", "client", "port", "", "exe", "",
-                        "", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW);
+            "user", "pass", "client", "port", "", "exe", "",
+            "", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+            false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW);
         assertEquals("", scm.getP4SysDrive());
         assertEquals("", scm.getP4SysRoot());
         scm.setProjectPath("path");
@@ -76,11 +85,7 @@ public class PerforceSCMTest extends HudsonTestCase {
 
     public void testConfigRoundtripWithStream() throws Exception {
         FreeStyleProject project = createFreeStyleProject();
-        P4Web browser = new P4Web(new URL("http://localhost/"));
-        PerforceSCM scm = new PerforceSCM(
-        		"user", "pass", "client", "port", "", "exe", "sysRoot",
-        		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
-                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, EMPTY_DEPOT, EMPTY_WORKSPACE_CLEANUP, EMPTY_MASKVIEW);
+        PerforceSCM scm = createPerforceSCMStub();
         scm.setP4Stream("stream");
         scm.setUseStreamDepot(true);
         project.setScm(scm);
@@ -399,5 +404,50 @@ public class PerforceSCMTest extends HudsonTestCase {
 
         scm = (PerforceSCM) downstreamProject.getScm();
         assertEquals(scm.p4UpstreamProject, newName);
+    }
+    
+    /**
+     * Checks that the variables substitution works properly for build parameters.
+     * Actually, it's a test for {@link MacroStringHelper}, but it requires a {@link HudsonTestCase} environment.
+     */
+    @Bug(25226)
+    public void testCheckParamSubstitutionOrder() throws Exception {
+        final String projectPath_format = "//depot1/%s/... //client/path1/...";
+                
+        final FreeStyleProject prj = createFreeStyleProject();
+        prj.addProperty(new ParametersDefinitionProperty(new StringParameterDefinition("PARAM1", "defaultValue")));
+          
+        PerforceToolInstallation stubInstallation = new PerforceToolInstallation("p4_stub", "echo", new LinkedList<ToolProperty<?>>());
+        PerforceToolInstallation.DescriptorImpl descriptor = (PerforceToolInstallation.DescriptorImpl) Hudson.getInstance().getDescriptor(PerforceToolInstallation.class);
+        descriptor.setInstallations(new PerforceToolInstallation[] { stubInstallation });
+        descriptor.save();
+        
+        final PerforceSCM scm = PerforceSCMTest.createPerforceSCMStub();
+        scm.setProjectPath(String.format(projectPath_format, "${PARAM1}"));
+        scm.setP4Tool("p4_stub");
+        prj.setScm(scm);
+        
+        // Run without params
+        Future<FreeStyleBuild> fBuild = prj.scheduleBuild2(0);
+        assertNotNull(fBuild);
+        FreeStyleBuild build = fBuild.get();
+        assertLogContains(String.format(projectPath_format, "defaultValue"), build);
+        
+        // Run with params
+        fBuild = prj.scheduleBuild2(0, null, new ParametersAction(new StringParameterValue("PARAM1", "value")));
+        assertNotNull(fBuild);
+        build = fBuild.get();
+        assertLogContains(String.format(projectPath_format, "value"), build);
+    }    
+      
+    /**
+     * Creates {@link PerforceSCM} with default fields.
+     */
+    public static @Nonnull PerforceSCM createPerforceSCMStub() throws MalformedURLException {
+        P4Web browser = new P4Web(new URL("http://localhost/")); 
+        return new PerforceSCM(
+        		"user", "pass", "client", "port", "", "exe", "sysRoot",
+        		"sysDrive", "label", "counter", "upstreamProject", "shared", "charset", "charset2", "user", false, true, true, true, true, true, false,
+                        false, true, false, false, false, "${basename}", 0, -1, browser, "exclude_user", "exclude_file", true, TEST_DEPOT, TEST_WORKSPACE_CLEANUP, TEST_MASKVIEW);
     }
 }
