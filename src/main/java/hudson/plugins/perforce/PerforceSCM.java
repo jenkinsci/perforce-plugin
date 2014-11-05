@@ -1586,7 +1586,7 @@ public class PerforceSCM extends SCM {
 
         String effectiveP4Client = build != null
                 ? getEffectiveClientName(build, null)
-                : getDefaultEffectiveClientName(build, workspace);
+                : getDefaultEffectiveClientName(project, buildNode, workspace);
 
         // If we are running concurrent builds, the Jenkins workspace path is different
         // for each concurrent build. Append Perforce workspace name with Jenkins
@@ -1772,15 +1772,6 @@ public class PerforceSCM extends SCM {
         return effectiveP4Client;
     }
     
-    //TODO: Workspace is unused!
-    private String getDefaultEffectiveClientName(
-                AbstractBuild build, 
-                FilePath workspace) 
-            throws IOException, InterruptedException {
-        String basename = getEffectiveClientName(this.p4Client, build);
-        return MacroStringHelper.substituteParameters(basename, this, build, null);
-    }
-
     public String getSlaveClientNameFormat() {
         if (this.slaveClientNameFormat == null || this.slaveClientNameFormat.equals("")) {
             if (this.dontRenameClient) {
