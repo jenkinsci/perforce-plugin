@@ -1586,7 +1586,7 @@ public class PerforceSCM extends SCM {
 
         String effectiveP4Client = build != null
                 ? getEffectiveClientName(build, null)
-                : getDefaultEffectiveClientName(project, buildNode, workspace);
+                : getDefaultEffectiveClientName(build, workspace);
 
         // If we are running concurrent builds, the Jenkins workspace path is different
         // for each concurrent build. Append Perforce workspace name with Jenkins
@@ -1709,7 +1709,7 @@ public class PerforceSCM extends SCM {
         FilePath workspace = build.getWorkspace();
         String effectiveP4Client = this.p4Client;
         try {
-            effectiveP4Client = getEffectiveClientName(effectiveP4Client, build.getProject(), buildNode);
+            effectiveP4Client = getEffectiveClientName(effectiveP4Client, build);
         } catch (Exception e) {
             new StreamTaskListener(System.out).getLogger().println(
                     "Could not get effective client name: " + e.getMessage());
@@ -1748,6 +1748,37 @@ public class PerforceSCM extends SCM {
         // eliminate spaces, just in case
         effectiveP4Client = effectiveP4Client.replaceAll(" ", "_");
         return effectiveP4Client;
+    }
+    
+    private String getEffectiveClientName(
+                @Nonnull String basename, 
+                @CheckForNull AbstractBuild build)
+            throws IOException, InterruptedException {
+
+        String effectiveP4Client = basename;
+        if(build != null) {
+            Node buildNode = build.getBuiltOn();
+
+            //TODO: Seems that local node should be handled as well
+            if (buildNode!=null && nodeIsRemote(buildNode) && !getSlaveClientNameFormat().equals("")) {
+
+                Map<String, String> additionalSubstitutions = build.getBuildVariables();
+                effectiveP4Client = MacroStringHelper.substituteParameters (
+                        getSlaveClientNameFormat(), this, build.getProject(), buildNode, additionalSubstitutions);
+            }
+            // eliminate spaces, just in case
+            effectiveP4Client = effectiveP4Client.replaceAll(" ", "_");
+        }
+        return effectiveP4Client;
+    }
+    
+    //TODO: Workspace is unused!
+    private String getDefaultEffectiveClientName(
+                AbstractBuild build, 
+                FilePath workspace) 
+            throws IOException, InterruptedException {
+        String basename = getEffectiveClientName(this.p4Client, build);
+        return MacroStringHelper.substituteParameters(basename, this, build, null);
     }
 
     public String getSlaveClientNameFormat() {
