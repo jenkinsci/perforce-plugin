@@ -531,8 +531,15 @@ public class PerforceSCM extends SCM {
             if (p4Ticket != null) {
                 env.put("P4TICKET", p4Ticket);
             }
-            
-            env.put("P4CLIENT", getConcurrentClientName(build.getWorkspace(), getEffectiveClientName(build, env)));        
+            // If we are running concurrent builds, the Jenkins workspace path is different
+            // for each concurrent build. Append Perforce workspace name with Jenkins
+            // workspace identifier suffix. But, only if we are syncing or allowing Jenkins to 
+            // manage workspaces. 
+            String effectiveP4Client = getEffectiveClientName(build, env);
+            if (!this.disableSyncOnly || this.createWorkspace) {
+                effectiveP4Client = getConcurrentClientName(build.getWorkspace(), effectiveP4Client);
+            }            
+            env.put("P4CLIENT", effectiveP4Client);        
         } catch (ParameterSubstitutionException ex) {
             LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Cannot build environent variables due to unresolved macros", ex);
             //TODO: exit?
@@ -1583,8 +1590,11 @@ public class PerforceSCM extends SCM {
 
         // If we are running concurrent builds, the Jenkins workspace path is different
         // for each concurrent build. Append Perforce workspace name with Jenkins
-        // workspace identifier suffix.
-        effectiveP4Client = getConcurrentClientName(workspace, effectiveP4Client);
+        // workspace identifier suffix. But, only do this if we are syncing or allowing
+        // Jenkins to manage workspaces.
+        if(!this.disableSyncOnly || this.createWorkspace) {
+            effectiveP4Client = getConcurrentClientName(workspace, effectiveP4Client);
+        }        
 
         if (!nodeIsRemote(buildNode)) {
             log.print("Using master perforce client: ");
