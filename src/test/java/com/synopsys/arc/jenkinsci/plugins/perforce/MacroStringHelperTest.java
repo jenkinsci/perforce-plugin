@@ -23,6 +23,7 @@
  */
 package com.synopsys.arc.jenkinsci.plugins.perforce;
 
+import hudson.EnvVars;
 import hudson.plugins.perforce.utils.MacroStringHelper;
 import hudson.plugins.perforce.utils.ParameterSubstitutionException;
 import javax.annotation.Nonnull;
@@ -70,6 +71,17 @@ public class MacroStringHelperTest {
         // no macros
         checkStringForMacros("//depot1/path1/... //placeholder/path1/...\r\n\t//depot1/path2/... //placeholder/path2/...", false);
         checkStringForMacros("//depot1/path1/... //placeholder/path1/...\n//depot1/path2/... //placeholder/path2/...", false);
+    }
+    
+    @Bug(25732)
+    public @Test void nullEntriesInEnvVars() throws ParameterSubstitutionException {   
+        // Check that params with null values are being ignored
+        try {
+           MacroStringHelper.substituteParameters("Test sring with ${PARAM}", new EnvVars("PARAM", null));
+        } catch (ParameterSubstitutionException ex) {
+            return; // OK
+        }
+        Assert.fail("Expected ParameterSubstitutionException on null parameter value");
     }
     
     public static void checkStringForMacros(@Nonnull String string, boolean expectMacro) {
