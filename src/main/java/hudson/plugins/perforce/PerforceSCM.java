@@ -1475,21 +1475,18 @@ public class PerforceSCM extends SCM {
         if (excludedFiles != null && !excludedFiles.trim().equals("")) {
             List<String> files = Arrays.asList(
                     MacroStringHelper.substituteParameters(excludedFiles, this, project, node, null).split("\n"));
-            StringBuffer buff = null;
-
+            
             if (files.size() > 0 && changelist.getFiles().size() > 0) {
+                StringBuilder buff = new StringBuilder("Exclude file(s) found:\n");
                 for (FileEntry f : changelist.getFiles()) {
                     if (!doesFilenameMatchAnyP4Pattern(f.getFilename(),files,excludedFilesCaseSensitivity) &&
                             isFileInView(f.getFilename(), view, excludedFilesCaseSensitivity)) {
                         return false;
                     }
 
-                    if (buff == null) {
-                        buff = new StringBuffer("Exclude file(s) found:\n");
-                    }
                     buff.append("\t").append(f.getFilename());
                 }
-
+                
                 logger.println(buff.toString());
                 return true;    // get here means changelist contains only file(s) to exclude
             }
