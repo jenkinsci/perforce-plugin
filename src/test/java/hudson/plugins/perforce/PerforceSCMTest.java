@@ -4,17 +4,20 @@ import hudson.model.FreeStyleBuild;
 import hudson.plugins.perforce.config.DepotType;
 import hudson.model.FreeStyleProject;
 import hudson.model.Hudson;
+import hudson.model.Label;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Result;
 import hudson.model.StringParameterDefinition;
 import hudson.model.StringParameterValue;
+import hudson.model.TaskListener;
 import hudson.plugins.perforce.PerforceToolInstallation.DescriptorImpl;
 import hudson.plugins.perforce.browsers.P4Web;
 import hudson.plugins.perforce.config.CleanTypeConfig;
 import hudson.plugins.perforce.config.MaskViewConfig;
 import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
 import hudson.plugins.perforce.utils.MacroStringHelper;
+import hudson.slaves.DumbSlave;
 import hudson.tools.ToolProperty;
 import java.net.MalformedURLException;
 
@@ -439,6 +442,39 @@ public class PerforceSCMTest extends HudsonTestCase {
         build = fBuild.get();
         assertLogContains(String.format(projectPath_format, "value"), build);
     }    
+    
+    @Bug(25559)
+    public void testExecutorNumberSubstitutionInClientName() throws Exception {
+        final String clientName_format = "test_%s_%s";
+        
+        // Create a slave with 1 executor (default)
+        final DumbSlave slave =  createOnlineSlave();
+        
+        // Create project
+        final FreeStyleProject prj = createFreeStyleProject();
+        PerforceToolInstallation stubInstallation = new PerforceToolInstallation("p4_stub", "echo", new LinkedList<ToolProperty<?>>());
+        PerforceToolInstallation.DescriptorImpl descriptor = (PerforceToolInstallation.DescriptorImpl) 
+                Hudson.getInstance().getDescriptor(PerforceToolInstallation.class);
+        descriptor.setInstallations(new PerforceToolInstallation[] { stubInstallation });
+        descriptor.save();
+        final PerforceSCM scm = PerforceSCMTest.createPerforceSCMStub();
+        scm.setSlaveClientNameFormat(null); // use default client name 
+        scm.setProjectPath("//depot1/path1/... //client/path1/...");
+        scm.setP4Client(String.format(clientName_format, "${NODE_NAME}", "${EXECUTOR_NUMBER}"));
+        scm.setP4Tool("p4_stub");
+        prj.setScm(scm);
+        prj.setAssignedLabel(slave.getSelfLabel());
+        
+        // Run build
+        Future<FreeStyleBuild> fBuild = prj.scheduleBuild2(0);
+        assertNotNull(fBuild);
+        FreeStyleBuild build = fBuild.get();
+        
+        // Assert that workspace name has a hash
+        assertLogContains(String.format(clientName_format+"-%s", 
+                slave.getNodeName(), 0, // first executor
+                build.getBuiltOn().getNodeName().hashCode()), build);
+    }   
       
     /**
      * Creates {@link PerforceSCM} with default fields.
