@@ -1,8 +1,5 @@
 package com.perforce.api;
 
-import java.io.*;
-import java.util.*;
-
 /*
  * Copyright (c) 2001, Perforce Software, All rights reserved.
  *

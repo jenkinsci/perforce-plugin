@@ -1,6 +1,5 @@
 package hudson.plugins.perforce;
 
-import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.model.AbstractProject;
@@ -12,7 +11,6 @@ import hudson.Launcher;
 import hudson.model.Hudson;
 import hudson.model.Result;
 import hudson.model.AbstractBuild;
-import hudson.model.TaskListener;
 import hudson.plugins.perforce.utils.MacroStringHelper;
 import hudson.plugins.perforce.utils.ParameterSubstitutionException;
 import hudson.tasks.BuildStepDescriptor;

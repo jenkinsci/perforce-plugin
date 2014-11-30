@@ -1,16 +1,9 @@
 package hudson.plugins.perforce;
 
 import com.tek42.perforce.PerforceException;
-import hudson.plugins.perforce.PerforceSCMHelper.WhereMapping;
 import java.util.ArrayList;
 import java.util.List;
-import java.io.IOException;
 import junit.framework.TestCase;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 
 public class PerforceSCMHelperTest extends TestCase {

@@ -1,14 +1,11 @@
 package hudson.plugins.perforce;
 
-import com.tek42.perforce.PerforceException;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.matrix.MatrixConfiguration;
 import hudson.model.*;
 import hudson.tasks.MailAddressResolver;
 import hudson.util.StreamTaskListener;
-import java.io.File;
 import java.util.logging.Logger;
 
 /**

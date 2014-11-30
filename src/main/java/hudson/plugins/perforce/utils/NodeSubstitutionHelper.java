@@ -27,7 +27,6 @@ package hudson.plugins.perforce.utils;
 import hudson.EnvVars;
 import hudson.Util;
 import hudson.model.Computer;
-import hudson.model.Executor;
 import hudson.model.Hudson;
 import hudson.model.Node;
 import hudson.plugins.perforce.PerforceSCM;

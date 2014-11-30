@@ -34,8 +34,6 @@ import hudson.scm.PollingResult;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import hudson.scm.SCMRevisionState;
-import hudson.slaves.EnvironmentVariablesNodeProperty;
-import hudson.slaves.NodeProperty;
 import hudson.tasks.Messages;
 import hudson.util.FormValidation;
 import hudson.util.LogTaskListener;
@@ -1260,10 +1258,6 @@ public class PerforceSCM extends SCM {
     /**
      * Part of the new polling routines. This compares the specified revision state with the repository,
      * and returns a polling result.
-     * @param ap
-     * @param lnchr
-     * @param fp
-     * @param tl
      * @param scmrs
      * @return
      * @throws IOException
@@ -1780,7 +1774,7 @@ public class PerforceSCM extends SCM {
         return slaveClientNameFormat;
     }
 
-    private boolean nodeIsRemote(Node buildNode) {
+    private boolean nodeIsRemote(@CheckForNull Node buildNode) {
         return buildNode != null && buildNode.getNodeName().length() != 0;
     }
 
@@ -2497,7 +2491,7 @@ public class PerforceSCM extends SCM {
     }
 
     /**
-     * @param path the path to the ClientSpec
+     * @param clientSpec the path to the ClientSpec
      */
     public void setClientSpec(String clientSpec) {
         this.clientSpec = clientSpec;
@@ -2753,7 +2747,7 @@ public class PerforceSCM extends SCM {
     }
     
     /**
-     * @param label the p4Label to set
+     * @param project the p4UpstreamProject to set
      */
     public void setP4UpstreamProject(String project) {
         p4UpstreamProject = project;
@@ -2806,8 +2800,8 @@ public class PerforceSCM extends SCM {
     /**
      * @param createWorkspace    True to let the plugin create the workspace, false to let the user manage it
      */
-    public void setCreateWorkspace(boolean val) {
-        this.createWorkspace = Boolean.valueOf(val);
+    public void setCreateWorkspace(boolean createWorkspace) {
+        this.createWorkspace = Boolean.valueOf(createWorkspace);
     }
 
     /**

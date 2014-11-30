@@ -33,8 +33,6 @@ import java.util.ArrayList;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Group;
-import com.tek42.perforce.model.Workspace;
-import com.tek42.perforce.model.Changelist;
 
 /**
  * Object for working with perforce groups.

@@ -1,7 +1,6 @@
 package hudson.plugins.perforce;
 
 import java.io.IOException;
-import java.io.PipedOutputStream;
 
 import hudson.Proc;
 import hudson.remoting.FastPipedOutputStream;

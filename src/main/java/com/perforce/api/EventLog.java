@@ -2,7 +2,6 @@ package com.perforce.api;
 
 import java.io.*;
 import java.util.*;
-import java.net.*;
 import java.text.*;
 
 /*
