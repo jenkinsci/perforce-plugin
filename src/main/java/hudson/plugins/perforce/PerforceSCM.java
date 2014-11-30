@@ -26,6 +26,8 @@ import hudson.plugins.perforce.config.CleanTypeConfig;
 import hudson.plugins.perforce.config.MaskViewConfig;
 import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
 import hudson.plugins.perforce.utils.MacroStringHelper;
+import static hudson.plugins.perforce.utils.MacroStringHelper.substituteParameters;
+
 import hudson.plugins.perforce.utils.ParameterSubstitutionException;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.PollingResult;
@@ -103,6 +105,8 @@ public class PerforceSCM extends SCM {
 
     private static final String WORKSPACE_COMBINATOR = System.getProperty(hudson.slaves.WorkspaceList.class.getName(),"@");
 
+    private static final int MAX_BUILD_ENV_VARS_NESTED_CALLS = 2;
+    
     /**
      * Name of the p4 tool installation
      */
@@ -517,6 +521,17 @@ public class PerforceSCM extends SCM {
     @Override
     public void buildEnvVars(@Nonnull AbstractBuild build, @Nonnull Map<String, String> env) {
         super.buildEnvVars(build, env);
+        
+        // Check nested calls
+        int nestedCallsCount = 0;
+        for (StackTraceElement ste : (new Throwable()).getStackTrace()) { // Inspect the stacktrace to avoid the infinite recursion
+            if (ste.getMethodName().equals("buildEnvVars") && ste.getClassName().equals(PerforceSCM.class.getName())) {
+                if ( ++nestedCallsCount > MAX_BUILD_ENV_VARS_NESTED_CALLS) {
+                    return;
+                }
+            }
+        }
+             
         try {
             env.put("P4PORT", MacroStringHelper.substituteParameters(p4Port, this, build, env));
             env.put("P4USER", MacroStringHelper.substituteParameters(p4User, this, build, env));   
@@ -541,7 +556,9 @@ public class PerforceSCM extends SCM {
             }            
             env.put("P4CLIENT", effectiveP4Client);        
         } catch (ParameterSubstitutionException ex) {
-            LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Cannot build environent variables due to unresolved macros", ex);
+            if (nestedCallsCount < 1) { // substitution failure is acceptable for a nested call
+                LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Cannot build environent variables due to unresolved macros", ex);
+            }
             //TODO: exit?
         } catch (InterruptedException ex) {
             LOGGER.log(MacroStringHelper.SUBSTITUTION_ERROR_LEVEL, "Cannot build environment vars. The method has been interrupted");
@@ -1586,7 +1603,7 @@ public class PerforceSCM extends SCM {
 
         String effectiveP4Client = build != null
                 ? getEffectiveClientName(build, null)
-                : getDefaultEffectiveClientName(project, buildNode, workspace);
+                : getEffectiveClientName(project, buildNode);
 
         // If we are running concurrent builds, the Jenkins workspace path is different
         // for each concurrent build. Append Perforce workspace name with Jenkins
@@ -1703,76 +1720,53 @@ public class PerforceSCM extends SCM {
         return p4workspace;
     }
 
-    private String getEffectiveClientName(AbstractBuild build, Map<String,String> env) 
-            throws ParameterSubstitutionException, InterruptedException {
-        Node buildNode = build.getBuiltOn();
-        FilePath workspace = build.getWorkspace();
-        String effectiveP4Client = this.p4Client;
-        try {
-            effectiveP4Client = getEffectiveClientName(effectiveP4Client, build);
-        } catch (Exception e) {
-            new StreamTaskListener(System.out).getLogger().println(
-                    "Could not get effective client name: " + e.getMessage());
+    private String getEffectiveClientName(@Nonnull AbstractBuild build, @CheckForNull Map<String,String> env) 
+            throws ParameterSubstitutionException, InterruptedException {   
+        final Node buildNode = build.getBuiltOn();
+        final Map<String, String> extraVars = new TreeMap<String,String>();
+        if (env != null) {
+            extraVars.putAll(env);
         }
-        effectiveP4Client = MacroStringHelper.substituteParameters(effectiveP4Client, this, build, env);
+
+        String effectiveP4Client;
+        if (buildNode!=null && nodeIsRemote(buildNode)) {
+            final String effectiveSlaveClientNameFormat = getSlaveClientNameFormat();
+            extraVars.put("basename", substituteParameters(this.p4Client, this, build, extraVars));
+            effectiveP4Client = substituteParameters(effectiveSlaveClientNameFormat, this, build, extraVars);
+        } else { // don't use node formats on master
+            effectiveP4Client = substituteParameters(this.p4Client, this, build, extraVars);
+        }
+
+        // eliminate spaces, just in case
+        effectiveP4Client = effectiveP4Client.replaceAll(" ", "_");
         return effectiveP4Client;
     }
 
-    //TODO: Workspace is unused!
-    private String getDefaultEffectiveClientName(
-            @CheckForNull AbstractProject project, 
-            @CheckForNull Node buildNode, 
-            FilePath workspace)
+    private String getEffectiveClientName(@CheckForNull AbstractProject project, @CheckForNull Node buildNode)
             throws IOException, InterruptedException {
-        String basename = getEffectiveClientName(this.p4Client, project, buildNode);
-        return MacroStringHelper.substituteParameters(basename, this, project, buildNode, null);
-    }
-
-    private String getEffectiveClientName(
-                @Nonnull String basename, 
-                @CheckForNull AbstractProject project, 
-                @CheckForNull Node buildNode)
-            throws IOException, InterruptedException {
-
-        String effectiveP4Client = basename;
-
-        //TODO: Seems that local node should be handled as well
-        if (buildNode!=null && nodeIsRemote(buildNode) && !getSlaveClientNameFormat().equals("")) {
-            
-            Map<String, String> additionalSubstitutions = new TreeMap<String,String>();
-            //TODO: Get rid of the outdated variable
-            additionalSubstitutions.put("basename", basename);
-            effectiveP4Client = MacroStringHelper.substituteParameters (
-                    getSlaveClientNameFormat(), this, project, buildNode, additionalSubstitutions);
+              
+        String effectiveP4Client;
+        if (buildNode!=null && nodeIsRemote(buildNode)) {       
+            final String effectiveRemoteClientNameFormat = getSlaveClientNameFormat();
+            Map<String, String> extraVars = new TreeMap<String,String>();
+            extraVars.put("basename", substituteParameters(this.p4Client, this, project, buildNode, null));           
+            effectiveP4Client = substituteParameters (effectiveRemoteClientNameFormat, this, project, buildNode, extraVars);
+        } else {
+            effectiveP4Client = substituteParameters(this.p4Client, this, project, buildNode, null);
         }
+            
         // eliminate spaces, just in case
         effectiveP4Client = effectiveP4Client.replaceAll(" ", "_");
         return effectiveP4Client;
     }
     
-    private String getEffectiveClientName(
-                @Nonnull String basename, 
-                @CheckForNull AbstractBuild build)
-            throws IOException, InterruptedException {
-
-        String effectiveP4Client = basename;
-        if(build != null) {
-            Node buildNode = build.getBuiltOn();
-
-            //TODO: Seems that local node should be handled as well
-            if (buildNode!=null && nodeIsRemote(buildNode) && !getSlaveClientNameFormat().equals("")) {
-
-                Map<String, String> additionalSubstitutions = build.getBuildVariables();
-                effectiveP4Client = MacroStringHelper.substituteParameters (
-                        getSlaveClientNameFormat(), this, build.getProject(), buildNode, additionalSubstitutions);
-            }
-            // eliminate spaces, just in case
-            effectiveP4Client = effectiveP4Client.replaceAll(" ", "_");
-        }
-        return effectiveP4Client;
-    }
-    
-    public String getSlaveClientNameFormat() {
+    /**
+     * Gets the client format for remote nodes.
+     * @return Client format for remote nodes.
+     *      Null and empty values will be replaced by a default format
+     */
+    // TODO: the method may cause NPEs.An override of the field is not good as well
+    public @Nonnull String getSlaveClientNameFormat() {
         if (this.slaveClientNameFormat == null || this.slaveClientNameFormat.equals("")) {
             if (this.dontRenameClient) {
                 slaveClientNameFormat = "${basename}";

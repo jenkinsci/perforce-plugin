@@ -269,27 +269,19 @@ public class MacroStringHelper {
         }
         String result = inputString;
         
-        // The last attempts: Try to build the full environment
+        // Try to build the full environment. Nested calls count is handled in PerforceSCM::buildEnvVars() 
         Map<String, String> environmentVarsFromExtensions = new TreeMap<String, String>();
-        boolean useEnvironment = true;
-        for (StackTraceElement ste : (new Throwable()).getStackTrace()) { // Inspect the stacktrace to avoid the infinite recursion
-            if (ste.getMethodName().equals("buildEnvVars") && ste.getClassName().equals(PerforceSCM.class.getName())) {
-                useEnvironment = false;
-            }
-        }
-        if (useEnvironment) {
-            try {
-                EnvVars vars = build.getEnvironment(TaskListener.NULL);
-                environmentVarsFromExtensions.putAll(vars);
-            } catch (IOException ex) {
-                Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
-            }
+        try {
+            EnvVars vars = build.getEnvironment(TaskListener.NULL);
+            environmentVarsFromExtensions.putAll(vars);
+        } catch (IOException ex) {
+            Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
         }
         result = MacroStringHelper.substituteParametersNoCheck(result, environmentVarsFromExtensions);
               
-        // Intermediate
+        // Intermediate check to avoid wasted efforts
         if (!containsMacro(result)) {
             return result;
         }
