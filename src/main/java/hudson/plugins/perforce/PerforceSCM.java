@@ -1759,19 +1759,22 @@ public class PerforceSCM extends SCM {
      * @return Client format for remote nodes.
      *      Null and empty values will be replaced by a default format
      */
-    // TODO: the method may cause NPEs.An override of the field is not good as well
-    public @Nonnull String getSlaveClientNameFormat() {
-        if (this.slaveClientNameFormat == null || this.slaveClientNameFormat.equals("")) {
-            if (this.dontRenameClient) {
-                slaveClientNameFormat = "${basename}";
-            } else if (this.useOldClientName) {
-                slaveClientNameFormat = "${basename}-${hostname}";
-            } else {
-                //Hash should be the new default
-                slaveClientNameFormat = "${basename}-${hash}";
-            }
+    public @Nonnull String getSlaveClientNameFormat() {   
+        @CheckForNull String effectiveSlaveClientNameFormat = Util.fixEmpty(this.slaveClientNameFormat);
+        if (effectiveSlaveClientNameFormat != null) {
+            return effectiveSlaveClientNameFormat;
         }
-        return slaveClientNameFormat;
+        
+        // Modify the field and return the correct value
+        if (this.dontRenameClient) {
+            effectiveSlaveClientNameFormat = "${basename}";
+        } else if (this.useOldClientName) {
+            effectiveSlaveClientNameFormat = "${basename}-${hostname}";
+        } else {
+            //Hash should be the new default
+            effectiveSlaveClientNameFormat = "${basename}-${hash}";
+        }
+        return effectiveSlaveClientNameFormat;
     }
 
     private boolean nodeIsRemote(@CheckForNull Node buildNode) {
