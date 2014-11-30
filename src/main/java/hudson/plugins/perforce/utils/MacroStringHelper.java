@@ -281,8 +281,6 @@ public class MacroStringHelper {
             environmentVarsFromExtensions.putAll(vars);
         } catch (IOException ex) {
             Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException ex) {
-            Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
         }
         result = MacroStringHelper.substituteParametersNoCheck(result, environmentVarsFromExtensions);
               
