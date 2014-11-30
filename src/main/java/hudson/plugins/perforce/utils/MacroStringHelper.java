@@ -182,7 +182,12 @@ public class MacroStringHelper {
         }
         String newString = string;
         for (Map.Entry<String, String> entry : subst.entrySet()) {
-            newString = newString.replace("${" + entry.getKey() + "}", entry.getValue());
+            final @CheckForNull String key = entry.getKey();
+            final @CheckForNull String value = entry.getValue(); 
+            if (key == null || value == null) {
+                continue;
+            }
+            newString = newString.replace("${" + key + "}", value);
         }
         return newString;
     }
