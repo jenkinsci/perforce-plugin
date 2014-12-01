@@ -42,5 +42,12 @@
         <f:description>Option globally disables exposal of Perforce passwords</f:description>
     </f:entry>
         
+    <!-- Default password -->
+    <f:entry title="${%Default Username}">
+        <f:textbox value="${descriptor.p4DefaultUser}" name="p4.defaultUser"/>
+    </f:entry>
+    <f:entry title="${%Default Password}">
+        <f:password value="${descriptor.p4DefaultPassword}" name="p4.defaultPassword"/>
+    </f:entry>
   </f:section>
 </j:jelly>

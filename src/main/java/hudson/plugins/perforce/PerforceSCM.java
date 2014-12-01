@@ -335,7 +335,7 @@ public class PerforceSCM extends SCM {
 
         this.configVersion = 2L;
 
-        this.p4User = p4User;
+        this.p4User = Util.fixEmptyAndTrim(p4User);
         this.setP4Passwd(p4Passwd);
         this.setExposeP4Passwd(exposeP4Passwd);
         this.p4Client = p4Client;
@@ -436,7 +436,15 @@ public class PerforceSCM extends SCM {
         String scmName = PerforceSCM.class.getSimpleName();
         return (PerforceSCMDescriptor)Hudson.getInstance().getScm(scmName);
     }
-
+    
+    public String getEffectiveP4User() {
+        return p4User != null ? p4User : getInstance().getP4DefaultUser();
+    }
+    
+    public String getEffectiveP4Password() {
+        return p4User != null ? p4Passwd : getInstance().getP4DefaultPassword();
+    }
+    
     /**
      * This only exists because we need to do initialization after we have been brought
      * back to life.  I'm not quite clear on stapler and how all that works.
@@ -462,7 +470,7 @@ public class PerforceSCM extends SCM {
         Depot depot = new Depot(p4Factory);
         
         depot.setClient(MacroStringHelper.substituteParameters(p4Client, this, build, project, node, null));
-        depot.setUser(MacroStringHelper.substituteParameters(p4User, this, build, project, node, null));
+        depot.setUser(MacroStringHelper.substituteParameters(getEffectiveP4User(), this, build, project, node, null));
         depot.setPort(MacroStringHelper.substituteParameters(p4Port, this, build, project, node, null));
         
         if (build != null) { // We can retrieve all parameters from the build's environment         
@@ -534,12 +542,12 @@ public class PerforceSCM extends SCM {
              
         try {
             env.put("P4PORT", MacroStringHelper.substituteParameters(p4Port, this, build, env));
-            env.put("P4USER", MacroStringHelper.substituteParameters(p4User, this, build, env));   
+            env.put("P4USER", MacroStringHelper.substituteParameters(getEffectiveP4User(), this, build, env));   
             
             // if we want to allow p4 commands in script steps this helps
             if (isExposeP4Passwd()) {
                 PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
-                env.put("P4PASSWD", encryptor.decryptString(p4Passwd));
+                env.put("P4PASSWD", encryptor.decryptString(getEffectiveP4Password()));
             }
             // this may help when tickets are used since we are
             // not storing the ticket on the client during login
@@ -1136,7 +1144,7 @@ public class PerforceSCM extends SCM {
             // Add tagging action that enables the user to create a label
             // for this build.
             build.addAction(new PerforceTagAction(
-                build, depot, newestChange, effectiveProjectPath, MacroStringHelper.substituteParameters(p4User, this, build, null)));
+                build, depot, newestChange, effectiveProjectPath, MacroStringHelper.substituteParameters(getEffectiveP4User(), this, build, null)));
 
             build.addAction(new PerforceSCMRevisionState(newestChange));
 
@@ -1206,7 +1214,7 @@ public class PerforceSCM extends SCM {
                     // matrixruns to use
                     log.println("No change number has been set by parent/siblings. Using latest.");
                     parentBuild.addAction(new PerforceTagAction(build, depot, newestChange, projectPath, 
-                            MacroStringHelper.substituteParameters(p4User, this, build, null)));
+                            MacroStringHelper.substituteParameters(getEffectiveP4User(), this, build, null)));
                 }
             }
         }
@@ -1849,6 +1857,10 @@ public class PerforceSCM extends SCM {
         private Integer p4ReadlineTimeout;
         /**DIsables expose of Perforce password to the build environment*/
         private boolean passwordExposeDisabled;
+        
+        private String p4DefaultUser;
+        private String p4DefaultPassword;
+        
         private final static int P4_INFINITE_TIMEOUT_SEC = 0;
         private final static int P4_MINIMAL_TIMEOUT_SEC = 30;
         
@@ -1913,7 +1925,33 @@ public class PerforceSCM extends SCM {
         public boolean isPasswordExposeDisabled() {
             return passwordExposeDisabled;
         }
+
+        private void setDefaultP4Passwd(String passwd) {
+            if (passwd == null) {
+                p4DefaultPassword = null;
+            }
             
+            PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+            if (encryptor.appearsToBeAnEncryptedPassword(passwd)) {
+                p4DefaultPassword = passwd;
+            } else {
+                p4DefaultPassword = encryptor.encryptString(passwd);
+            }
+        }
+        
+        public String getP4DefaultPassword() {
+            return p4DefaultPassword != null ? p4DefaultPassword : "";
+        }
+        
+        public String getDecryptedP4DefaultPassword() {
+            PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+            return encryptor.decryptString(p4DefaultPassword);
+        }
+
+        public String getP4DefaultUser() {
+            return p4DefaultUser;
+        }
+                 
         /**
          * Checks if plugin has ReadLine timeout.
          * @since 1.4.0
@@ -1925,6 +1963,9 @@ public class PerforceSCM extends SCM {
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
             p4ClientPattern = Util.fixEmpty(req.getParameter("p4.clientPattern").trim());
+            p4DefaultUser = Util.fixEmptyAndTrim(req.getParameter("p4.defaultUser"));
+            setDefaultP4Passwd(Util.fixEmptyAndTrim(req.getParameter("p4.defaultPassword")));
+            
             passwordExposeDisabled = json.getBoolean("passwordExposeDisabled");
             
             // ReadLine timeout
@@ -1986,9 +2027,15 @@ public class PerforceSCM extends SCM {
         protected Depot getDepotFromRequest(StaplerRequest request) {
             String port = fixNull(request.getParameter("port")).trim();
             String tool = fixNull(request.getParameter("tool")).trim();
+            
+            // Credentials
             String user = fixNull(request.getParameter("user")).trim();
             String pass = fixNull(request.getParameter("pass")).trim();
-
+            if (user.isEmpty()) {
+                user = getP4DefaultUser();
+                pass = getDecryptedP4DefaultPassword();
+            }
+            
             if (port.length() == 0 || tool.length() == 0) { // Not enough entered yet
                 return null;
             }
@@ -2022,6 +2069,14 @@ public class PerforceSCM extends SCM {
             return null;
         }
 
+        public FormValidation doValidatePerforceUsername(StaplerRequest req) {
+            String username = Util.fixEmptyAndTrim(req.getParameter("user"));
+            if (username == null) {
+                return FormValidation.warning("No user specified. A default user '"+getInstance().getP4DefaultUser()+"' will be used");
+            }
+            return FormValidation.ok();
+        }
+        
         /**
          * Checks if the perforce login credentials are good.
          */
@@ -2597,7 +2652,7 @@ public class PerforceSCM extends SCM {
 
     public String getDecryptedP4Passwd() {
         PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
-        return encryptor.decryptString(p4Passwd);
+        return encryptor.decryptString(getEffectiveP4Password());
     }
 
     public String getDecryptedP4Passwd(AbstractBuild build) 
