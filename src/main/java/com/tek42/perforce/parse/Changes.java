@@ -66,8 +66,7 @@ public class Changes extends AbstractPerforceTemplate {
 	 * @throws PerforceException
 	 */
 	public Changelist getChangelist(int number, int maxFiles) throws PerforceException {
-
-		ChangelistBuilder builder = new ChangelistBuilder(maxFiles);
+		ChangelistBuilder builder = new ChangelistBuilder(maxFiles, getDepot());
 		Changelist change = builder.build(getPerforceResponse(builder.getBuildCmd(getP4Exe(), Integer.toString(number))));
 		if(change == null)
 			throw new PerforceException("Failed to retrieve changelist " + number);

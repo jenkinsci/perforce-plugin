@@ -21,7 +21,8 @@
       </f:entry>
 
       <f:entry title="Username">
-        <f:textbox field="p4User" id="p4User"/>
+        <f:textbox field="p4User" id="p4User"
+            checkUrl="'${rootURL}/scm/PerforceSCM/validatePerforceUsername?user='+escape(this.form.elements['p4User'].value)"/>
       </f:entry>
 
       <f:entry title="Password">

@@ -92,6 +92,11 @@ public abstract class AbstractPerforceTemplate {
             return LoggerFactory.getLogger(this.getClass());
         }
     }
+    
+    protected Depot getDepot()
+    {
+        return depot;
+    }
 
     /**
 	 * Parses lines of formatted text for a list of values. Tokenizes each line into columns and adds the column

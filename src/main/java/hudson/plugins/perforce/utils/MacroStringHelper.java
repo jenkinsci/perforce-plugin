@@ -333,7 +333,7 @@ public class MacroStringHelper {
     private static void getDefaultSubstitutions(
             @Nonnull PerforceSCM instance, 
             @Nonnull Map<String, String> subst) {
-        subst.put("P4USER", MacroStringHelper.substituteParametersNoCheck(instance.getP4User(), subst));
+        subst.put("P4USER", MacroStringHelper.substituteParametersNoCheck(instance.getEffectiveP4User(), subst));
     }
     
     private static void getDefaultBuildSubstitutions(
