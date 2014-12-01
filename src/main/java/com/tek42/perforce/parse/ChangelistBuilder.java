@@ -28,6 +28,8 @@
 package com.tek42.perforce.parse;
 
 import java.io.Writer;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -38,6 +40,7 @@ import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Changelist;
 
@@ -50,9 +53,17 @@ public class ChangelistBuilder implements Builder<Changelist> {
 	private final Logger logger = LoggerFactory.getLogger("perforce");
 	//Maximum amount of files to be recorded to a changelist
 	private int maxFiles;
+	private final Depot depot;
+	private static final SimpleDateFormat dateParser = new
+			SimpleDateFormat("yyyy/MM/dd HH:mm:ss ZZZZZ", Locale.ENGLISH);
 	
 	public ChangelistBuilder(int maxFiles) {
+		this(maxFiles, null);
+	}
+	
+	public ChangelistBuilder(int maxFiles, Depot depot) {
 	    this.maxFiles = maxFiles;
+	    this.depot = depot;
 	}
 
 	public String[] getBuildCmd(String p4exe, String id) {
@@ -89,8 +100,16 @@ public class ChangelistBuilder implements Builder<Changelist> {
 
 					String date = details.nextToken();
 					String time = details.nextToken();
-
-					change.setDate(parseDate(date + " " + time));
+					
+					// check if we have a reference to the depot containing the changelists.
+					// if so, use it in order to get information about the server's timezone.
+					if(depot != null) {
+						change.setDate(parseDateWithTimezone(date + " " + time + " " + depot.getServerTimezone()));
+					}
+					else {
+						change.setDate(parseDate(date + " " + time));
+					}
+					
 
 					// the lines immediately following is the description
 					StringBuilder desc = new StringBuilder();
@@ -252,6 +271,22 @@ public class ChangelistBuilder implements Builder<Changelist> {
 		throw new UnsupportedOperationException("This is not implemented.");
 	}
 
+	/**
+	 * Returns a java.util.Date object set to the time specified in newDate.
+	 * This function uses the {@code dateParser} object internally, and thus
+	 * expects the same format on input.
+	 * @throws PerforceException When the string passed into the function could
+	 * not be parsed according to the format specified in {@code dateParser}.
+	 */
+	private static java.util.Date parseDateWithTimezone(String newDate) throws PerforceException {
+		try {
+			return dateParser.parse(newDate);
+		}
+		catch(ParseException e) {
+			throw new PerforceException("Cannot parse changelist timestamp : " + newDate);
+		}
+	}
+	
 	/**
 	 * Returns a java.util.Date object set to the time specified in newDate. The format expected is the format of:
 	 * YYYY-MM-DD HH:MM:SS
