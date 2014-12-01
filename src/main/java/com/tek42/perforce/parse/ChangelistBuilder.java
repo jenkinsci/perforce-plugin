@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import com.tek42.perforce.Depot;
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Changelist;
+import javax.annotation.CheckForNull;
 
 /**
  * Responsible for building and saving changelists.
@@ -53,7 +54,7 @@ public class ChangelistBuilder implements Builder<Changelist> {
 	private final Logger logger = LoggerFactory.getLogger("perforce");
 	//Maximum amount of files to be recorded to a changelist
 	private int maxFiles;
-	private final Depot depot;
+	private final @CheckForNull Depot depot;
 	private static final SimpleDateFormat dateParser = new
 			SimpleDateFormat("yyyy/MM/dd HH:mm:ss ZZZZZ", Locale.ENGLISH);
 	
@@ -103,8 +104,9 @@ public class ChangelistBuilder implements Builder<Changelist> {
 					
 					// check if we have a reference to the depot containing the changelists.
 					// if so, use it in order to get information about the server's timezone.
-					if(depot != null) {
-						change.setDate(parseDateWithTimezone(date + " " + time + " " + depot.getServerTimezone()));
+                                        final String serverTimezone = depot != null ? depot.getServerTimezone() : null;
+					if(serverTimezone != null) {
+						change.setDate(parseDateWithTimezone(date + " " + time + " " + serverTimezone));
 					}
 					else {
 						change.setDate(parseDate(date + " " + time));
@@ -277,13 +279,13 @@ public class ChangelistBuilder implements Builder<Changelist> {
 	 * expects the same format on input.
 	 * @throws PerforceException When the string passed into the function could
 	 * not be parsed according to the format specified in {@code dateParser}.
+         * @since 1.3.30 (JENKINS-24401)
 	 */
 	private static java.util.Date parseDateWithTimezone(String newDate) throws PerforceException {
 		try {
 			return dateParser.parse(newDate);
-		}
-		catch(ParseException e) {
-			throw new PerforceException("Cannot parse changelist timestamp : " + newDate);
+		} catch(ParseException e) {
+			throw new PerforceException("Cannot parse changelist timestamp : " + newDate, e);
 		}
 	}
 	

@@ -81,8 +81,7 @@ public abstract class AbstractPerforceTemplate {
             this.depot = depot;
     }
 
-    public Logger getLogger()
-    {
+    public Logger getLogger() {
         if(depot.getLogger() != null){
             return depot.getLogger();
         } else {
@@ -90,8 +89,7 @@ public abstract class AbstractPerforceTemplate {
         }
     }
     
-    protected Depot getDepot()
-    {
+    protected Depot getDepot() {
         return depot;
     }
 
