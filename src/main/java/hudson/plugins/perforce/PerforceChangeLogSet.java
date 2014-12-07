@@ -1,7 +1,6 @@
 package hudson.plugins.perforce;
 
 import com.tek42.perforce.model.Changelist;
-import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.scm.ChangeLogSet;
 import java.io.IOException;

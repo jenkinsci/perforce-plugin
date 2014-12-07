@@ -10,7 +10,6 @@ import hudson.plugins.perforce.PerforceRepositoryBrowser;
 import hudson.scm.RepositoryBrowser;
 import hudson.util.FormValidation;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import javax.servlet.ServletException;
 import net.sf.json.JSONObject;

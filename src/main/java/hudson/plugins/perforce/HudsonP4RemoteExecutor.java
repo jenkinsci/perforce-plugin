@@ -10,8 +10,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.tek42.perforce.PerforceException;
-import com.tek42.perforce.process.Executor;
-import hudson.CloseProofOutputStream;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Launcher.LocalLauncher;
@@ -20,8 +18,6 @@ import hudson.Proc.RemoteProc;
 import hudson.model.Hudson;
 import hudson.model.TaskListener;
 import hudson.remoting.Callable;
-import hudson.remoting.Channel;
-import hudson.remoting.Channel.Listener;
 import hudson.remoting.FastPipedInputStream;
 import hudson.remoting.FastPipedOutputStream;
 import hudson.remoting.Future;

@@ -34,8 +34,6 @@ import hudson.scm.PollingResult;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import hudson.scm.SCMRevisionState;
-import hudson.slaves.EnvironmentVariablesNodeProperty;
-import hudson.slaves.NodeProperty;
 import hudson.tasks.Messages;
 import hudson.util.FormValidation;
 import hudson.util.LogTaskListener;
@@ -1268,10 +1266,6 @@ public class PerforceSCM extends SCM {
     /**
      * Part of the new polling routines. This compares the specified revision state with the repository,
      * and returns a polling result.
-     * @param ap
-     * @param lnchr
-     * @param fp
-     * @param tl
      * @param scmrs
      * @return
      * @throws IOException
@@ -1489,21 +1483,18 @@ public class PerforceSCM extends SCM {
         if (excludedFiles != null && !excludedFiles.trim().equals("")) {
             List<String> files = Arrays.asList(
                     MacroStringHelper.substituteParameters(excludedFiles, this, project, node, null).split("\n"));
-            StringBuffer buff = null;
-
+            
             if (files.size() > 0 && changelist.getFiles().size() > 0) {
+                StringBuilder buff = new StringBuilder("Exclude file(s) found:\n");
                 for (FileEntry f : changelist.getFiles()) {
                     if (!doesFilenameMatchAnyP4Pattern(f.getFilename(),files,excludedFilesCaseSensitivity) &&
                             isFileInView(f.getFilename(), view, excludedFilesCaseSensitivity)) {
                         return false;
                     }
 
-                    if (buff == null) {
-                        buff = new StringBuffer("Exclude file(s) found:\n");
-                    }
                     buff.append("\t").append(f.getFilename());
                 }
-
+                
                 logger.println(buff.toString());
                 return true;    // get here means changelist contains only file(s) to exclude
             }
@@ -1773,22 +1764,25 @@ public class PerforceSCM extends SCM {
      * @return Client format for remote nodes.
      *      Null and empty values will be replaced by a default format
      */
-    // TODO: the method may cause NPEs.An override of the field is not good as well
-    public @Nonnull String getSlaveClientNameFormat() {
-        if (this.slaveClientNameFormat == null || this.slaveClientNameFormat.equals("")) {
-            if (this.dontRenameClient) {
-                slaveClientNameFormat = "${basename}";
-            } else if (this.useOldClientName) {
-                slaveClientNameFormat = "${basename}-${hostname}";
-            } else {
-                //Hash should be the new default
-                slaveClientNameFormat = "${basename}-${hash}";
-            }
+    public @Nonnull String getSlaveClientNameFormat() {   
+        @CheckForNull String effectiveSlaveClientNameFormat = Util.fixEmpty(this.slaveClientNameFormat);
+        if (effectiveSlaveClientNameFormat != null) {
+            return effectiveSlaveClientNameFormat;
         }
-        return slaveClientNameFormat;
+        
+        // Modify the field and return the correct value
+        if (this.dontRenameClient) {
+            effectiveSlaveClientNameFormat = "${basename}";
+        } else if (this.useOldClientName) {
+            effectiveSlaveClientNameFormat = "${basename}-${hostname}";
+        } else {
+            //Hash should be the new default
+            effectiveSlaveClientNameFormat = "${basename}-${hash}";
+        }
+        return effectiveSlaveClientNameFormat;
     }
 
-    private boolean nodeIsRemote(Node buildNode) {
+    private boolean nodeIsRemote(@CheckForNull Node buildNode) {
         return buildNode != null && buildNode.getNodeName().length() != 0;
     }
 
@@ -2552,7 +2546,7 @@ public class PerforceSCM extends SCM {
     }
 
     /**
-     * @param path the path to the ClientSpec
+     * @param clientSpec the path to the ClientSpec
      */
     public void setClientSpec(String clientSpec) {
         this.clientSpec = clientSpec;
@@ -2808,7 +2802,7 @@ public class PerforceSCM extends SCM {
     }
     
     /**
-     * @param label the p4Label to set
+     * @param project the p4UpstreamProject to set
      */
     public void setP4UpstreamProject(String project) {
         p4UpstreamProject = project;
@@ -2861,8 +2855,8 @@ public class PerforceSCM extends SCM {
     /**
      * @param createWorkspace    True to let the plugin create the workspace, false to let the user manage it
      */
-    public void setCreateWorkspace(boolean val) {
-        this.createWorkspace = Boolean.valueOf(val);
+    public void setCreateWorkspace(boolean createWorkspace) {
+        this.createWorkspace = Boolean.valueOf(createWorkspace);
     }
 
     /**

@@ -25,16 +25,9 @@ package hudson.plugins.perforce.utils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
-import java.nio.ByteBuffer;
-import java.nio.channels.*;
-import java.nio.channels.Pipe.SourceChannel;
-import java.nio.channels.spi.SelectorProvider;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.lang.time.StopWatch;
 
 /**
  *

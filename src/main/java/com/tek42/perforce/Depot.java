@@ -41,6 +41,7 @@ import com.tek42.perforce.parse.*;
 import com.tek42.perforce.process.DefaultExecutorFactory;
 import com.tek42.perforce.process.Executor;
 import com.tek42.perforce.process.ExecutorFactory;
+import javax.annotation.CheckForNull;
 
 /**
  * Represents the root object from which to interact with a Perforce server.
@@ -542,23 +543,34 @@ public class Depot {
 		return p4Ticket;
 	}
 	
-	public String getServerTimezone() throws PerforceException {
-		if(serverTimeZone == null) {
-			StringTokenizer infoTokens = new StringTokenizer(info(), "\n");
-			while(infoTokens.hasMoreTokens()) {
-				String infoLine = infoTokens.nextToken();
-				if(infoLine.startsWith("Server date: ")) {
-					/* the returned date is in the usual "Perforce format", but
-					 * includes the GMT offset and a three-letter timezone code
-					 * at its end. we're interested only in the offset, which
-					 * is located at positions 33-37. */
-					serverTimeZone = infoLine.substring(33, 38);
-					break;
-				}
-			}
-		}
-		return serverTimeZone;
-	}
+        /**
+         * Get the timezone of the server.
+         * @return 
+         *      The returned date is in the usual "Perforce format", but
+	 *      includes the GMT offset and a three-letter timezone code
+	 *      at its end. 
+         *      The value may be null if cannot retrieve the info from the server response.
+         * @since 1.3.30 (JENKINS-24401)
+         */
+	 public @CheckForNull String getServerTimezone() {
+            if (serverTimeZone == null) {
+                StringTokenizer infoTokens;
+                try {
+                    infoTokens = new StringTokenizer(info(), "\n");
+                } catch (PerforceException ex) {
+                    return null;
+                }
+                while (infoTokens.hasMoreTokens()) {
+                    String infoLine = infoTokens.nextToken();
+                    if (infoLine.startsWith("Server date: ")) {
+                        /* we're interested only in the offset, which is located at positions 33-37. */
+                        serverTimeZone = infoLine.substring(33, 38);
+                        break;
+                    }
+                }
+            }
+            return serverTimeZone;
+        }
 
 	/**
 	 * If using tickets, set the value of the ticket for this depot's user. Example value would be:

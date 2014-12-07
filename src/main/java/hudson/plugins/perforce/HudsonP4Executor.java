@@ -7,8 +7,6 @@ package hudson.plugins.perforce;
 
 import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.process.Executor;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.InputStream;
 import java.io.OutputStream;
 

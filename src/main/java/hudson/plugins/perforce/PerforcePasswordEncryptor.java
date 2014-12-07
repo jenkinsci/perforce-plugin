@@ -1,6 +1,5 @@
 package hudson.plugins.perforce;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;

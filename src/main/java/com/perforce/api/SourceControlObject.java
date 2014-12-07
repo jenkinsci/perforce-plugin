@@ -1,6 +1,5 @@
 package com.perforce.api;
 
-import java.io.*;
 import java.util.*;
 
 /*

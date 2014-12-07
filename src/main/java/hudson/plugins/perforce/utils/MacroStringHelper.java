@@ -42,7 +42,6 @@ import hudson.slaves.NodeProperty;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -280,8 +279,6 @@ public class MacroStringHelper {
             EnvVars vars = build.getEnvironment(TaskListener.NULL);
             environmentVarsFromExtensions.putAll(vars);
         } catch (IOException ex) {
-            Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException ex) {
             Logger.getLogger(PerforceSCM.class.getName()).log(Level.SEVERE, null, ex);
         }
         result = MacroStringHelper.substituteParametersNoCheck(result, environmentVarsFromExtensions);

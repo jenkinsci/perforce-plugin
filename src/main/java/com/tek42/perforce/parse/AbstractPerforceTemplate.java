@@ -46,10 +46,7 @@ import com.tek42.perforce.process.Executor;
 import hudson.plugins.perforce.PerforceSCM;
 import hudson.plugins.perforce.utils.TimedStreamCloser;
 import java.io.InputStream;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
 import org.slf4j.LoggerFactory;
-import org.apache.commons.lang.time.StopWatch;
 
 /**
  * Provides default functionality for interacting with Perforce using the template design pattern.
@@ -84,8 +81,7 @@ public abstract class AbstractPerforceTemplate {
             this.depot = depot;
     }
 
-    public Logger getLogger()
-    {
+    public Logger getLogger() {
         if(depot.getLogger() != null){
             return depot.getLogger();
         } else {
@@ -93,8 +89,7 @@ public abstract class AbstractPerforceTemplate {
         }
     }
     
-    protected Depot getDepot()
-    {
+    protected Depot getDepot() {
         return depot;
     }
 

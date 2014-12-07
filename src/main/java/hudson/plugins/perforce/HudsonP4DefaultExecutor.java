@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.tek42.perforce.PerforceException;
-import com.tek42.perforce.process.Executor;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Proc;

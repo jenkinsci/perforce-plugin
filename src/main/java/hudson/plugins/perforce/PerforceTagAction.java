@@ -6,7 +6,6 @@ import com.tek42.perforce.model.Label;
 import static hudson.Util.fixNull;
 import hudson.model.AbstractBuild;
 import hudson.model.Action;
-import hudson.model.Hudson;
 import hudson.scm.AbstractScmTagAction;
 import hudson.security.Permission;
 import hudson.util.FormValidation;

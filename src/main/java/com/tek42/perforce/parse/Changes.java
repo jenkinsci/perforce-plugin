@@ -39,7 +39,6 @@ import com.tek42.perforce.PerforceException;
 import com.tek42.perforce.model.Changelist;
 import com.tek42.perforce.model.Workspace;
 import hudson.plugins.perforce.PerforceSCMHelper;
-import java.io.IOException;
 
 /**
  * Base API object for interacting with changelists.

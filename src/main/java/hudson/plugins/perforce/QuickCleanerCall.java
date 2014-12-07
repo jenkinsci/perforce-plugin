@@ -1,11 +1,8 @@
 package hudson.plugins.perforce;
 
-import hudson.Launcher;
-import hudson.Proc;
 import hudson.Util;
 import hudson.model.TaskListener;
 import hudson.plugins.perforce.QuickCleaner.PerforceCall;
-import hudson.remoting.Callable;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.logging.Level;
