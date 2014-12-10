@@ -25,6 +25,11 @@
       <name>Rob Petti</name>
       <email>rob.petti@gmail.com</email>
     </developer>
+    <developer>
+      <id>oleg_nenashev</id>
+      <name>Oleg Nenashev</name>
+      <email>o dot v dot nenashev at gmail dot com</email>
+    </developer>
   </developers>
 
   <licenses>
