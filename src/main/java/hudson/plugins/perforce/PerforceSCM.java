@@ -435,11 +435,21 @@ public class PerforceSCM extends SCM {
         return (PerforceSCMDescriptor)Hudson.getInstance().getScm(scmName);
     }
     
-    public String getEffectiveP4User() {
+    /**
+     * Gets the P4 user from local or global configs (as a default).
+     * @return Effective password. May be null or empty
+     * @since 1.3.31
+     */
+    public @CheckForNull String getEffectiveP4User() {
         return p4User != null ? p4User : getInstance().getP4DefaultUser();
     }
     
-    public String getEffectiveP4Password() {
+    /**
+     * Gets the password from local or global configs (as a default).
+     * @return Effective password. May be null or empty
+     * @since 1.3.31
+     */
+    public @CheckForNull String getEffectiveP4Password() {
         return p4User != null ? p4Passwd : getInstance().getP4DefaultPassword();
     }
     
@@ -1852,8 +1862,8 @@ public class PerforceSCM extends SCM {
         /**DIsables expose of Perforce password to the build environment*/
         private boolean passwordExposeDisabled;
         
-        private String p4DefaultUser;
-        private String p4DefaultPassword;
+        private @CheckForNull String p4DefaultUser;
+        private @CheckForNull String p4DefaultPassword;
         
         private final static int P4_INFINITE_TIMEOUT_SEC = 0;
         private final static int P4_MINIMAL_TIMEOUT_SEC = 30;
@@ -1920,9 +1930,13 @@ public class PerforceSCM extends SCM {
             return passwordExposeDisabled;
         }
 
-        private void setDefaultP4Passwd(String passwd) {
+        /**
+         * @since 1.3.31
+         */
+        private void setDefaultP4Passwd(@CheckForNull String passwd) {
             if (passwd == null) {
                 p4DefaultPassword = null;
+                return;
             }
             
             PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
@@ -1933,16 +1947,31 @@ public class PerforceSCM extends SCM {
             }
         }
         
-        public String getP4DefaultPassword() {
+        /**
+         * Get the default password
+         * @return Password or empty string if it does not set
+         * @since 1.3.31
+         */
+        public @Nonnull String getP4DefaultPassword() {
             return p4DefaultPassword != null ? p4DefaultPassword : "";
         }
         
-        public String getDecryptedP4DefaultPassword() {
+        /**
+         * Decrypts the default password.
+         * @return Password or empty string if it does not set
+         * @since 1.3.31
+         */
+        public @Nonnull String getDecryptedP4DefaultPassword() {
             PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
             return encryptor.decryptString(p4DefaultPassword);
         }
 
-        public String getP4DefaultUser() {
+        /**
+         * Gets the default user id.
+         * @return null if the user is not specified
+         * @since 1.3.31
+         */
+        public @CheckForNull String getP4DefaultUser() {
             return p4DefaultUser;
         }
                  
@@ -2624,16 +2653,17 @@ public class PerforceSCM extends SCM {
     }
 
     /**
+     * @deprecated use {@link #getEffectiveP4User()} to get a support of default options
      * @return the p4User
      */
-    public String getP4User() {
+    public @CheckForNull String getP4User() {
         return p4User;
     }
 
     /**
      * @param user the p4User to set
      */
-    public void setP4User(String user) {
+    public void setP4User(@CheckForNull String user) {
         p4User = user;
     }
 

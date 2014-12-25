@@ -5,6 +5,8 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -26,11 +28,14 @@ public class PerforcePasswordEncryptor {
     public PerforcePasswordEncryptor() {
     }
 
-    public boolean appearsToBeAnEncryptedPassword(String toCheck) {
+    public boolean appearsToBeAnEncryptedPassword(@CheckForNull String toCheck) {
+        if (toCheck == null) {
+            return false;
+        }
         return toCheck.startsWith(ENCRYPTION_PREFIX);
     }
 
-    public String encryptString(String toEncrypt) {
+    public @Nonnull String encryptString(@CheckForNull String toEncrypt) {
         if (toEncrypt == null || toEncrypt.trim().length() == 0)
             return "";
 
@@ -51,7 +56,12 @@ public class PerforcePasswordEncryptor {
         return ENCRYPTION_PREFIX + encodedString;
     }
 
-    public String decryptString(String toDecrypt) {
+    /**
+     * Decrypts the input string
+     * @param toDecrypt Input string
+     * @return Decrypted string. Empty string is being used as a fallback
+     */
+    public @Nonnull String decryptString(@CheckForNull String toDecrypt) {
         if (toDecrypt == null || toDecrypt.length() == 0)
             return "";
 

@@ -1,5 +1,7 @@
 package hudson.plugins.perforce;
 
+import javax.annotation.CheckForNull;
+import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.HudsonTestCase;
 
 /**
@@ -25,5 +27,14 @@ public class PerforcePasswordEncryptorTest extends HudsonTestCase {
         String encryptedString = encryptor.encryptString(toEncrypt);
         assertTrue(encryptor.appearsToBeAnEncryptedPassword(encryptedString));
     }
+    
+    @Bug(26076)
+    public void testEncryptNull() {
+        final PerforcePasswordEncryptor encryptor = new PerforcePasswordEncryptor();
+        final @CheckForNull String toEncrypt = null;
 
+        assertFalse(encryptor.appearsToBeAnEncryptedPassword(null));
+        String encryptedString = encryptor.encryptString(toEncrypt);
+        assertEquals("", encryptedString);
+    }
 }
