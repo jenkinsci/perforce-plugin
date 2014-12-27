@@ -1,5 +1,12 @@
 package hudson.plugins.perforce;
 
+import hudson.matrix.Axis;
+import hudson.matrix.AxisList;
+import hudson.matrix.Combination;
+import hudson.matrix.MatrixBuild;
+import hudson.matrix.MatrixProject;
+import hudson.matrix.MatrixRun;
+import hudson.model.AbstractProject;
 import hudson.model.FreeStyleBuild;
 import hudson.plugins.perforce.config.DepotType;
 import hudson.model.FreeStyleProject;
@@ -13,9 +20,13 @@ import hudson.plugins.perforce.browsers.P4Web;
 import hudson.plugins.perforce.config.CleanTypeConfig;
 import hudson.plugins.perforce.config.MaskViewConfig;
 import hudson.plugins.perforce.config.WorkspaceCleanupConfig;
+import hudson.plugins.perforce.utils.JobSubstitutionHelper;
+import static hudson.plugins.perforce.utils.JobSubstitutionHelperTest.assertNoSpecialSymbols;
 import hudson.plugins.perforce.utils.MacroStringHelper;
+import hudson.plugins.perforce.utils.ParameterSubstitutionException;
 import hudson.slaves.DumbSlave;
 import hudson.tools.ToolProperty;
+import java.io.IOException;
 import java.net.MalformedURLException;
 
 import java.net.URL;
@@ -26,6 +37,7 @@ import java.util.List;
 import java.util.concurrent.Future;
 import javax.annotation.Nonnull;
 import static junit.framework.Assert.assertNotNull;
+import org.junit.Test;
 import org.jvnet.hudson.test.Bug;
 
 import org.jvnet.hudson.test.HudsonTestCase;
@@ -472,6 +484,45 @@ public class PerforceSCMTest extends HudsonTestCase {
                 slave.getNodeName(), 0, // first executor
                 build.getBuiltOn().getNodeName().hashCode()), build);
     }   
+    
+    @Bug(26119)
+    public void testSubstituteVarsForMatrixAxis() 
+            throws Exception, InterruptedException {     
+        
+        final String CLIENTNAME_FORMAT = "test_%s";
+
+        // Tool stub
+        PerforceToolInstallation stubInstallation = new PerforceToolInstallation("p4_stub", "echo", new LinkedList<ToolProperty<?>>());
+        PerforceToolInstallation.DescriptorImpl descriptor = (PerforceToolInstallation.DescriptorImpl) Hudson.getInstance().getDescriptor(PerforceToolInstallation.class);
+        descriptor.setInstallations(new PerforceToolInstallation[] { stubInstallation });
+        descriptor.save();
+        
+        // Project initialization
+        final MatrixProject prj = createMatrixProject("test");
+        PerforceSCM scm = createPerforceSCMStub();
+        scm.setP4Client(String.format(CLIENTNAME_FORMAT, "${JOB_NAME}"));
+        scm.setP4Tool("p4_stub");
+        prj.setScm(scm);
+        final AxisList axes = new AxisList(new Axis("TEST_AXIS", "val1", "val2"));        
+        prj.setAxes(axes);
+        
+        final Combination configuration = new Combination(axes, "val1");
+        
+        // Run MatrixBuild
+        Future<MatrixBuild> fBuild = prj.scheduleBuild2(0);
+        assertNotNull(fBuild);
+        final MatrixBuild build = fBuild.get();
+        
+        // Check JobSubstitutionHelper::getSafeJobName()
+        MatrixRun run = build.getRun(configuration);      
+        final String safeConfigName = JobSubstitutionHelper.getSafeJobName(prj.getItem(configuration));
+        assertNoSpecialSymbols(safeConfigName);
+        assertLogContains(safeConfigName, run);
+        
+        // Check substitution via explicit call
+        String substitutedJobName = MacroStringHelper.substituteParameters("${JOB_NAME}", scm, run, null);
+        assertEquals(safeConfigName, substitutedJobName);
+    }
       
     /**
      * Creates {@link PerforceSCM} with default fields.

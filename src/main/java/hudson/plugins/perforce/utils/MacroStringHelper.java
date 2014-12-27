@@ -25,20 +25,12 @@
 package hudson.plugins.perforce.utils;
 
 import hudson.EnvVars;
-import hudson.matrix.Axis;
-import hudson.matrix.MatrixConfiguration;
-import hudson.matrix.MatrixProject;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.Node;
-import hudson.model.ParameterDefinition;
-import hudson.model.ParameterValue;
-import hudson.model.ParametersDefinitionProperty;
 import hudson.model.TaskListener;
 import hudson.plugins.perforce.PerforceSCM;
-import hudson.slaves.EnvironmentVariablesNodeProperty;
-import hudson.slaves.NodeProperty;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -245,7 +237,7 @@ public class MacroStringHelper {
         getDefaultCoreSubstitutions(substitutions);
         NodeSubstitutionHelper.getDefaultNodeSubstitutions(instance, node, substitutions);
         if (project != null) { 
-            getDefaultSubstitutions(project, substitutions);
+            JobSubstitutionHelper.getDefaultSubstitutions(project, substitutions);
         }
         getDefaultSubstitutions(instance, substitutions);
         outputString = substituteParametersNoCheck(outputString, substitutions);    
@@ -273,6 +265,11 @@ public class MacroStringHelper {
         }
         String result = inputString;
         
+        // Substitute variables with custom values (escaping, etc)
+        final Map<String, String> customVars = new TreeMap<String, String>();
+        customVars.put("JOB_NAME", JobSubstitutionHelper.getSafeJobName(build));
+        result = MacroStringHelper.substituteParametersNoCheck(result, customVars);
+        
         // Try to build the full environment. Nested calls count is handled in PerforceSCM::buildEnvVars() 
         Map<String, String> environmentVarsFromExtensions = new TreeMap<String, String>();
         try {
@@ -298,14 +295,6 @@ public class MacroStringHelper {
         result = MacroStringHelper.substituteParametersNoCheck(result, build.getBuildVariables());
               
         return result;
-    }
-    
-    private static String getSafeJobName(@Nonnull AbstractBuild build) {
-        return getSafeJobName(build.getProject());
-    }
-
-    private static String getSafeJobName(@Nonnull AbstractProject project) {
-        return project.getFullName().replace('/', '-').replace('=', '-').replace(',', '-');
     }
     
     /**
@@ -345,51 +334,6 @@ public class MacroStringHelper {
         String rootUrl = Hudson.getInstance().getRootUrl();
         if (rootUrl != null) {   
             subst.put("BUILD_URL", rootUrl + build.getUrl());
-        }
-    }
-        
-    
-    private static void getDefaultSubstitutions(
-            @Nonnull AbstractProject project, 
-            @Nonnull Map<String, String> subst) {
-        
-        subst.put("JOB_NAME", MacroStringHelper.getSafeJobName(project));
-        String rootUrl = Hudson.getInstance().getRootUrl();
-        if (rootUrl != null) {   
-            subst.put("JOB_URL", rootUrl + project.getUrl());
-        }
-        
-        for (NodeProperty nodeProperty : Hudson.getInstance().getGlobalNodeProperties()) {
-            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                subst.putAll(((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars());
-            }
-        }
-        ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) project.getProperty(hudson.model.ParametersDefinitionProperty.class);
-        if (pdp != null) {
-            for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
-                try {
-                    ParameterValue defaultValue = pd.getDefaultParameterValue();
-                    if (defaultValue != null) {
-                        String name = defaultValue.getName();
-                        String value = defaultValue.createVariableResolver(null).resolve(name);
-                        subst.put(name, value);
-                    }
-                } catch (Exception e) {
-                    // Do nothing
-                }
-            }
-        }
-        
-        // Handle Matrix Axes
-        if (project instanceof MatrixConfiguration) {
-            MatrixConfiguration matrixConfiguration = (MatrixConfiguration) project;
-            subst.putAll(matrixConfiguration.getCombination());
-        }
-        if (project instanceof MatrixProject) {
-            MatrixProject matrixProject = (MatrixProject) project;
-            for (Axis axis : matrixProject.getAxes()) {
-                subst.put(axis.name, axis.size() >0 ? axis.value(0) : "");
-            }
         }
     }
 }
