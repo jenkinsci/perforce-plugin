@@ -245,7 +245,7 @@ public class MacroStringHelper {
         getDefaultCoreSubstitutions(substitutions);
         NodeSubstitutionHelper.getDefaultNodeSubstitutions(instance, node, substitutions);
         if (project != null) { 
-            getDefaultSubstitutions(project, substitutions);
+            JobSubstitutionHelper.getDefaultSubstitutions(project, substitutions);
         }
         getDefaultSubstitutions(instance, substitutions);
         outputString = substituteParametersNoCheck(outputString, substitutions);    
@@ -300,14 +300,6 @@ public class MacroStringHelper {
         return result;
     }
     
-    private static String getSafeJobName(@Nonnull AbstractBuild build) {
-        return getSafeJobName(build.getProject());
-    }
-
-    private static String getSafeJobName(@Nonnull AbstractProject project) {
-        return project.getFullName().replace('/', '-').replace('=', '-').replace(',', '-');
-    }
-    
     /**
      * Gets variables of {@link Hudson} instance.
      */
@@ -345,51 +337,6 @@ public class MacroStringHelper {
         String rootUrl = Hudson.getInstance().getRootUrl();
         if (rootUrl != null) {   
             subst.put("BUILD_URL", rootUrl + build.getUrl());
-        }
-    }
-        
-    
-    private static void getDefaultSubstitutions(
-            @Nonnull AbstractProject project, 
-            @Nonnull Map<String, String> subst) {
-        
-        subst.put("JOB_NAME", MacroStringHelper.getSafeJobName(project));
-        String rootUrl = Hudson.getInstance().getRootUrl();
-        if (rootUrl != null) {   
-            subst.put("JOB_URL", rootUrl + project.getUrl());
-        }
-        
-        for (NodeProperty nodeProperty : Hudson.getInstance().getGlobalNodeProperties()) {
-            if (nodeProperty instanceof EnvironmentVariablesNodeProperty) {
-                subst.putAll(((EnvironmentVariablesNodeProperty) nodeProperty).getEnvVars());
-            }
-        }
-        ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) project.getProperty(hudson.model.ParametersDefinitionProperty.class);
-        if (pdp != null) {
-            for (ParameterDefinition pd : pdp.getParameterDefinitions()) {
-                try {
-                    ParameterValue defaultValue = pd.getDefaultParameterValue();
-                    if (defaultValue != null) {
-                        String name = defaultValue.getName();
-                        String value = defaultValue.createVariableResolver(null).resolve(name);
-                        subst.put(name, value);
-                    }
-                } catch (Exception e) {
-                    // Do nothing
-                }
-            }
-        }
-        
-        // Handle Matrix Axes
-        if (project instanceof MatrixConfiguration) {
-            MatrixConfiguration matrixConfiguration = (MatrixConfiguration) project;
-            subst.putAll(matrixConfiguration.getCombination());
-        }
-        if (project instanceof MatrixProject) {
-            MatrixProject matrixProject = (MatrixProject) project;
-            for (Axis axis : matrixProject.getAxes()) {
-                subst.put(axis.name, axis.size() >0 ? axis.value(0) : "");
-            }
         }
     }
 }
