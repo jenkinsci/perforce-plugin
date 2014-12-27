@@ -25,20 +25,12 @@
 package hudson.plugins.perforce.utils;
 
 import hudson.EnvVars;
-import hudson.matrix.Axis;
-import hudson.matrix.MatrixConfiguration;
-import hudson.matrix.MatrixProject;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.Node;
-import hudson.model.ParameterDefinition;
-import hudson.model.ParameterValue;
-import hudson.model.ParametersDefinitionProperty;
 import hudson.model.TaskListener;
 import hudson.plugins.perforce.PerforceSCM;
-import hudson.slaves.EnvironmentVariablesNodeProperty;
-import hudson.slaves.NodeProperty;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -272,6 +264,11 @@ public class MacroStringHelper {
             return inputString;
         }
         String result = inputString;
+        
+        // Substitute variables with custom values (escaping, etc)
+        final Map<String, String> customVars = new TreeMap<String, String>();
+        customVars.put("JOB_NAME", JobSubstitutionHelper.getSafeJobName(build));
+        result = MacroStringHelper.substituteParametersNoCheck(result, customVars);
         
         // Try to build the full environment. Nested calls count is handled in PerforceSCM::buildEnvVars() 
         Map<String, String> environmentVarsFromExtensions = new TreeMap<String, String>();

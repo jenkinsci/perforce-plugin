@@ -90,11 +90,11 @@ public class JobSubstitutionHelper {
         }
     }
     
-    /**package*/ static String getSafeJobName(@Nonnull AbstractBuild build) {
+    public static String getSafeJobName(@Nonnull AbstractBuild build) {
         return getSafeJobName(build.getProject());
     }
 
-    /**package*/ static String getSafeJobName(@Nonnull AbstractProject project) {
+    public static String getSafeJobName(@Nonnull AbstractProject project) {
         return project.getFullName().replace('/', '-').replace('=', '-').replace(',', '-');
     }
 }

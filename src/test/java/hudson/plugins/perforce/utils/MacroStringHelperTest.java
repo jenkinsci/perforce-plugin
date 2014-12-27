@@ -21,11 +21,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.synopsys.arc.jenkinsci.plugins.perforce;
+package hudson.plugins.perforce.utils;
 
 import hudson.EnvVars;
+import hudson.matrix.Axis;
+import hudson.matrix.AxisList;
+import hudson.matrix.Combination;
+import hudson.matrix.MatrixProject;
+import hudson.model.AbstractProject;
+import hudson.plugins.perforce.utils.JobSubstitutionHelper;
 import hudson.plugins.perforce.utils.MacroStringHelper;
 import hudson.plugins.perforce.utils.ParameterSubstitutionException;
+import java.io.IOException;
 import javax.annotation.Nonnull;
 import junit.framework.Assert;
 import org.junit.Test;
