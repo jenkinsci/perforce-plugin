@@ -110,14 +110,14 @@ public class NodeSubstitutionHelper {
     }
     
     @Nonnull
-    private static String getHostName(@Nonnull Node node) {
+    private static String getHostName(@Nonnull Node node) throws InterruptedException {
         String host = null;
         try {
             Computer c = node.toComputer();
             if (c != null) {
                 host = c.getHostName();
             }
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             // fallback to finally
         } finally {
             if (host == null) {
