@@ -55,9 +55,7 @@ public class ChangelistBuilder implements Builder<Changelist> {
 	//Maximum amount of files to be recorded to a changelist
 	private int maxFiles;
 	private final @CheckForNull Depot depot;
-	private static final SimpleDateFormat dateParser = new
-			SimpleDateFormat("yyyy/MM/dd HH:mm:ss ZZZZZ", Locale.ENGLISH);
-	
+        
 	public ChangelistBuilder(int maxFiles) {
 		this(maxFiles, null);
 	}
@@ -281,8 +279,10 @@ public class ChangelistBuilder implements Builder<Changelist> {
 	 * not be parsed according to the format specified in {@code dateParser}.
          * @since 1.3.30 (JENKINS-24401)
 	 */
-	private static java.util.Date parseDateWithTimezone(String newDate) throws PerforceException {
-		try {
+	 /*package*/ static java.util.Date parseDateWithTimezone(String newDate) throws PerforceException {
+		final SimpleDateFormat dateParser = new
+			SimpleDateFormat("yyyy/MM/dd HH:mm:ss ZZZZZ", Locale.ENGLISH);
+                try {
 			return dateParser.parse(newDate);
 		} catch(ParseException e) {
 			throw new PerforceException("Cannot parse changelist timestamp : " + newDate, e);
