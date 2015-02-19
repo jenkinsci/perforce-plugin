@@ -121,7 +121,7 @@ public class NodeSubstitutionHelper {
             // fallback to finally
         } finally {
             if (host == null) {
-                LOGGER.log(Level.WARNING, "Could not get hostname for slave " + node.getDisplayName());
+                LOGGER.log(Level.FINE, "Could not get hostname for slave " + node.getDisplayName());
                 host = "UNKNOWNHOST";
             }
         }
