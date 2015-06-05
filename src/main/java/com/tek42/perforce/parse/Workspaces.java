@@ -129,15 +129,15 @@ public class Workspaces extends AbstractPerforceTemplate {
                     @Override
                     public boolean accept(String line) {
                         count++;
-                        if(line.contains("Request too large")){
-                            return true;
-                        }
                         //detect errors during syncing
                         //ignore lines containing "files(s) up-to-date", because
                         //perforce classifies that as an 'error' for some strange reason
                         if(line.startsWith("error:") && !line.contains("file(s) up-to-date.")){
                             errors.append(line);
                             errors.append("\n");
+                        }
+                        if(line.contains("Request too large")){
+                            return true;
                         }
                         //return at most 50 lines. Throw away the rest so we don't run out of memory
                         if(count<50){

@@ -123,7 +123,7 @@ public abstract class AbstractPerforceTemplate {
 	 * @return	True if the limit was reached, false otherwise.
 	 */
 	protected boolean hitMax(StringBuilder response) {
-		return response.toString().startsWith(maxError);
+		return response.toString().startsWith(maxError) || response.toString().startsWith("error: "+maxError);
 	}
 
         /**
