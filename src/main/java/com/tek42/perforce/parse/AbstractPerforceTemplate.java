@@ -65,6 +65,7 @@ public abstract class AbstractPerforceTemplate {
             "You don't have permission for this operation.",
             "Password invalid.",
             "The authenticity of",
+            "User not allowed to create a ticket that is valid on all host machines.",
         };
     
     private static final int P4_EXECUTOR_CHECK_PERIOD = 2000;
