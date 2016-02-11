@@ -33,12 +33,14 @@ import java.io.IOException;
 import javax.annotation.Nonnull;
 import junit.framework.Assert;
 import org.junit.Test;
+import org.junit.Ignore;
 import org.jvnet.hudson.test.Bug;
 
 /**
  *
  * @author Oleg Nenashev <o.v.nenashev@gmail.com>
  */
+@Ignore
 public class JobSubstitutionHelperTest {
       
     public static void assertNoSpecialSymbols(@Nonnull String value) {
