@@ -97,7 +97,6 @@ public final class PerforceSCMHelper {
     }
 
     static private Map<String,String> readPythonDictionary(InputStream stream) throws IOException {
-        int counter = 0;
         Map<String,String> map = new HashMap<String,String>();
         if(stream.read() == '{'){
             //good to go
@@ -250,7 +249,6 @@ public final class PerforceSCMHelper {
 
         Iterator<String> tripleDotIterator = tripleDotTokens.iterator();
         Iterator<String> asteriskIterator = asteriskTokens.iterator();
-        Map<Integer,String> newGroupMap = new HashMap<Integer,String>();
         String mappedPath = rhs;
         while(true){
             Matcher match = Pattern.compile("\\.\\.\\.").matcher(mappedPath);

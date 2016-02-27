@@ -501,7 +501,6 @@ public class Depot {
 	 *            Full path to the p4 executable.
 	 */
 	public void setExecutable(String exe) {
-		int pos;
 		if(null == exe)
 			return;
 		p4exe = exe;

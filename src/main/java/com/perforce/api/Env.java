@@ -252,7 +252,7 @@ public class Env {
 	 */
 	public Vector getPropertyList(String key, String defaultValue, String delimeter) {
 		Vector v = new Vector();
-		String val, tok;
+		String val;
 		StringTokenizer st;
 
 		val = getProperty(key, defaultValue);

@@ -87,7 +87,7 @@ public final class Utils {
 		boolean match = true;
 		boolean in_dots = false;
 		int i, j, plen = path.length(), wplen = wildpath.length();
-		char wc, pc;
+		char wc;
 		for(j = 0, i = 0; i < wplen && j < plen; i++) {
 			if('%' == (wc = wildpath.charAt(i))) {
 				wc = wildpath.charAt(++i);
