@@ -670,7 +670,7 @@ public final class Job extends SourceControlObject {
 	}
 
 	public String toXML() {
-		StringBuffer sb = new StringBuffer("<job name=\"");
+		StringBuilder sb = new StringBuilder("<job name=\"");
 		sb.append(getName());
 		sb.append("\" user=\"");
 		sb.append(getUser());

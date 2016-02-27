@@ -428,7 +428,7 @@ public class Depot {
 			return;
 		}
 		StringTokenizer st = new StringTokenizer(origPath, pathSep);
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		while(st.hasMoreTokens()) {
 			tok = st.nextToken();
 			if(tok.equals(path))

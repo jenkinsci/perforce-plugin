@@ -315,7 +315,7 @@ public class Label extends Mapping {
 	}
 
 	public String toXML() {
-		StringBuffer sb = new StringBuffer("<label name=\"");
+		StringBuilder sb = new StringBuilder("<label name=\"");
 		sb.append(getName());
 		sb.append("\" owner=\"");
 		sb.append(getOwner());

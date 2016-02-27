@@ -302,7 +302,7 @@ public final class FileEntry extends SourceControlObject {
 	 *            Character to be changed to.
 	 */
 	public static String customizePath(String str, char from_char, char to_char) {
-		StringBuffer strbuf = new StringBuffer();
+		StringBuilder strbuf = new StringBuilder();
 		int beg = 0, end = 0;
 		while(-1 != (end = str.indexOf(from_char, beg))) {
 			strbuf.append(str.substring(beg, end));
@@ -322,7 +322,7 @@ public final class FileEntry extends SourceControlObject {
 	 *            Indicates whether the resolve should be forced.
 	 */
 	public String resolve(boolean force) throws IOException {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		String l;
 		String[] rescmd = { "p4", "resolve", "-am", "fileRev" };
 		if(force || -1 != (getHeadType().indexOf("binary")) || -1 != (getHeadType().indexOf("link"))) {
@@ -353,7 +353,7 @@ public final class FileEntry extends SourceControlObject {
 	 *            <code>Enumeration</code> of <code>FileEntry</code>.
 	 */
 	public static String resolveAT(Env env, Enumeration en) throws IOException {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		FileEntry fent;
 		String l;
 		String[] rescmd = { "p4", "-x", "-", "resolve", "-at" };
@@ -391,7 +391,7 @@ public final class FileEntry extends SourceControlObject {
 	 *            Path over which to resolve. May include wildcards.
 	 */
 	public static String resolveAll(Env env, String flags, String path) throws IOException {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		FileEntry fent;
 		String l;
 		String[] rescmd = { "p4", "resolve", flags, path };
@@ -414,7 +414,7 @@ public final class FileEntry extends SourceControlObject {
 	public static String HTMLEncode(String str) {
 		if(null == str)
 			return null;
-		StringBuffer strbuf = new StringBuffer(str.length());
+		StringBuilder strbuf = new StringBuilder(str.length());
 		char tmp;
 		for(int i = 0; i < str.length(); i++) {
 			tmp = str.charAt(i);
@@ -1115,7 +1115,7 @@ public final class FileEntry extends SourceControlObject {
 	 */
 	public String getFileContents(Env env, String path) {
 		String l;
-		StringBuffer ret = null;
+		StringBuilder ret = null;
 		String[] cmd = { "p4", "print", path };
 		try {
 			P4Process p = new P4Process(env);
@@ -1123,7 +1123,7 @@ public final class FileEntry extends SourceControlObject {
 			p.exec(cmd);
 			while(null != (l = p.readLine())) {
 				if(null == ret) {
-					ret = new StringBuffer();
+					ret = new StringBuilder();
 				} else if(l.startsWith("text: ")) {
 					ret.append(l.substring(6));
 					if(!l.endsWith("\n"))
@@ -1131,7 +1131,7 @@ public final class FileEntry extends SourceControlObject {
 				}
 			}
 			if(null == ret) {
-				ret = new StringBuffer();
+				ret = new StringBuilder();
 			}
 
 			if(0 != p.close()) {
@@ -1231,7 +1231,7 @@ public final class FileEntry extends SourceControlObject {
 	}
 
 	public String toXML() {
-		StringBuffer sb = new StringBuffer("<file><have rev=\"");
+		StringBuilder sb = new StringBuilder("<file><have rev=\"");
 		sb.append(getHaveRev());
 		sb.append("\"/><head rev=\"");
 		sb.append(getHeadRev());

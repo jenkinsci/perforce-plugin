@@ -380,7 +380,7 @@ public final class Client extends Mapping {
 	}
 
 	public String toXML() {
-		StringBuffer sb = new StringBuffer("<client name=\"");
+		StringBuilder sb = new StringBuilder("<client name=\"");
 		sb.append(getName());
 		sb.append("\" owner=\"");
 		sb.append(getOwner());

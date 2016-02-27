@@ -149,7 +149,7 @@ public abstract class Mapping extends SourceControlObject implements Comparable 
 	 * @return String version of all the views in this mapping.
 	 */
 	public synchronized String getView() {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		Enumeration en = views.keys();
 		String key, val;
 		while(en.hasMoreElements()) {
@@ -214,7 +214,7 @@ public abstract class Mapping extends SourceControlObject implements Comparable 
 	public abstract void sync(String name);
 
 	public String toXML() {
-		StringBuffer sb = new StringBuffer("<mappings>");
+		StringBuilder sb = new StringBuilder("<mappings>");
 		Enumeration en = views.keys();
 		String key, val;
 		while(en.hasMoreElements()) {

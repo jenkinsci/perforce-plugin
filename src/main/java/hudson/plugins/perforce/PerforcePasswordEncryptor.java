@@ -119,7 +119,7 @@ public class PerforcePasswordEncryptor {
     private static String convertBytesToString(byte[] bytes) {
         if (bytes == null)
             return "";
-        StringBuffer stringBuffer = new StringBuffer(bytes.length);
+        StringBuilder stringBuffer = new StringBuilder(bytes.length);
         for (int i = 0; i < bytes.length; i++) {
             stringBuffer.append((char) bytes[i]);
         }

@@ -286,7 +286,7 @@ public final class Debug {
 	public static void notify(String msg, String[] arry) {
 		if(NOTICE > level)
 			return;
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		for(int i = 0; i < arry.length; i++) {
 			sb.append(arry[i]);
 			sb.append(' ');
@@ -331,7 +331,7 @@ public final class Debug {
 	public static void verbose(String msg, String[] arry) {
 		if(VERBOSE > level)
 			return;
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		for(int i = 0; i < arry.length; i++) {
 			sb.append(arry[i]);
 			sb.append(' ');
@@ -430,7 +430,7 @@ public final class Debug {
 	public static void out(int level, String msg, String[] arry) {
 		if(level > Debug.level)
 			return;
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		for(int i = 0; i < arry.length; i++) {
 			sb.append(arry[i]);
 			sb.append(' ');

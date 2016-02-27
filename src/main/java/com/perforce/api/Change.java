@@ -192,7 +192,7 @@ public final class Change extends SourceControlObject {
 	public void setDescription(String description) {
 		String l;
 		try {
-			StringBuffer sb = new StringBuffer();
+			StringBuilder sb = new StringBuilder();
 			BufferedReader b = new BufferedReader(new StringReader(description));
 			while(null != (l = b.readLine())) {
 				sb.append('\t');
@@ -221,7 +221,7 @@ public final class Change extends SourceControlObject {
 	}
 
 	public String getShortDescription(boolean blurb) {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		String l;
 		try {
 			BufferedReader b = new BufferedReader(new StringReader(getDescription()));
@@ -342,7 +342,7 @@ public final class Change extends SourceControlObject {
 	 *            Indicates whether the resolve should be forced.
 	 */
 	public String resolve(boolean force) throws PerforceException {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		Enumeration en = getFileEntries().elements();
 
 		try {
@@ -378,7 +378,7 @@ public final class Change extends SourceControlObject {
 	 */
 	public String submit() throws SubmitException {
 		String l;
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		if(PENDING != status) {
 			throw new SubmitException("Change already submitted.");
 		}
@@ -409,7 +409,7 @@ public final class Change extends SourceControlObject {
 	public void commit() throws CommitException {
 		Enumeration en;
 		Vector fents = getFileEntries();
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		String[] cmd = { "p4", "change", "-i" };
 		String l;
 		int pos;
@@ -555,7 +555,7 @@ public final class Change extends SourceControlObject {
 	 */
 	public String deleteEmptyChange() throws PerforceException {
 		String l;
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		if(PENDING != status) {
 			throw new PerforceException("Change already submitted.");
 		}
@@ -579,7 +579,7 @@ public final class Change extends SourceControlObject {
 	 * Overrides the default toString() method.
 	 */
 	public String toString() {
-		StringBuffer sb = new StringBuffer("Change: ");
+		StringBuilder sb = new StringBuilder("Change: ");
 		sb.append(number);
 		sb.append("\nUser: ");
 		sb.append(user);
@@ -696,7 +696,7 @@ public final class Change extends SourceControlObject {
 	}
 
 	public String toXML() {
-		StringBuffer sb = new StringBuffer("<change number=\"");
+		StringBuilder sb = new StringBuilder("<change number=\"");
 		sb.append(getNumber());
 		sb.append("\" user=\"");
 		sb.append(getUser());
