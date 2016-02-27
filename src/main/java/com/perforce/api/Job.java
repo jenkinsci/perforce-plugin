@@ -627,8 +627,8 @@ public final class Job extends SourceControlObject {
 		}
 		Vector vc = new Vector();
 		Vector vj = new Vector();
-		Change c = null;
-		Job jb = null;
+		Change c;
+		Job jb;
 		StringTokenizer st;
 		String l, jbname, number, user, tmpdesc = "", modtime, state;
 
