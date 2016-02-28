@@ -263,6 +263,6 @@ public class PerforceChangeLogParser extends ChangeLogParser {
         if (i < 10) {
             return "0" + i;
         }
-        return i + "";
+        return String.valueOf(i);
     }
 }

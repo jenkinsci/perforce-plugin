@@ -3204,7 +3204,7 @@ public class PerforceSCM extends SCM {
     public String getFirstChange() {
         if (firstChange <= 0)
             return "";
-        return Integer.valueOf(firstChange).toString();
+        return String.valueOf(firstChange);
     }
 
     /**
@@ -3218,7 +3218,7 @@ public class PerforceSCM extends SCM {
     public String getFileLimit() {
         if (fileLimit <= 0)
             return "";
-        return Integer.valueOf(fileLimit).toString();
+        return String.valueOf(fileLimit);
     }
 
     public void setFileLimit(int fileLimit) {
