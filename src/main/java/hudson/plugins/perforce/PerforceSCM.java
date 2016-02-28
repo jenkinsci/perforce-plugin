@@ -1009,11 +1009,11 @@ public class PerforceSCM extends SCM {
                     //use the latest submitted change from workspace, or depot
                     try {
                         List<Integer> workspaceChanges = depot.getChanges().getChangeNumbers(p4WorkspacePath, 0, 1);
-                        if (workspaceChanges != null && workspaceChanges.size() > 0) {
+                        if (workspaceChanges != null && !workspaceChanges.isEmpty()) {
                             newestChange = workspaceChanges.get(0);
                         } else {
                             List<Integer> depotChanges = depot.getChanges().getChangeNumbers("//...", 0, 1);
-                            if (depotChanges != null && depotChanges.size() > 0) {
+                            if (depotChanges != null && !depotChanges.isEmpty()) {
                                 newestChange = depotChanges.get(0);
                             }
                         }
@@ -1072,7 +1072,7 @@ public class PerforceSCM extends SCM {
                 }
                 changes = depot.getChanges().getChangelistsFromNumbers(changeNumbersTo, fileLimit);
 
-                if (changes.size() > 0) {
+                if (!changes.isEmpty()) {
                     // Save the changes we discovered.
                     PerforceChangeLogSet.saveToChangeLog(
                             new FileOutputStream(changelogFile), changes);
@@ -1494,7 +1494,7 @@ public class PerforceSCM extends SCM {
             List<String> files = Arrays.asList(
                     MacroStringHelper.substituteParameters(excludedFiles, this, project, node, null).split("\n"));
             
-            if (files.size() > 0 && changelist.getFiles().size() > 0) {
+            if (!files.isEmpty() && !changelist.getFiles().isEmpty()) {
                 StringBuilder buff = new StringBuilder("Exclude file(s) found:\n");
                 for (FileEntry f : changelist.getFiles()) {
                     if (!doesFilenameMatchAnyP4Pattern(f.getFilename(),files,excludedFilesCaseSensitivity) &&

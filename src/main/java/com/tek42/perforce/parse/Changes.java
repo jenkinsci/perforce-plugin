@@ -319,7 +319,7 @@ public class Changes extends AbstractPerforceTemplate {
 				throw e;
 			}
 			List<String> temp = parseList(response, 1);
-			if(temp.size() == 0)
+			if(temp.isEmpty())
 				break;
 			for(String num : temp) {
 				if(new Integer(num) >= untilChange)
