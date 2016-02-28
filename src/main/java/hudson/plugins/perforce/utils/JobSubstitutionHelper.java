@@ -45,7 +45,10 @@ import javax.annotation.Nonnull;
  * @since 1.3.32
  */
 public class JobSubstitutionHelper {
-    
+
+    private JobSubstitutionHelper() {
+    }
+
     /**package*/ static void getDefaultSubstitutions(
             @Nonnull AbstractProject project, 
             @Nonnull Map<String, String> subst) {
