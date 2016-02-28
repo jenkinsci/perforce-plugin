@@ -130,7 +130,7 @@ public final class Counter extends SourceControlObject {
 			p = new P4Process(getEnv());
 			p.exec(cmd);
 			l = p.readLine();
-			value = Integer.valueOf(l).intValue();
+			value = Integer.parseInt(l);
 			while(null != (l = p.readLine())) {
 			}
 			p.close();

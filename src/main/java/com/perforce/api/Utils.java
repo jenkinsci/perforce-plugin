@@ -209,7 +209,7 @@ public final class Utils {
 		if(0 > i)
 			return -1;
 		try {
-			return Integer.valueOf(path.substring(i + 1)).intValue();
+			return Integer.parseInt(path.substring(i + 1));
 		} catch(NumberFormatException ex) {
 			return -1;
 		}
