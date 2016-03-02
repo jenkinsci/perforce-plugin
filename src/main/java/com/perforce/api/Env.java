@@ -336,7 +336,7 @@ public class Env {
 			setSystemRoot(value);
 		} else if(key.equals("p4.threshold")) {
 			try {
-				setServerTimeout(Integer.valueOf(value).intValue());
+				setServerTimeout(Integer.parseInt(value));
 			} catch(Exception ex) { /* Ignored Exception */
 			}
 		}
@@ -424,7 +424,7 @@ public class Env {
 		setSystemDrive(getProperty("p4.sysdrive", "C:"));
 		setSystemRoot(getProperty("p4.sysroot", "C:\\WINNT"));
 		try {
-			setServerTimeout(Integer.valueOf(getProperty("p4.threshold", "10000")).intValue());
+			setServerTimeout(Integer.parseInt(getProperty("p4.threshold", "10000")));
 		} catch(Exception ex) { /* Ignored Exception */
 		}
 

@@ -83,7 +83,7 @@ public final class Change extends SourceControlObject {
 
 	public Change(String number) {
 		this();
-		this.number = Integer.valueOf(number).intValue();
+		this.number = Integer.parseInt(number);
 	}
 
 	private static HashDecay setCache() {
@@ -305,7 +305,7 @@ public final class Change extends SourceControlObject {
 						fent.setDepotPath(t.substring(beg, end));
 						beg = end + 1;
 						if(-1 != (end = t.indexOf(' ', beg))) {
-							fent.setHeadRev(Integer.valueOf(t.substring(beg, end).trim()).intValue());
+							fent.setHeadRev(Integer.parseInt(t.substring(beg, end).trim()));
 							fent.setHeadAction(t.substring(end + 1));
 						}
 					} else {
@@ -434,7 +434,7 @@ public final class Change extends SourceControlObject {
 			}
 			p.println("Description: ");
 			p.println(getDescription());
-			if(null != fents && 0 < fents.size()) {
+			if(null != fents && !fents.isEmpty()) {
 				FileEntry fent;
 				p.println("Files: ");
 				en = fents.elements();
@@ -452,7 +452,7 @@ public final class Change extends SourceControlObject {
 			while(null != (l = p.readLine())) {
 				Debug.notify("READ: " + l);
 				if(l.startsWith("Change ") && (-1 != (pos = l.indexOf("created")))) {
-					setNumber(Integer.valueOf(l.substring(7, pos - 1).trim()).intValue());
+					setNumber(Integer.parseInt(l.substring(7, pos - 1).trim()));
 				}
 				if(l.startsWith("Error"))
 					store_failed = true;
@@ -713,7 +713,7 @@ public final class Change extends SourceControlObject {
 
 		Vector v = getFileEntries();
 		FileEntry fent = null;
-		if(null != v && 0 != v.size()) {
+		if(null != v && !v.isEmpty()) {
 			sb.append("<files>");
 			for(int i = 0; i < v.size(); i++) {
 				fent = (FileEntry) v.elementAt(i);
@@ -772,7 +772,7 @@ public final class Change extends SourceControlObject {
 		} catch(Exception ex) {
 			throw new PerforceException(ex.getMessage());
 		}
-		if(0 == users.size())
+		if(users.isEmpty())
 			return null;
 		return (User[]) users.toArray(usrs);
 	}

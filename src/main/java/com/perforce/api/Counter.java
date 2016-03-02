@@ -130,7 +130,7 @@ public final class Counter extends SourceControlObject {
 			p = new P4Process(getEnv());
 			p.exec(cmd);
 			l = p.readLine();
-			value = Integer.valueOf(l).intValue();
+			value = Integer.parseInt(l);
 			while(null != (l = p.readLine())) {
 			}
 			p.close();
@@ -177,7 +177,7 @@ public final class Counter extends SourceControlObject {
 			}
 			throw new PerforceException(ex.getMessage());
 		}
-		if(0 == v.size())
+		if(v.isEmpty())
 			return null;
 		return (Counter[]) v.toArray(new Counter[0]);
 	}
@@ -238,7 +238,7 @@ public final class Counter extends SourceControlObject {
 			}
 			throw new PerforceException(ex.getMessage());
 		}
-		if(0 == v.size())
+		if(v.isEmpty())
 			return null;
 		return (Change[]) v.toArray(new Change[0]);
 	}

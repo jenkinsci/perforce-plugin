@@ -42,7 +42,10 @@ import org.jvnet.hudson.test.Bug;
  */
 @Ignore
 public class JobSubstitutionHelperTest {
-      
+
+    private JobSubstitutionHelperTest() {
+    }
+
     public static void assertNoSpecialSymbols(@Nonnull String value) {
         Assert.assertFalse(value.contains("/"));
         Assert.assertFalse(value.contains("="));
