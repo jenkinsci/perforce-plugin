@@ -83,7 +83,7 @@ public final class Change extends SourceControlObject {
 
 	public Change(String number) {
 		this();
-		this.number = Integer.valueOf(number).intValue();
+		this.number = Integer.parseInt(number);
 	}
 
 	private static HashDecay setCache() {
@@ -305,7 +305,7 @@ public final class Change extends SourceControlObject {
 						fent.setDepotPath(t.substring(beg, end));
 						beg = end + 1;
 						if(-1 != (end = t.indexOf(' ', beg))) {
-							fent.setHeadRev(Integer.valueOf(t.substring(beg, end).trim()).intValue());
+							fent.setHeadRev(Integer.parseInt(t.substring(beg, end).trim()));
 							fent.setHeadAction(t.substring(end + 1));
 						}
 					} else {
@@ -452,7 +452,7 @@ public final class Change extends SourceControlObject {
 			while(null != (l = p.readLine())) {
 				Debug.notify("READ: " + l);
 				if(l.startsWith("Change ") && (-1 != (pos = l.indexOf("created")))) {
-					setNumber(Integer.valueOf(l.substring(7, pos - 1).trim()).intValue());
+					setNumber(Integer.parseInt(l.substring(7, pos - 1).trim()));
 				}
 				if(l.startsWith("Error"))
 					store_failed = true;

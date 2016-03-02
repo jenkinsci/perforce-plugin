@@ -1200,15 +1200,15 @@ public final class FileEntry extends SourceControlObject {
 			} else if(dataname.equals("headAction")) {
 				nfe.setHeadAction(datavalue);
 			} else if(dataname.equals("headChange")) {
-				nfe.setHeadChange(new Integer(datavalue).intValue());
+				nfe.setHeadChange(Integer.parseInt(datavalue));
 			} else if(dataname.equals("headRev")) {
-				nfe.setHeadRev(new Integer(datavalue).intValue());
+				nfe.setHeadRev(Integer.parseInt(datavalue));
 			} else if(dataname.equals("headType")) {
 				nfe.setHeadType(datavalue);
 			} else if(dataname.equals("headTime")) {
-				nfe.setHeadTime(new Long(datavalue).longValue());
+				nfe.setHeadTime(Long.parseLong(datavalue));
 			} else if(dataname.equals("haveRev")) {
-				nfe.setHaveRev(new Integer(datavalue).intValue());
+				nfe.setHaveRev(Integer.parseInt(datavalue));
 			} else if(dataname.equals("action")) {
 
 			} else if(dataname.equals("change")) {

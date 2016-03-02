@@ -443,8 +443,7 @@ public class P4Process {
 						} else if(line.startsWith("text")) {
 						} else if(line.startsWith("info")) {
 						} else if(line.startsWith("exit")) {
-							int exit_code = new Integer(line.substring(line.indexOf(" ") + 1, line.length()))
-									.intValue();
+							int exit_code = Integer.parseInt(line.substring(line.indexOf(" ") + 1, line.length()));
 							if(0 == exit_code) {
 								Debug.verbose("P4 Exec Complete.");
 							} else {

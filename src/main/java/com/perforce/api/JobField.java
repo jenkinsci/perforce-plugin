@@ -126,10 +126,10 @@ public final class JobField {
 
 		try {
 			st.nextToken(); /* Skip 'info:' */
-			code = Integer.valueOf(st.nextToken()).intValue();
+			code = Integer.parseInt(st.nextToken());
 			name = st.nextToken();
 			dtype = st.nextToken();
-			len = Integer.valueOf(st.nextToken()).intValue();
+			len = Integer.parseInt(st.nextToken());
 			ftype = st.nextToken();
 			jf = new JobField(code, name, dtype, len, ftype);
 		} catch(Exception ex) {
