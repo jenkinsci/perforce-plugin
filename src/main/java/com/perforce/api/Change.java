@@ -434,7 +434,7 @@ public final class Change extends SourceControlObject {
 			}
 			p.println("Description: ");
 			p.println(getDescription());
-			if(null != fents && 0 < fents.size()) {
+			if(null != fents && !fents.isEmpty()) {
 				FileEntry fent;
 				p.println("Files: ");
 				en = fents.elements();
@@ -713,7 +713,7 @@ public final class Change extends SourceControlObject {
 
 		Vector v = getFileEntries();
 		FileEntry fent = null;
-		if(null != v && 0 != v.size()) {
+		if(null != v && !v.isEmpty()) {
 			sb.append("<files>");
 			for(int i = 0; i < v.size(); i++) {
 				fent = (FileEntry) v.elementAt(i);
@@ -772,7 +772,7 @@ public final class Change extends SourceControlObject {
 		} catch(Exception ex) {
 			throw new PerforceException(ex.getMessage());
 		}
-		if(0 == users.size())
+		if(users.isEmpty())
 			return null;
 		return (User[]) users.toArray(usrs);
 	}

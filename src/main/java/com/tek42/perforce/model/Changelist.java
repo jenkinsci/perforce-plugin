@@ -66,13 +66,13 @@ public class Changelist implements java.io.Serializable {
 		sb.append("by " + user + "@" + workspace + "\n");
 		sb.append("on " + date + "\n");
 		sb.append("Description:\n" + description + "\n");
-		if(jobs.size() > 0) {
+		if(!jobs.isEmpty()) {
 			sb.append("Jobs: \n");
 			for(JobEntry job : jobs) {
 				sb.append(job + "\n");
 			}
 		}
-		if(files.size() > 0) {
+		if(!files.isEmpty()) {
 			sb.append("Files: \n");
 			for(FileEntry file : files) {
 				sb.append(file + "\n");
