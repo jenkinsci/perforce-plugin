@@ -182,7 +182,7 @@ public class PerforceTagAction extends AbstractScmTagAction {
         Label label = new Label();
         label.setName(tagname);
         label.setDescription(description);
-        label.setRevision(new Integer(changeNumber).toString());
+        label.setRevision(String.valueOf(changeNumber));
         if(owner!=null && !owner.equals("")) label.setOwner(owner);
 
         PerforceSCM scm = getSCM();

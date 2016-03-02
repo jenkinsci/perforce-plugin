@@ -58,7 +58,7 @@ public class PerforceChangeLogEntry extends ChangeLogSet.Entry {
 
     @Exported
     public String getChangeNumber() {
-        return new Integer(getChange().getChangeNumber()).toString();
+        return String.valueOf(getChange().getChangeNumber());
     }
 
     //used for email-ext

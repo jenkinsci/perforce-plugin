@@ -317,8 +317,8 @@ public class ChangelistBuilder implements Builder<Changelist> {
 		GregorianCalendar cal = (GregorianCalendar) Calendar.getInstance();
 		cal.clear();
 
-		cal.set(new Integer(date[0]).intValue(), (new Integer(date[1]).intValue() - 1), new Integer(date[2]).intValue(), new Integer(
-				time[0]).intValue(), new Integer(time[1]).intValue(), new Integer(time[2]).intValue());
+		cal.set(Integer.parseInt(date[0]), (Integer.parseInt(date[1]) - 1), Integer.parseInt(date[2]), Integer.parseInt(
+				time[0]), Integer.parseInt(time[1]), Integer.parseInt(time[2]));
 
 		return cal.getTime();
 	}
