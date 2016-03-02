@@ -52,7 +52,10 @@ import javax.annotation.Nonnull;
 public class MacroStringHelper {
     
     public static final Level SUBSTITUTION_ERROR_LEVEL = Level.WARNING;
-    
+
+    private MacroStringHelper() {
+    }
+
     /**
      * Substitute parameters and validate contents of the resulting string.
      * This is a generic method, which invokes routines for {@link AbstractBuild} if it is not null.

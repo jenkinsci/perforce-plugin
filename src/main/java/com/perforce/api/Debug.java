@@ -72,6 +72,9 @@ public final class Debug {
 
 	private static boolean show_thread = false;
 
+	private Debug() {
+	}
+
 	/**
 	 * Returns the name associated with the specified level.
 	 * 

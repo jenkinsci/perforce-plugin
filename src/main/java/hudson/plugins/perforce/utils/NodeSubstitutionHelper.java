@@ -47,6 +47,9 @@ public class NodeSubstitutionHelper {
 
     private static final Logger LOGGER = Logger.getLogger(PerforceSCM.class.getName());
 
+    private NodeSubstitutionHelper() {
+    }
+
     /**
      * Gets default variable substitutions for the {@link Node}.
      * The method injects global and node-specific {@link EnvironmentVariablesNodeProperty}

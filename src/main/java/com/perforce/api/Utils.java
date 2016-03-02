@@ -39,6 +39,9 @@ public final class Utils {
 
     private static final String ENCODING_SCHEME = "UTF-8";
 
+	private Utils() {
+	}
+
 	/**
 	 * Initializes the package, in order to avoid some arbitrary JVM problems
 	 * that have been encountered. This is a hack and should not have to be done
