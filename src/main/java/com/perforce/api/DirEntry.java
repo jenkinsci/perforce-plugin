@@ -369,7 +369,7 @@ public final class DirEntry extends SourceControlObject {
 	}
 
 	public String toXML() {
-		StringBuffer sb = new StringBuffer("<dir path=\"");
+		StringBuilder sb = new StringBuilder("<dir path=\"");
 		sb.append(getPath());
 		sb.append("\"/>");
 		return sb.toString();

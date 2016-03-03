@@ -211,7 +211,7 @@ public class EventLog {
 	 *            Indicates that the output should be XML/HTML encoded.
 	 */
 	public synchronized void log(String event, String level, boolean encode) {
-		StringBuffer sb = new StringBuffer("<log level=\"");
+		StringBuilder sb = new StringBuilder("<log level=\"");
 		if(null == level) {
 			if(-1 == event.indexOf("ERROR")) {
 				sb.append("NOMINAL");

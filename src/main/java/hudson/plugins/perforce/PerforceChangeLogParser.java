@@ -34,7 +34,7 @@ public class PerforceChangeLogParser extends ChangeLogParser {
     
     public static class ChangeLogHandler extends DefaultHandler {
         private Stack objects = new Stack();
-        private StringBuffer text = new StringBuffer();
+        private StringBuilder text = new StringBuilder();
 
         private List<PerforceChangeLogEntry> changeLogEntries = null;
         private PerforceChangeLogSet changeLogSet = null;

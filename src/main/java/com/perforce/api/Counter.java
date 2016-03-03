@@ -244,7 +244,7 @@ public final class Counter extends SourceControlObject {
 	}
 
 	public String toXML() {
-		StringBuffer sb = new StringBuffer("<counter name=\"");
+		StringBuilder sb = new StringBuilder("<counter name=\"");
 		sb.append(this.name);
 		sb.append("\" value=\"");
 		sb.append(this.value);

@@ -144,7 +144,7 @@ public final class Utils {
 	public static String HTMLEncode(String str) {
 		if(null == str)
 			return "null";
-		StringBuffer strbuf = new StringBuffer(str.length());
+		StringBuilder strbuf = new StringBuilder(str.length());
 		char tmp;
 		for(int i = 0; i < str.length(); i++) {
 			tmp = str.charAt(i);

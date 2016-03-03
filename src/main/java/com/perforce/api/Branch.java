@@ -230,7 +230,7 @@ public class Branch extends Mapping {
 	 * @return Change containing the files integrated.
 	 * @see Change
 	 */
-	public static Change integrate(Env env, Vector fents, String branch, StringBuffer sb, String description)
+	public static Change integrate(Env env, Vector fents, String branch, StringBuilder sb, String description)
 			throws CommitException, PerforceException {
 		Change c = new Change();
 		c.setEnv(env);
@@ -259,7 +259,7 @@ public class Branch extends Mapping {
 	 * @return Change containing the files integrated.
 	 * @see Change
 	 */
-	public static Change integrate(Env env, Vector fents, String branch, StringBuffer sb, Change c)
+	public static Change integrate(Env env, Vector fents, String branch, StringBuilder sb, Change c)
 			throws PerforceException {
 		FileEntry fent;
 
@@ -280,9 +280,9 @@ public class Branch extends Mapping {
 	 *            buffer that will contain a log of the integration.
 	 * @param c
 	 *            Change to be used to contain the integrated files.
-	 * @see Branch#integrate(Env,String,String,StringBuffer,Change)
+	 * @see Branch#integrate(Env,String,String,StringBuilder,Change)
 	 */
-	public Change integrate(String source, StringBuffer sb, Change c) throws PerforceException {
+	public Change integrate(String source, StringBuilder sb, Change c) throws PerforceException {
 		if(null == c) {
 			c = new Change();
 			c.setDescription("Automated Integration");
@@ -309,7 +309,7 @@ public class Branch extends Mapping {
 	 * @return Change containing the files integrated.
 	 * @see Change
 	 */
-	public static Change integrate(Env env, String source, String branch, StringBuffer sb, Change c)
+	public static Change integrate(Env env, String source, String branch, StringBuilder sb, Change c)
 			throws PerforceException {
 		String[] intcmd = { "p4", "integrate", "-v", "-d", "-c", String.valueOf(c.getNumber()), "-b", branch, "-s",
 				source };
@@ -425,7 +425,7 @@ public class Branch extends Mapping {
 	}
 
 	public String toXML() {
-		StringBuffer sb = new StringBuffer("<branch name=\"");
+		StringBuilder sb = new StringBuilder("<branch name=\"");
 		sb.append(getName());
 		sb.append("\" owner=\"");
 		sb.append(getOwner());

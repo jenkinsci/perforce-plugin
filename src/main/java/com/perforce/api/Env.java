@@ -549,7 +549,7 @@ public class Env {
 			return;
 		}
 		StringTokenizer st = new StringTokenizer(orig_path, sep_path);
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		while(st.hasMoreTokens()) {
 			tok = (String) st.nextToken();
 			if(tok.equals(path))
@@ -646,7 +646,7 @@ public class Env {
 
 	public String toString() {
 		String[] envp = getEnvp();
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		for(int i = 0; i < envp.length; i++) {
 			sb.append(envp[i]);
 			sb.append("\n");
@@ -658,7 +658,7 @@ public class Env {
 	 * Returns an XML representation of the environment.
 	 */
 	public String toXML() {
-		StringBuffer sb = new StringBuffer("<env");
+		StringBuilder sb = new StringBuilder("<env");
 		sb.append(" user=\"");
 		sb.append(getUser());
 		sb.append("\" client=\"");

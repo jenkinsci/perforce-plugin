@@ -306,7 +306,7 @@ public final class User extends SourceControlObject {
 	}
 
 	public String toXML() {
-		StringBuffer sb = new StringBuffer("<user id=\"");
+		StringBuilder sb = new StringBuilder("<user id=\"");
 		sb.append(getId());
 		sb.append("\" fullname=\"");
 		sb.append(getFullName());

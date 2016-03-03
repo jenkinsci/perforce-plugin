@@ -267,7 +267,7 @@ public final class JobField {
 	}
 
 	public String toXML() {
-		StringBuffer sb = new StringBuffer("<field>");
+		StringBuilder sb = new StringBuilder("<field>");
 		sb.append("</field>");
 		return sb.toString();
 	}
