@@ -630,7 +630,7 @@ public final class Job extends SourceControlObject {
 		Change c = null;
 		Job jb = null;
 		StringTokenizer st;
-		String l, jbname, number, user, tmpdesc = "", modtime, state;
+		String l, jbname = "";
 
 		try {
 			P4Process p = new P4Process(env);

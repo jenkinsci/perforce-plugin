@@ -737,7 +737,6 @@ public final class Change extends SourceControlObject {
 	public User[] reviews() throws PerforceException {
 		Vector users = new Vector();
 		User[] usrs = new User[0];
-		User chng;
 		User usr;
 		String uid;
 		String email;

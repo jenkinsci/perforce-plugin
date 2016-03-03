@@ -392,7 +392,6 @@ public final class FileEntry extends SourceControlObject {
 	 */
 	public static String resolveAll(Env env, String flags, String path) throws IOException {
 		StringBuffer sb = new StringBuffer();
-		FileEntry fent;
 		String l;
 		String[] rescmd = { "p4", "resolve", flags, path };
 		P4Process p = new P4Process(env);
@@ -1145,7 +1144,6 @@ public final class FileEntry extends SourceControlObject {
 	}
 
 	public void sync() {
-		String l;
 		String[] cmd = { "p4", "fstat", "path" };
 		if(null != depot_path) {
 			cmd[2] = depot_path;
