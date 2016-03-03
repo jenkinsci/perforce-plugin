@@ -1129,15 +1129,16 @@ public final class FileEntry extends SourceControlObject {
 						ret.append('\n');
 				}
 			}
-			if(null == ret) {
-				ret = new StringBuilder();
-			}
 
 			if(0 != p.close()) {
 				throw new IOException("P4 exited with and error:" + p.getExitCode());
 			}
 		} catch(IOException ex) {
 			Debug.out(Debug.ERROR, ex);
+		}
+		
+		if(null == ret) {
+			ret = new StringBuilder();
 		}
 		file_content = ret.toString();
 		return file_content;
@@ -1187,37 +1188,37 @@ public final class FileEntry extends SourceControlObject {
 
 			dataname = (String) (tokes.hasMoreElements() ? tokes.nextElement() : null);
 			datavalue = (String) (tokes.hasMoreElements() ? tokes.nextElement() : null);
-			if(dataname.equals("clientFile")) {
+			if("clientFile".equals(dataname)) {
 				nfe.setClientPath(datavalue);
-			} else if(dataname.equals("depotFile")) {
+			} else if("depotFile".equals(dataname)) {
 				if(multiple)
 					nfe = new FileEntry(p.getEnv());
 				nfe.setDepotPath(datavalue);
 				v.add(nfe);
 				multiple = true;
-			} else if(dataname.equals("headAction")) {
+			} else if("headAction".equals(dataname)) {
 				nfe.setHeadAction(datavalue);
-			} else if(dataname.equals("headChange")) {
+			} else if("headChange".equals(dataname)) {
 				nfe.setHeadChange(Integer.parseInt(datavalue));
-			} else if(dataname.equals("headRev")) {
+			} else if("headRev".equals(dataname)) {
 				nfe.setHeadRev(Integer.parseInt(datavalue));
-			} else if(dataname.equals("headType")) {
+			} else if("headType".equals(dataname)) {
 				nfe.setHeadType(datavalue);
-			} else if(dataname.equals("headTime")) {
+			} else if("headTime".equals(dataname)) {
 				nfe.setHeadTime(Long.parseLong(datavalue));
-			} else if(dataname.equals("haveRev")) {
+			} else if("haveRev".equals(dataname)) {
 				nfe.setHaveRev(Integer.parseInt(datavalue));
-			} else if(dataname.equals("action")) {
+			} else if("action".equals(dataname)) {
 
-			} else if(dataname.equals("change")) {
+			} else if("change".equals(dataname)) {
 
-			} else if(dataname.equals("unresolved")) {
+			} else if("unresolved".equals(dataname)) {
 
-			} else if(dataname.equals("otherOpen")) {
+			} else if("otherOpen".equals(dataname)) {
 
-			} else if(dataname.equals("otherLock")) {
+			} else if("otherLock".equals(dataname)) {
 
-			} else if(dataname.equals("ourLock")) {
+			} else if("ourLock".equals(dataname)) {
 
 			}
 		}

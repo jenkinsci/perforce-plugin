@@ -123,7 +123,7 @@ public class ChangelistBuilder implements Builder<Changelist> {
 
 				}
 
-				if(line.startsWith("Jobs fixed")) {
+				if(line != null && line.startsWith("Jobs fixed")) {
 					logger.debug("Has jobs.");
 					List<Changelist.JobEntry> jobs = new ArrayList<Changelist.JobEntry>();
 					boolean getDesc = false;
