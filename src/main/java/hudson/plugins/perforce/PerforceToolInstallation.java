@@ -76,7 +76,7 @@ public final class PerforceToolInstallation extends ToolInstallation implements 
     }
 
     private static PerforceToolInstallation[] getInstallations(DescriptorImpl descriptor) {
-        PerforceToolInstallation[] installations = null;
+        PerforceToolInstallation[] installations;
         try {
             installations = descriptor.getInstallations();
         } catch (NullPointerException e) {

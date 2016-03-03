@@ -240,7 +240,7 @@ public class PerforceChangeLogParser extends ChangeLogParser {
 
         String[] parts = newDate.split(" ");
         String[] date = parts[0].split("-");
-        String[] time = null;
+        String[] time;
 
         if (parts.length > 1) {
             time = parts[1].split(":");

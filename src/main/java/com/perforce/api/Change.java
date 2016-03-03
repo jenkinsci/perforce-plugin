@@ -712,7 +712,7 @@ public final class Change extends SourceControlObject {
 		sb.append("</description>");
 
 		Vector v = getFileEntries();
-		FileEntry fent = null;
+		FileEntry fent;
 		if(null != v && !v.isEmpty()) {
 			sb.append("<files>");
 			for(int i = 0; i < v.size(); i++) {

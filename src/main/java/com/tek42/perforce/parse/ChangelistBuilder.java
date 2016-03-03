@@ -128,7 +128,7 @@ public class ChangelistBuilder implements Builder<Changelist> {
 					List<Changelist.JobEntry> jobs = new ArrayList<Changelist.JobEntry>();
 					boolean getDesc = false;
 					Changelist.JobEntry job = new Changelist.JobEntry();
-					String description = null;
+					String description;
 					line = lines.nextToken();
 					while(!line.startsWith("Affected files")) {
 						logger.debug("Job Line: " + line);
@@ -305,7 +305,7 @@ public class ChangelistBuilder implements Builder<Changelist> {
 
 		String parts[] = newDate.split(" ");
 		String date[] = parts[0].split("/");
-		String time[] = null;
+		String time[];
 
 		if(parts.length > 1) {
 			time = parts[1].split(":");

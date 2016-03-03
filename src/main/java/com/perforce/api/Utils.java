@@ -174,7 +174,7 @@ public final class Utils {
 		if(null == en || !en.hasMoreElements())
 			return "";
 		String common = (String) en.nextElement();
-		String str = null;
+		String str;
 		int i, len;
 		char[] ar1, ar2;
 
@@ -251,7 +251,7 @@ public final class Utils {
 			boolean urlencode) throws PerforceException {
 		StringBuffer sb = new StringBuffer("//");
 		Object[] args = { "path", "part" };
-		int p1 = 1, p2 = 0;
+		int p1 = 1, p2;
 
 		if(null == path || (!path.startsWith("//"))) {
 			throw new PerforceException(path + " is not a depot path.");

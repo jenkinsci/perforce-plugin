@@ -165,7 +165,7 @@ public final class User extends SourceControlObject {
 		}
 
 		String tid;
-		int i, left = 0;
+		int i, left;
 		uid = uid.trim();
 		if(-1 == (left = uid.indexOf("<"))) {
 			tid = uid;

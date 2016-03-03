@@ -309,11 +309,11 @@ public abstract class AbstractPerforceTemplate {
 
 	protected StringBuilder getPerforceResponse(String origcmd[], ResponseFilter filter) throws PerforceException {
 		// TODO: Create a way to wildcard portions of the error checking.  Add method to check for these errors.
-		boolean loop = false;
+		boolean loop;
 		boolean attemptLogin = true;
 
-		List<String> lines = null;
-		int totalLength = 0;
+		List<String> lines;
+		int totalLength;
                 
 		do {
 			int mesgIndex = -1, count = 0;
@@ -331,7 +331,7 @@ public abstract class AbstractPerforceTemplate {
 			// Perform execution and IO
 			p4.exec(cmd);
 			BufferedReader reader = p4.getReader();
-			String line = null;
+			String line;
 			totalLength = 0;
 			lines = new ArrayList<String>(1024);
                         TimedStreamCloser timedStreamCloser=null;
@@ -453,7 +453,7 @@ public abstract class AbstractPerforceTemplate {
         {
             BufferedReader reader = p4.getReader();
             p4.getWriter().close();
-            String line = null;
+            String line;
             while((line = reader.readLine()) != null) {
                 lines.add(line);
             }
@@ -520,7 +520,7 @@ public abstract class AbstractPerforceTemplate {
             byte[] cbuf = new byte[1024];
             InputStream input = p4.getInputStream();
             p4.getWriter().close();
-            int readCount = -1;
+            int readCount;
             while((readCount = input.read(cbuf, 0, 1024)) != -1) {
                 for(int i=0; i<readCount; i++){
                     bytes.add(new Byte((byte)(cbuf[i]&0xff)));
@@ -576,7 +576,7 @@ public abstract class AbstractPerforceTemplate {
 
 		try {
 		    // try the default location for p4 executable
-            String ticket = null;
+            String ticket;
             try {
                 ticket = p4Login(getP4Exe());
             } catch (PerforceException e) {

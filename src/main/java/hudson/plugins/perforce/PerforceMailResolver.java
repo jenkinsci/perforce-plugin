@@ -69,7 +69,7 @@ public class PerforceMailResolver extends MailAddressResolver {
                 for (int tries = 0; tries < 5; tries++) {
                     FilePath workspace = p.getLastBuiltOn().getRootPath();
                     Launcher launcher = p.getLastBuiltOn().createLauncher(listener);
-                    com.tek42.perforce.model.User pu = null;
+                    com.tek42.perforce.model.User pu;
                     try {
                         LOGGER.finer("Trying to get email address from perforce for " + perforceId);
                         pu = pscm.getDepot(launcher, workspace, p, null, node).getUsers().getUser(perforceId);

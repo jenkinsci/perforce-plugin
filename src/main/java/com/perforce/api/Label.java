@@ -328,8 +328,8 @@ public class Label extends Mapping {
 	public static void main(String[] args) {
 		String propfile = "/etc/p4.conf";
 		Env environ = null;
-		Enumeration labels = null;
-		Label lbl = null;
+		Enumeration labels;
+		Label lbl;
 
 		Debug.setDebugLevel(Debug.VERBOSE);
 		if(0 < args.length)

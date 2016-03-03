@@ -303,7 +303,7 @@ public final class FileEntry extends SourceControlObject {
 	 */
 	public static String customizePath(String str, char from_char, char to_char) {
 		StringBuilder strbuf = new StringBuilder();
-		int beg = 0, end = 0;
+		int beg = 0, end;
 		while(-1 != (end = str.indexOf(from_char, beg))) {
 			strbuf.append(str.substring(beg, end));
 			strbuf.append(to_char);
@@ -510,7 +510,7 @@ public final class FileEntry extends SourceControlObject {
 		String l, tmp;
 		StringTokenizer st;
 		P4Process p;
-		FileEntry fent = null, tmpent = null;
+		FileEntry fent = null, tmpent;
 		Vector v = new Vector();
 		int beg, end;
 
@@ -1022,7 +1022,7 @@ public final class FileEntry extends SourceControlObject {
 		String l;
 		int pos1, pos2;
 		Vector v = new Vector();
-		FileEntry fent = null;
+		FileEntry fent;
 		try {
 			P4Process p = new P4Process(env);
 			p.exec(cmd);
