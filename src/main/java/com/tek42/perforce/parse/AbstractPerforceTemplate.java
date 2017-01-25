@@ -46,6 +46,7 @@ import com.tek42.perforce.process.Executor;
 import hudson.plugins.perforce.PerforceSCM;
 import hudson.plugins.perforce.utils.TimedStreamCloser;
 import java.io.InputStream;
+import java.util.logging.Level;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -135,7 +136,12 @@ public abstract class AbstractPerforceTemplate {
         public abstract static class ResponseFilter {
             public abstract boolean accept(String line);
             public boolean reject(String line){
-                return !accept(line);
+                if (accept(line)) {
+                    return false;
+                } else {
+                    java.util.logging.Logger.getLogger(AbstractPerforceTemplate.class.getName()).log(Level.FINE, "rejected output line ‘{0}’", line);
+                    return true;
+                }
             }
         }
 
