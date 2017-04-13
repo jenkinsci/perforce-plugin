@@ -103,7 +103,7 @@ public class PerforceSCM extends SCM {
 
     private static final String WORKSPACE_COMBINATOR = System.getProperty(hudson.slaves.WorkspaceList.class.getName(),"@");
 
-    private static final int MAX_BUILD_ENV_VARS_NESTED_CALLS = 2;
+    private static final int MAX_BUILD_ENV_VARS_NESTED_CALLS = 4;
     
     /**
      * Name of the p4 tool installation
