@@ -243,7 +243,13 @@ public class MacroStringHelper {
             JobSubstitutionHelper.getDefaultSubstitutions(project, substitutions);
         }
         getDefaultSubstitutions(instance, substitutions);
-        outputString = substituteParametersNoCheck(outputString, substitutions);    
+        int count = 0;
+        
+        do{
+        	 outputString = substituteParametersNoCheck(outputString, substitutions);  
+        	 count++;
+        }while(count<4 && containsMacro(outputString));
+           
         
         return outputString;
     }
