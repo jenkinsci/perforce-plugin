@@ -28,6 +28,9 @@
     <developer>
       <id>oleg_nenashev</id>
       <name>Oleg Nenashev</name>
+      <roles>
+        <role>Maintainer (retired)</role>
+      </roles>
       <email>o dot v dot nenashev at gmail dot com</email>
     </developer>
   </developers>
